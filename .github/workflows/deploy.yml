@@ -52,6 +52,9 @@ jobs:
           cp zh-TW/style.css docs/ 2>/dev/null || true
           echo "lnbook-zh.doge.tg" > docs/CNAME
 
+          # Add Google Analytics
+          sed -i 's|</head>|<script async src="https://www.googletagmanager.com/gtag/js?id=G-LDEV0N6689"></script>\n<script>\n  window.dataLayer = window.dataLayer \|\| [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag("js", new Date());\n  gtag("config", "G-LDEV0N6689");\n</script>\n</head>|' docs/index.html
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
