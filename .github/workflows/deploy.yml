@@ -58,6 +58,27 @@ jobs:
           # Update page title
           sed -i 's|<title>[^<]*</title>|<title>精通閃電網路 - Mastering the Lightning Network 繁體中文版</title>|' docs/index.html
 
+          # Generate sitemap.xml
+          cat > docs/sitemap.xml << 'SITEMAP'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+            <url>
+              <loc>https://lnbook-zh.doge.tg/</loc>
+              <lastmod>$(date +%Y-%m-%d)</lastmod>
+              <changefreq>monthly</changefreq>
+              <priority>1.0</priority>
+            </url>
+          </urlset>
+          SITEMAP
+          sed -i "s/\$(date +%Y-%m-%d)/$(date +%Y-%m-%d)/" docs/sitemap.xml
+
+          # Generate robots.txt
+          cat > docs/robots.txt << 'ROBOTS'
+          User-agent: *
+          Allow: /
+          Sitemap: https://lnbook-zh.doge.tg/sitemap.xml
+          ROBOTS
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
