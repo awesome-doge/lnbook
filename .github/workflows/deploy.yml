@@ -30,6 +30,7 @@ jobs:
         run: |
           gem install asciidoctor
           gem install asciidoctor-diagram
+          gem install rouge
 
       - name: Build HTML
         run: |
@@ -41,7 +42,7 @@ jobs:
             -a sectnums \
             -a sectnumlevels=3 \
             -a icons=font \
-            -a source-highlighter=highlight.js \
+            -a source-highlighter=rouge \
             -a imagesdir=images \
             -a stem=latexmath \
             -o index.html \
