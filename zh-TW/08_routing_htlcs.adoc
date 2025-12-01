@@ -1,0 +1,620 @@
+[[routing]]
+== 在支付通道網路上路由
+
+((("routing", id="ix_08_routing_htlcs-asciidoc0", range="startofrange")))在本章中，我們將最終解析如何透過稱為_路由_的過程將支付通道連接起來形成支付通道網路。具體來說，我們將研究路由層的第一部分，即「原子性和無需信任的多跳合約」協定。這在協定套件中以輪廓突顯，如 <<LN_protocol_routing_highlight>> 所示。
+
+[[LN_protocol_routing_highlight]]
+.閃電網路協定套件中的原子支付路由
+image::images/mtln_0801.png["閃電網路協定套件中的原子支付路由"]
+
+=== 路由付款
+
+((("routing","routing a payment")))在本節中，我們將從 Dina 的角度來研究路由，她是一位在直播遊戲時接收粉絲打賞的玩家。
+
+路由支付通道的創新使 Dina 能夠接收打賞，而無需與每位想要打賞她的粉絲維護一個單獨的通道。
+只要從該觀眾到 Dina 存在一條資金充足的通道路徑，她就能夠收到該粉絲的付款。
+
+在 <<dina_routing_diagram>> 中，我們看到由各個閃電網路節點之間的支付通道建立的可能網路佈局。圖中的每個人都可以透過建構路徑向 Dina 發送付款。想像一下粉絲 4 想要向 Dina 發送付款。你能看到可以實現這一點的路徑嗎？粉絲 4 可以透過粉絲 3、Bob 和 Chan 向 Dina 路由付款。同樣地，Alice 可以透過 Bob 和 Chan 向 Dina 路由付款。
+
+[[dina_routing_diagram]]
+.粉絲在閃電網路上（間接）連接到 Dina
+image::images/mtln_0802.png["粉絲在閃電網路上（間接）連接到 Dina"]
+
+((("routing nodes")))從粉絲到 Dina 路徑上的節點是中間節點，在路由付款的背景下稱為_路由節點_。路由節點與 Dina 粉絲操作的節點之間沒有功能差異。任何閃電網路節點都能夠透過其支付通道路由付款。
+
+重要的是，路由節點在路由從粉絲到 Dina 的付款時無法竊取資金。
+此外，路由節點在參與路由過程時不會損失金錢。
+路由節點可以因作為中間人而收取路由費用，儘管他們不必這樣做，可以選擇免費路由付款。
+
+另一個重要的細節是，由於使用洋蔥路由，中間節點只明確知道路由中前一個節點和後一個節點。
+它們不一定知道誰是付款的發送者和接收者。
+這使粉絲能夠使用中間節點向 Dina 付款，而不會洩露私人資訊，也不會有被盜的風險。
+
+這種連接一系列支付通道並具有端對端安全性的過程，以及節點_轉發_付款的激勵結構，是閃電網路的關鍵創新之一。
+
+在本章中，我們將深入探討閃電網路中路由的機制，詳細說明付款在網路中流動的精確方式。首先，我們將釐清路由的概念，並將其與路徑尋找進行比較，因為這些經常被混淆並互換使用。接下來，我們將建構公平協定：一種用於路由付款的原子性、無需信任的多跳協定。為了展示這個公平協定如何運作，我們將使用在四個人之間轉移金幣的物理等效例子。最後，我們將研究目前在閃電網路中使用的原子性、無需信任的多跳協定實作，稱為雜湊時間鎖定合約（HTLC）。
+
+=== 路由與路徑尋找
+
+((("pathfinding","routing versus")))((("routing","pathfinding versus")))重要的是要注意，我們將_路由_的概念與_路徑尋找_的概念分開。這兩個概念經常被混淆，_路由_這個術語經常被用來描述這兩個概念。讓我們在繼續之前消除歧義。
+
+路徑尋找將在 <<path_finding>> 中討論，它是尋找和選擇由支付通道組成的連續路徑的過程，該路徑將發送者 A 連接到接收者 B。付款的發送者透過檢查從其他節點八卦獲得的通道公告組裝的_通道圖_來進行路徑尋找。
+
+路由指的是嘗試將付款從某點 A 轉發到另一點 B 的網路互動系列，沿著路徑尋找先前選擇的路徑。路由是在路徑上發送付款的主動過程，需要沿該路徑的所有中間節點的合作。
+
+一個重要的經驗法則是，Alice 和 Bob 之間可能存在一條_路徑_（甚至可能不止一條），但可能不存在可以發送付款的活躍_路由_。一個例子是所有連接 Alice 和 Bob 的節點目前都離線的情況。在這個例子中，可以檢查通道圖並從 Alice 到 Bob 連接一系列支付通道，因此存在一條_路徑_。然而，由於中間節點離線，付款無法發送，因此不存在_路由_。
+
+=== 建立支付通道網路
+
+((("routing","creating a network of payment channels")))在我們深入研究原子無需信任多跳付款的概念之前，讓我們先透過一個例子來說明。
+讓我們回到 Alice，在前幾章中，她從 Bob 那裡購買了一杯咖啡，她與 Bob 有一個開放的通道。
+現在 Alice 正在觀看玩家 Dina 的直播，想透過閃電網路向 Dina 發送 50,000 聰的打賞。但 Alice 與 Dina 沒有直接通道。Alice 該怎麼辦？
+
+Alice 可以與 Dina 開設一個直接通道；然而，這需要流動性和鏈上費用，可能比打賞本身的價值還要高。相反，Alice 可以使用她現有的開放通道向 Dina 發送打賞，_而不需要_直接與 Dina 開設通道。只要從 Alice 到 Dina 存在某些具有足夠容量的通道路徑，這就是可能的。
+
+如你在 <<routing_network>> 中所見，Alice 與咖啡店老闆 Bob 有一個開放的通道。Bob 又與軟體開發者 Chan 有一個開放的通道，Chan 幫助他處理咖啡店使用的銷售點系統。Chan 也是一家大型軟體公司的老闆，該公司開發了 Dina 玩的遊戲，他們已經有一個開放的通道，Dina 用它來支付遊戲授權和遊戲內物品。
+
+[[routing_network]]
+.Alice 和 Dina 之間的支付通道網路
+image::images/mtln_0803.png["Alice 和 Dina 之間的支付通道網路"]
+
+可以追蹤一條從 Alice 到 Dina 的_路徑_，使用 Bob 和 Chan 作為中間路由節點。
+然後 Alice 可以從這條規劃的路徑製作一條_路由_，並用它向 Dina 發送幾千聰的打賞，付款由 Bob 和 Chan _轉發_。
+本質上，Alice 將付款給 Bob，Bob 將付款給 Chan，Chan 將付款給 Dina。不需要從 Alice 到 Dina 的直接通道。
+
+主要挑戰是以一種防止 Bob 和 Chan 竊取 Alice 想要交付給 Dina 的錢的方式來做到這一點。
+
+=== 「路由」的物理範例
+
+((("routing","real-world physical example", id="ix_08_routing_htlcs-asciidoc1", range="startofrange")))為了理解閃電網路如何在路由時保護付款，我們可以將其與現實世界中使用金幣路由物理付款的範例進行比較。
+
+假設 Alice 想給 Dina 10 枚金幣，但沒有直接接觸 Dina 的途徑。然而，Alice 認識 Bob，Bob 認識 Chan，Chan 認識 Dina，所以她決定請 Bob 和 Chan 幫忙。這在 <<alice_dina_routing_1>> 中顯示。
+
+[[alice_dina_routing_1]]
+.Alice 想付給 Dina 10 枚金幣
+image::images/mtln_0804.png[]
+
+Alice 可以付錢給 Bob 讓他付給 Chan 再付給 Dina，但她如何確保 Bob 或 Chan 在收到金幣後不會帶著金幣跑掉？
+在物理世界中，可以使用合約來安全地進行一系列付款。
+
+Alice 可以與 Bob 協商一份合約，內容如下：
+
+____
+_我，Alice，如果你把它們傳給 Chan，我將給你 Bob 10 枚金幣。_
+____
+
+雖然這份合約在抽象概念上很好，但在現實世界中，Alice 面臨 Bob 可能違反合約並希望不被發現的風險。
+即使 Bob 被抓到並被起訴，Alice 也面臨他可能破產無法歸還她 10 枚金幣的風險。
+假設這些問題被神奇地解決了，仍然不清楚如何利用這樣的合約來實現我們想要的結果：將金幣送到 Dina 手中。
+
+讓我們改進我們的合約以納入這些考量：
+
+____
+_我，Alice，如果你能向我證明（例如，透過收據）你已經將 10 枚金幣交給 Chan，我將償還你 Bob 10 枚金幣。_
+____
+
+你可能會問自己為什麼 Bob 要簽署這樣的合約。
+他必須付錢給 Chan，但最終從交換中什麼也得不到，而且他面臨 Alice 可能不償還他的風險。Bob 可以向 Chan 提供類似的合約來付款給 Dina，但同樣 Chan 也沒有理由接受。
+
+即使撇開風險不談，Bob 和 Chan _必須已經_有 10 枚金幣可以發送；否則，他們將無法參與合約。
+
+因此，Bob 和 Chan 在同意這份合約時面臨風險和機會成本，他們需要得到補償才會接受。
+
+然後 Alice 可以透過提供每人一枚金幣的費用來使這對 Bob 和 Chan 都有吸引力，如果他們將她的付款傳送給 Dina。
+
+合約將變成：
+
+____
+_我，Alice，如果你能向我證明（例如，透過收據）你已經將 11 枚金幣交給 Chan，我將償還你 Bob 12 枚金幣。_
+____
+
+Alice 現在承諾給 Bob 12 枚金幣。有 10 枚要交給 Dina，2 枚用於費用。如果他能證明他已轉發 11 枚給 Chan，她承諾給他 12 枚。
+一枚金幣的差額是 Bob 幫助這筆特定付款所賺取的費用。在 <<alice_dina_routing_2>> 中，我們看到這種安排如何透過 Bob 和 Chan 將 10 枚金幣送到 Dina 手中。
+
+[[alice_dina_routing_2]]
+.Alice 付給 Bob，Bob 付給 Chan，Chan 付給 Dina
+image::images/mtln_0805.png[]
+
+因為仍然存在信任問題和 Alice 或 Bob 不履行合約的風險，所有各方決定使用第三方託管服務。
+在交換開始時，Alice 可以將這 12 枚金幣「鎖定」在託管中，只有在 Bob 證明他已付給 Chan 11 枚金幣後才會支付給 Bob。
+
+這個託管服務是理想化的，不會引入其他風險（例如，交易對手風險）。稍後我們將看到如何用比特幣智慧合約取代託管。現在假設每個人都信任這個託管服務。
+
+在閃電網路中，收據（付款證明）可以採用只有 Dina 知道的秘密的形式。
+實際上，這個秘密將是一個大到足以防止他人猜測的隨機數（通常是一個_非常非常_大的數字，使用 256 位元編碼！）。
+
+Dina 從隨機數產生器生成這個秘密值 +R+。
+
+然後可以透過在合約本身中包含秘密的 SHA-256 雜湊來將秘密承諾到合約中，如下所示：
+
+++++
+<ul class="simplelist">
+<li><em>H</em> = SHA-256(<em>R</em>)</li>
+</ul>
+++++
+
+((("payment hash")))((("payment secret (preimage)")))((("preimage (payment secret)")))我們將付款秘密的雜湊稱為_付款雜湊_。
+「解鎖」付款的秘密稱為_付款秘密_。
+
+現在，我們保持簡單，假設 Dina 的秘密只是文字行：`Dinas secret`。這個秘密訊息稱為_付款秘密_或_付款原像_。
+
+為了「承諾」這個秘密，Dina 計算 SHA-256 雜湊，以十六進位編碼時，可以顯示如下：
+
+----
+0575965b3b44be51e8057d551c4016d83cb1fba9ea8d6e986447ba33fe69f6b3
+----
+
+為了促進 Alice 的付款，Dina 將建立付款秘密和付款雜湊，並將付款雜湊發送給 Alice。在 <<alice_dina_routing_3>> 中，我們看到 Dina 透過某些外部通道（虛線）向 Alice 發送付款雜湊，例如電子郵件或簡訊。
+
+[[alice_dina_routing_3]]
+.Dina 向 Alice 發送雜湊後的秘密
+image::images/mtln_0806.png["Dina 向 Alice 發送雜湊後的秘密"]
+
+Alice 不知道秘密，但她可以重寫她的合約，使用秘密的雜湊作為付款證明：
+
+____
+_我，Alice，如果你能向我出示一個有效訊息，其雜湊為：`057596`....，我將償還你 Bob 12 枚金幣。
+你可以透過與 Chan 建立類似的合約來獲取此訊息，Chan 必須與 Dina 建立類似的合約。
+為了向你保證你會得到償還，在你建立下一份合約之前，我會將 12 枚金幣提供給可信的託管方。_
+____
+
+這份新合約現在保護 Alice 免受 Bob 不轉發給 Chan 的影響，保護 Bob 免受 Alice 不償還的影響，並確保透過 Dina 秘密的雜湊有證據證明 Dina 最終收到了付款。
+
+在 Bob 和 Alice 同意合約後，Bob 收到託管方的訊息說 Alice 已存入 12 枚金幣，Bob 現在可以與 Chan 協商類似的合約。
+
+注意，由於 Bob 收取 1 枚金幣的服務費，一旦 Chan 出示他已付款給 Dina 的證明，他只會轉發 11 枚金幣給 Chan。
+同樣，Chan 也會要求收費，一旦他證明他已付給 Dina 承諾的 10 枚金幣，他將期望收到 11 枚金幣。
+
+Bob 與 Chan 的合約將是：
+
+____
+_我，Bob，如果你能向我出示一個有效訊息，其雜湊為：`057596`....，我將償還你 Chan 11 枚金幣。
+你可以透過與 Dina 建立類似的合約來獲取此訊息。
+為了向你保證你會得到償還，在你建立下一份合約之前，我會將 11 枚金幣提供給可信的託管方。_
+____
+
+一旦 Chan 收到託管方的訊息說 Bob 已存入 11 枚金幣，Chan 與 Dina 建立類似的合約：
+
+____
+_我，Chan，如果你能向我出示一個有效訊息，其雜湊為：`057596`....，我將償還你 Dina 10 枚金幣。
+為了向你保證在揭示秘密後你會得到償還，我會將 10 枚金幣提供給可信的託管方。_
+____
+
+一切現在就緒。
+Alice 與 Bob 有合約，並已將 12 枚金幣放入託管。
+Bob 與 Chan 有合約，並已將 11 枚金幣放入託管。
+Chan 與 Dina 有合約，並已將 10 枚金幣放入託管。
+現在由 Dina 來揭示秘密，這是她建立作為付款證明的雜湊的原像。
+
+Dina 現在向 Chan 發送 +Dinas secret+。
+
+Chan 檢查 +Dinas secret+ 的雜湊是否為 +057596+....。Chan 現在有了付款證明，因此指示託管服務將 10 枚金幣釋放給 Dina。
+
+Chan 現在將秘密提供給 Bob。Bob 檢查它並指示託管服務將 11 枚金幣釋放給 Chan。
+
+Bob 現在將秘密提供給 Alice。
+Alice 檢查它並指示託管方將 12 枚金幣釋放給 Bob。
+
+所有合約現在都已結算。
+Alice 總共支付了 12 枚金幣，其中 1 枚由 Bob 收到，1 枚由 Chan 收到，10 枚由 Dina 收到。
+有了這樣的合約鏈，Bob 和 Chan 不能帶著錢跑掉，因為他們先把錢存入了託管。
+
+然而，還有一個問題。
+如果 Dina 拒絕釋放她的秘密原像，那麼 Chan、Bob 和 Alice 都會將他們的金幣困在託管中而無法得到償還。
+同樣，如果鏈中的其他任何人未能傳遞秘密，同樣的情況會發生。
+所以雖然沒有人能從 Alice 那裡偷錢，但每個人的錢仍然會永久困在託管中。
+
+幸運的是，這可以透過在合約中添加截止日期來解決。
+
+我們可以修改合約，使得如果在某個截止日期之前未履行，合約就會過期，託管服務將錢退還給最初存款的人。
+我們稱這個截止日期為_時間鎖_。
+
+存款在託管服務中鎖定一定時間，即使沒有提供付款證明，最終也會被釋放。
+
+為了考慮這一點，Alice 和 Bob 之間的合約再次修改，增加了新條款：
+
+____
+_Bob 在合約簽署後有 24 小時出示秘密。
+如果 Bob 在此時間前沒有提供秘密，Alice 的存款將由託管服務退還，合約變為無效。_
+____
+
+當然，Bob 現在必須確保在 24 小時內收到付款證明。
+即使他成功付款給 Chan，如果他在 24 小時後才收到付款證明，他將不會得到償還。為了消除這種風險，Bob 必須給 Chan 一個更短的截止日期。
+
+反過來，Bob 將修改他與 Chan 的合約如下：
+
+____
+_Chan 在合約簽署後有 22 小時出示秘密。
+如果他在此時間前沒有提供秘密，Bob 的存款將由託管服務退還，合約變為無效。_
+____
+
+你可能已經猜到，Chan 也會修改他與 Dina 的合約：
+
+____
+_Dina 在合約簽署後有 20 小時出示秘密。
+如果她在此時間前沒有提供秘密，Chan 的存款將由託管服務退還，合約變為無效。_
+____
+
+有了這樣的合約鏈，我們可以確保在 24 小時後，付款將成功地從 Alice 到 Bob 到 Chan 到 Dina，或者它將失敗，每個人都將得到退款。
+合約要麼失敗要麼成功，沒有中間地帶。
+
+在閃電網路的背景下，我們稱這種「全有或全無」的屬性為_原子性_。
+
+只要託管是值得信賴的並忠實地履行其職責，任何一方都不會在過程中被盜走金幣。
+
+這條_路由_能夠工作的前提是路徑中的所有各方都有足夠的錢來滿足所需的一系列存款。
+
+雖然這似乎是一個小細節，但我們稍後將在本章中看到，這個要求實際上是閃電網路節點面臨的更困難的問題之一。
+隨著付款金額的增加，這變得越來越困難。
+此外，當資金被鎖定在託管中時，各方無法使用他們的錢。
+
+因此，轉發付款的使用者面臨鎖定資金的機會成本，這最終透過路由費用得到補償，正如我們在前面的例子中看到的。
+
+現在我們已經看到了一個物理付款路由範例，我們將看看如何在比特幣區塊鏈上實現這一點，而不需要任何第三方託管。為此，我們將使用比特幣腳本在參與者之間建立合約。我們用實作公平協定的_智慧合約_取代第三方託管。讓我們分解這個概念並實現它！(((range="endofrange", startref="ix_08_routing_htlcs-asciidoc1")))
+
+=== 公平協定
+
+((("fairness protocol","routing and")))((("routing","fairness protocol")))正如我們在本書第一章中看到的，比特幣的創新是能夠使用密碼學原語來實作公平協定，用可信的協定替代對第三方（中間人）的信任。
+
+在我們的金幣範例中，我們需要一個託管服務來防止任何一方違背其義務。密碼學公平協定的創新使我們能夠用協定取代託管服務。
+
+((("fairness protocol","properties")))我們想要建立的公平協定的屬性是：
+
+無需信任的操作:: 路由付款的參與者不需要相互信任，也不需要信任任何中間人或第三方。相反，他們信任協定來保護他們免受欺騙。
+
+原子性:: 付款要麼完全執行，要麼失敗並且每個人都得到退款。中間人不可能收取路由付款而不將其轉發到下一跳。因此，中間人不能欺騙或偷竊。
+
+多跳:: 系統的安全性端對端地擴展到透過多個支付通道路由的付款，就像單個支付通道兩端之間的付款一樣。
+
+一個可選的附加屬性是能夠將付款分成多個部分，同時保持整個付款的原子性。這些被稱為_多部分付款_（_MPP_），將在 <<mpp>> 中進一步探討。
+
+==== 實作原子無需信任多跳付款
+
+((("fairness protocol","implementing atomic trustless multihop payments")))((("routing","implementing atomic trustless multihop payments")))比特幣腳本足夠靈活，有數十種方法可以實作具有原子性、無需信任操作和多跳安全性屬性的公平協定。選擇特定的實作取決於隱私、效率和複雜性之間的某些權衡。
+
+((("hash time-locked contracts (HTLCs)","fairness protocol")))目前在閃電網路中用於路由的公平協定稱為雜湊時間鎖定合約（HTLC）。HTLC 使用雜湊原像作為解鎖付款的秘密，正如我們在本章的金幣範例中看到的。付款的接收者生成一個隨機秘密數字並計算其雜湊。雜湊成為付款的條件，一旦秘密被揭示，所有參與者都可以兌換他們收到的付款。HTLC 提供原子性、無需信任操作和多跳安全性。
+
+((("Point Time-Locked Contract (PTLC)")))((("PTLC (Point Time-Locked Contract)")))另一種提議的路由實作機制是_點時間鎖定合約_（_PTLC_）。PTLC 也實現原子性、無需信任操作和多跳安全性，但具有更高的效率和更好的隱私。PTLC 的高效實作依賴於一種名為 _Schnorr 簽名_的新數位簽章演算法，預計將於 2021 年在比特幣中啟用。
+
+=== 重新審視打賞範例
+
+((("routing","real-world physical example")))讓我們重新審視本章第一部分的範例。Alice 想用閃電網路付款向 Dina 打賞。假設 Alice 想向 Dina 發送 50,000 聰作為打賞。
+
+為了讓 Alice 付款給 Dina，Alice 需要 Dina 的節點生成一張閃電網路發票。我們將在 <<invoices>> 中更詳細地討論這一點。現在，讓我們假設 Dina 有一個網站，可以為打賞生成閃電網路發票。
+
+[TIP]
+====
+閃電網路付款可以在沒有發票的情況下使用一種名為 _keysend_ 的功能發送，我們將在 <<keysend>> 中更詳細地討論。現在，我們將解釋使用發票的更簡單付款流程。
+====
+
+Alice 訪問 Dina 的網站，在表單中輸入 50,000 聰的金額，作為回應，Dina 的閃電網路節點以閃電網路發票的形式生成 50,000 聰的付款請求。這種互動透過網路發生，在閃電網路之外，如 <<alice_dina_invoice_1>> 所示。
+
+[[alice_dina_invoice_1]]
+.Alice 從 Dina 的網站請求發票
+image::images/mtln_0807.png["Alice 從 Dina 的網站請求發票"]
+
+正如我們在前面的範例中看到的，我們假設 Alice 與 Dina 沒有直接的支付通道。相反，Alice 與 Bob 有通道，Bob 與 Chan 有通道，Chan 與 Dina 有通道。為了付款給 Dina，Alice 必須找到一條連接她到 Dina 的路徑。我們將在 <<path_finding>> 中更詳細地討論這一步。現在，讓我們假設 Alice 能夠收集有關可用通道的資訊，並看到從她到 Dina 有一條路徑，途經 Bob 和 Chan。
+
+[NOTE]
+====
+還記得 Bob 和 Chan 可能會期望獲得一小筆補償來透過他們的節點路由付款嗎？Alice 想付給 Dina 50,000 聰，但正如你將在以下章節中看到的，她將向 Bob 發送 50,200 聰。額外的 200 聰將作為路由費支付給 Bob 和 Chan 各 100 聰。
+====
+
+現在，Alice 的節點可以構建一筆閃電網路付款。在接下來的幾節中，我們將看到 Alice 的節點如何構建 HTLC 來付款給 Dina，以及該 HTLC 如何沿路徑從 Alice 轉發到 Dina。
+
+
+==== 鏈上與鏈下 HTLC 結算
+
+((("hash time-locked contracts (HTLCs)","on-chain versus off-chain settlement of")))((("off-chain settlement, on-chain payment versus")))((("on-chain payment","off-chain settlement versus")))((("routing","on-chain versus off-chain settlement of HTLCs")))閃電網路的目的是實現_鏈下_交易，這些交易與鏈上交易一樣被信任，因為沒有人可以欺騙。沒有人可以欺騙的原因是，在任何時候，任何參與者都可以將他們的鏈下交易放到鏈上。每筆鏈下交易都準備好隨時提交到比特幣區塊鏈。因此，如果有必要，比特幣區塊鏈充當爭議解決和最終結算機制。
+
+任何交易都可以隨時上鏈的事實正是所有這些交易可以保持在鏈下的原因。如果你知道你有追索權，你可以繼續與其他參與者合作，避免鏈上結算和額外費用的需要。
+
+在以下所有範例中，我們將假設這些交易中的任何一筆都可以隨時上鏈。參與者將選擇將它們保持在鏈下，但除了鏈上挖礦交易產生的較高費用和延遲外，系統的功能沒有區別。無論所有交易都在鏈上還是鏈下，範例的工作方式都相同。
+
+[[htlcs]]
+=== 雜湊時間鎖定合約
+
+((("hash time-locked contracts (HTLCs)","mechanism of operation", id="ix_08_routing_htlcs-asciidoc2", range="startofrange")))((("routing","hash time-locked contracts mechanism of operation", id="ix_08_routing_htlcs-asciidoc3", range="startofrange")))在本節中，我們解釋 HTLC 如何運作。
+
+HTLC 的第一部分是_雜湊_。這指的是使用密碼學雜湊演算法來承諾一個隨機生成的秘密。知道這個秘密就可以兌換付款。密碼學雜湊函數保證雖然任何人都不可能猜到秘密原像，但任何人都可以輕鬆驗證雜湊，而且只有一個可能的原像可以解決付款條件。
+
+在 <<alice_dina_invoice_2>> 中，我們看到 Alice 從 Dina 那裡獲得一張閃電網路發票。在該發票內部，((("payment hash")))Dina 編碼了一個_付款雜湊_，這是 Dina 節點生成的秘密的密碼學雜湊。((("payment secret (preimage)")))((("preimage (payment secret)")))Dina 的秘密稱為_付款原像_。付款雜湊作為識別碼，可用於將付款路由到 Dina。付款原像在付款完成後作為收據和付款證明。
+
+[[alice_dina_invoice_2]]
+.Alice 從 Dina 獲得付款雜湊
+image::images/mtln_0808.png["Alice 從 Dina 獲得付款雜湊"]
+
+在閃電網路中，Dina 的付款原像不會是像 +Dinas secret+ 這樣的短語，而是由 Dina 節點生成的隨機數。讓我們稱那個隨機數為 _R_。
+
+Dina 的節點將計算 _R_ 的密碼學雜湊，使得：
+
+++++
+<ul class="simplelist">
+<li><em>H</em> = SHA-256(<em>R</em>)</li>
+</ul>
+++++
+
+在這個等式中，_H_ 是雜湊或_付款雜湊_，_R_ 是秘密或_付款原像_。
+
+使用密碼學雜湊函數是保證_無需信任操作_的一個元素。付款中間人不需要相互信任，因為他們知道沒有人可以猜測秘密或偽造它。
+
+==== 比特幣腳本中的 HTLC
+
+((("Bitcoin script","HTLCs in")))((("hash time-locked contracts (HTLCs)","Bitcoin Script and")))在我們的金幣範例中，Alice 有一份由託管執行的合約，如下所示：
+
+____
+_Alice 將償還 Bob 12 枚金幣，如果你能出示一個有效訊息，其雜湊為：_ +0575...f6b3+。_Bob 在合約簽署後有 24 小時出示秘密。如果 Bob 在此時間前沒有提供秘密，Alice 的存款將由託管服務退還，合約變為無效。_
+____
+
+[role="pagebreak-before"]
+讓我們看看如何在比特幣腳本中將其實作為 HTLC。在 <<received_htlc>> 中，我們看到目前在閃電網路中使用的 HTLC 比特幣腳本。你可以在 https://github.com/lightningnetwork/lightning-rfc/blob/master/03-transactions.md#offered-htlc-outputs[BOLT #3, Transactions] 中找到這個定義。
+
+[[received_htlc]]
+.在比特幣腳本中實作的 HTLC（BOLT #3）
+[source,text,linenums]
+====
+----
+# To remote node with revocation key
+OP_DUP OP_HASH160 <RIPEMD160(SHA256(revocationpubkey))> OP_EQUAL
+OP_IF
+    OP_CHECKSIG
+OP_ELSE
+    <remote_htlcpubkey> OP_SWAP OP_SIZE 32 OP_EQUAL
+    OP_IF
+        # To local node via HTLC-success transaction.
+        OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY
+        2 OP_SWAP <local_htlcpubkey> 2 OP_CHECKMULTISIG
+    OP_ELSE
+        # To remote node after timeout.
+        OP_DROP <cltv_expiry> OP_CHECKLOCKTIMEVERIFY OP_DROP
+        OP_CHECKSIG
+    OP_ENDIF
+OP_ENDIF
+----
+====
+
+哇，這看起來很複雜！不過別擔心，我們會一步一步地分析並簡化它。
+
+目前在閃電網路中使用的比特幣腳本相當複雜，因為它針對鏈上空間效率進行了優化，這使它非常緊湊但難以閱讀。
+
+在以下章節中，我們將專注於腳本的主要元素，並呈現與閃電網路中實際使用的略有不同的簡化腳本。
+
+HTLC 的主要部分在 <<received_htlc>> 的第 10 行。讓我們從頭開始建構它！
+
+==== 付款原像和雜湊驗證
+
+((("hash time-locked contracts (HTLCs)","payment preimage and hash verification")))((("hash verification")))((("payment secret (preimage)")))((("preimage (payment secret)")))HTLC 的核心是雜湊，如果接收者知道付款原像，就可以進行付款。Alice 將付款鎖定到特定的付款雜湊，Bob 必須出示付款原像才能領取資金。比特幣系統可以透過對 Bob 的付款原像進行雜湊並將結果與 Alice 用於鎖定資金的付款雜湊進行比較來驗證 Bob 的付款原像是否正確。
+
+HTLC 的這部分可以在比特幣腳本中實作如下：
+
+----
+OP_SHA256 <H> OP_EQUAL
+----
+
+Alice 可以建立一筆交易輸出，支付 50,200 聰，使用上面的鎖定腳本，將 `<H>` 替換為 Dina 提供的雜湊值 +0575...f6b3+。然後，Alice 可以簽署這筆交易並提供給 Bob：
+
+.Alice 向 Bob 提供 50,200 聰的 HTLC
+----
+OP_SHA256 0575...f6b3 OP_EQUAL
+----
+
+Bob 在知道 Dina 的秘密之前無法花費這個 HTLC，因此花費 HTLC 取決於 Bob 完成一路到 Dina 的付款。
+
+一旦 Bob 有了 Dina 的秘密，Bob 可以用包含秘密原像值 _R_ 的解鎖腳本來花費這個輸出。
+
+解鎖腳本與鎖定腳本結合將產生：
+
+----
+<R> OP_SHA256 <H> OP_EQUAL
+----
+
+比特幣腳本引擎將如下評估此腳本：
+
+1. +R+ 被推入堆疊。
+2. `OP_SHA256` 運算子從堆疊中取出值 +R+ 並對其進行雜湊，將結果 +H~R~+ 推入堆疊。
+3. +H+ 被推入堆疊。
+4. `OP_EQUAL` 運算子比較 +H+ 和 +H~R~+。如果它們相等，結果為 +TRUE+，腳本完成，付款被驗證。
+
+==== 將 HTLC 從 Alice 擴展到 Dina
+
+((("hash time-locked contracts (HTLCs)","extending across a network")))Alice 現在將把 HTLC 擴展到整個網路，使其到達 Dina。
+
+在 <<alice_dina_htlc_1>> 中，我們看到 HTLC 從 Alice 傳播到 Dina。Alice 給了 Bob 一個 50,200 聰的 HTLC。Bob 現在可以建立一個 50,100 聰的 HTLC 並給 Chan。
+
+Bob 知道 Chan 在不廣播秘密的情況下無法兌換 Bob 的 HTLC，此時 Bob 也可以使用秘密來兌換 Alice 的 HTLC。這是一個非常重要的點，因為它確保了 HTLC 的端對端_原子性_。要花費 HTLC，需要揭示秘密，然後這使得其他人也可以花費他們的 HTLC。要麼所有的 HTLC 都可以花費，要麼所有的 HTLC 都不能花費：原子性！
+
+因為 Alice 的 HTLC 比 Bob 給 Chan 的 HTLC 多 100 聰，如果這筆付款完成，Bob 將賺取 100 聰作為路由費。
+
+Bob 沒有承擔風險，也不信任 Alice 或 Chan。相反，Bob 信任簽名的交易加上秘密將可以在比特幣區塊鏈上兌換。
+
+[[alice_dina_htlc_1]]
+.在網路中傳播 HTLC
+image::images/mtln_0809.png["在網路中傳播 HTLC"]
+
+同樣，Chan 可以向 Dina 擴展 50,000 聰的 HTLC。他沒有冒任何風險，也不信任 Bob 或 Dina。要兌換 HTLC，Dina 必須廣播秘密，Chan 可以用它來兌換 Bob 的 HTLC。Chan 也將賺取 100 聰作為路由費。
+
+==== 反向傳播秘密
+
+((("hash time-locked contracts (HTLCs)","back-propagating the secret", id="ix_08_routing_htlcs-asciidoc4", range="startofrange")))一旦 Dina 從 Chan 收到 50,000 聰的 HTLC，她現在可以獲得付款了。Dina 可以簡單地將這個 HTLC 提交到鏈上，並透過在花費交易中揭示秘密來花費它。或者，Dina 可以透過將秘密給 Chan 來更新與 Chan 的通道餘額。沒有理由產生交易費用並上鏈。因此，Dina 將秘密發送給 Chan，他們同意更新他們的通道餘額以反映 50,000 聰的閃電網路付款給 Dina。在 <<alice_dina_htlc_redeem_1>> 中，我們看到 Dina 將秘密給 Chan，從而履行 HTLC。
+
+[[alice_dina_htlc_redeem_1]]
+.Dina 在鏈下結算 Chan 的 HTLC
+image::images/mtln_0810.png["Dina 在鏈下結算 Chan 的 HTLC"]
+
+注意 Dina 的通道餘額從 50,000 聰變為 100,000 聰。Chan 的通道餘額從 200,000 聰減少到 150,000 聰。通道容量沒有改變，但 50,000 聰從 Chan 這邊移動到 Dina 這邊。
+
+Chan 現在有了秘密並且已經付給 Dina 50,000 聰。他可以這樣做而沒有任何風險，因為秘密允許 Chan 兌換 Bob 的 50,100 聰 HTLC。Chan 可以選擇將該 HTLC 提交到鏈上並透過在比特幣區塊鏈上揭示秘密來花費它。但是，像 Dina 一樣，他寧願避免交易費用。所以，他將秘密發送給 Bob，這樣他們就可以更新他們的通道餘額以反映從 Bob 到 Chan 的 50,100 聰閃電網路付款。在 <<alice_dina_htlc_redeem_2>> 中，我們看到 Chan 將秘密發送給 Bob 並收到付款作為回報。
+
+[[alice_dina_htlc_redeem_2]]
+.Chan 在鏈下結算 Bob 的 HTLC
+image::images/mtln_0811.png["Chan 在鏈下結算 Bob 的 HTLC"]
+
+Chan 已經付給 Dina 50,000 聰，並從 Bob 那裡收到 50,100 聰。所以 Chan 的通道餘額多了 100 聰，這是他作為路由費賺取的。
+
+Bob 現在也有了秘密。他可以用它來花費 Alice 的鏈上 HTLC。或者，他可以透過在與 Alice 的通道中結算 HTLC 來避免交易費用。在 <<alice_dina_htlc_redeem_3>> 中，我們看到 Bob 將秘密發送給 Alice，他們更新通道餘額以反映從 Alice 到 Bob 的 50,200 聰閃電網路付款。
+
+[[alice_dina_htlc_redeem_3]]
+.Bob 在鏈下結算 Alice 的 HTLC
+image::images/mtln_0812.png["Bob 在鏈下結算 Alice 的 HTLC"]
+
+Bob 從 Alice 收到 50,200 聰，並付給 Chan 50,100 聰，所以他從路由費中多了 100 聰的通道餘額。
+
+Alice 收到秘密並已結算 50,200 聰的 HTLC。秘密可以用作_收據_來證明 Dina 為該特定付款雜湊收到了付款。
+
+最終的通道餘額反映了 Alice 付款給 Dina 以及在每一跳支付的路由費，如 <<alice_dina_htlc_redeem_4>> 所示。(((range="endofrange", startref="ix_08_routing_htlcs-asciidoc4")))
+
+[[alice_dina_htlc_redeem_4]]
+.付款後的通道餘額
+image::images/mtln_0813.png["付款後的通道餘額"]
+
+[[preventing_theft]]
+==== 簽名綁定：防止 HTLC 被盜
+
+((("hash time-locked contracts (HTLCs)","signature binding to prevent theft of", id="ix_08_routing_htlcs-asciidoc5", range="startofrange")))((("signature binding", id="ix_08_routing_htlcs-asciidoc6", range="startofrange")))有一個陷阱。你注意到了嗎？
+
+如果 Alice、Bob 和 Chan 如 <<alice_dina_htlc_redeem_4>> 所示建立 HTLC，他們面臨著雖小但不可忽視的損失風險。任何知道秘密的人都可以兌換（花費）那些 HTLC。起初只有 Dina 知道秘密。Dina 應該只花費 Chan 的 HTLC。但 Dina 可以同時花費所有三個 HTLC，甚至在一筆花費交易中！畢竟，Dina 比任何人都先知道秘密。同樣，一旦 Chan 知道秘密，他應該只花費 Bob 提供的 HTLC。但如果 Chan 也花費 Alice 提供的 HTLC 呢？
+
+這不是_無需信任的_！它未能通過最重要的安全特性。我們需要修復這個問題。
+
+HTLC 腳本必須有一個額外的條件，將每個 HTLC 綁定到特定的接收者。我們透過要求與每個接收者的公鑰匹配的數位簽章來做到這一點，從而防止任何其他人花費該 HTLC。由於只有指定的接收者能夠產生與該公鑰匹配的數位簽章，只有指定的接收者才能花費該 HTLC。
+
+讓我們再次查看帶有此修改的腳本。Alice 給 Bob 的 HTLC 被修改為包含 Bob 的公鑰和 +OP_CHECKSIG+ 運算子。
+
+這是修改後的 HTLC 腳本：
+
+----
+OP_SHA256 <H> OP_EQUALVERIFY <Bob's Pub> OP_CHECKSIG
+----
+
+[TIP]
+====
+注意我們還將 +OP_EQUAL+ 改為 +OP_EQUALVERIFY+。當運算子有 +VERIFY+ 後綴時，它不會在堆疊上返回 +TRUE+ 或 +FALSE+。相反，如果結果為假，它會_停止_執行並使腳本失敗，如果為真則繼續而不產生任何堆疊輸出。
+====
+
+要兌換這個 HTLC，Bob 必須出示包含 Bob 私鑰簽名以及秘密付款原像的解鎖腳本，如下所示：
+
+----
+<Bob's Signature> <R>
+----
+
+解鎖和鎖定腳本結合起來由腳本引擎評估，如下所示：
+
+----
+<Bob's Sig> <R> OP_SHA256 <H> OP_EQUALVERIFY <Bob's Pub> OP_CHECKSIG
+----
+
+1. +<Bob's Sig>+ 被推入堆疊。
+2. +R+ 被推入堆疊。
+3. +OP_SHA256+ 從堆疊頂部彈出 +R+ 並對其進行雜湊，將 +H~R~+ 推入堆疊。
+4. +H+ 被推入堆疊。
+5. +OP_EQUALVERIFY+ 彈出 +H+ 和 +H~R~+ 並比較它們。如果它們不相同，執行停止。否則，我們繼續而不輸出到堆疊。
+6. +<Bob's Pub>+ 公鑰被推入堆疊。
+7. +OP_CHECKSIG+ 彈出 +<Bob's Sig>+ 和 +<Bob's Pub>+ 並驗證簽名。結果（`TRUE/FALSE`）被推入堆疊。
+
+如你所見，這稍微複雜了一些，但現在我們已經修復了 HTLC 並確保只有預期的接收者才能花費它。(((range="endofrange", startref="ix_08_routing_htlcs-asciidoc6")))(((range="endofrange", startref="ix_08_routing_htlcs-asciidoc5")))
+
+==== 雜湊優化
+
+((("hash time-locked contracts (HTLCs)","hash optimization")))讓我們看看到目前為止 HTLC 腳本的第一部分：
+
+----
+OP_SHA256 <H> OP_EQUALVERIFY
+----
+
+如果我們在前面的符號表示中看這個，看起來 +OP_+ 運算子佔用了最多的空間。但事實並非如此。比特幣腳本以二進位編碼，每個運算子代表一個位元組。同時，我們用作付款雜湊占位符的 +<H>+ 值是一個 32 位元組（256 位元）的值。你可以在 https://en.bitcoin.it/wiki/Script[Bitcoin Wiki: Script] 或 https://github.com/bitcoinbook/bitcoinbook/blob/develop/appdx-scriptops.asciidoc[《精通比特幣》附錄 D「交易腳本語言運算子、常數和符號」] 中找到所有比特幣腳本運算子及其二進位和十六進位編碼的列表。
+
+用十六進位表示，我們的 HTLC 腳本看起來像這樣：
+
+----
+a8 0575965b3b44be51e8057d551c4016d83cb1fba9ea8d6e986447ba33fe69f6b3 88
+----
+
+在十六進位編碼中，+OP_SHA256+ 是 +a8+，+OP_EQUALVERIFY+ 是 +88+。這個腳本的總長度是 34 位元組，其中 32 位元組是雜湊。
+
+正如我們之前提到的，閃電網路中的任何參與者都應該能夠將他們持有的鏈下交易放到鏈上，如果他們需要強制執行他們對資金的索取權。要將交易上鏈，他們必須向礦工支付交易費用，這些費用與交易的位元組大小成正比。
+
+因此，我們希望找到方法來最小化交易的鏈上「權重」，盡可能優化腳本。一種方法是在 SHA-256 演算法之上添加另一個雜湊函數，一個產生更小雜湊的函數。比特幣腳本語言提供了 +OP_HASH160+ 運算子，它對原像進行「雙重雜湊」：首先用 SHA-256 對原像進行雜湊，然後用 RIPEMD160 雜湊演算法對結果雜湊再次進行雜湊。RIPEMD160 產生的雜湊是 160 位元或 20 位元組——更加緊湊。在比特幣腳本中，這是一種非常常見的優化，用於許多常見的地址格式。
+
+所以，讓我們改用這種優化。我們的 SHA-256 雜湊是 +057596...69f6b3+。用 RIPEMD160 再次進行雜湊給我們結果：
+
+----
+R = "Dinas secret"
+H256 = SHA256(R)
+H256 = 0575965b3b44be51e8057d551c4016d83cb1fba9ea8d6e986447ba33fe69f6b3
+H160 = RIPEMD160(H256)
+H160 = 9e017f6767971ed7cea17f98528d5f5c0ccb2c71
+----
+
+Alice 可以計算 Dina 提供的付款雜湊的 RIPEMD160 雜湊，並在她的 HTLC 中使用較短的雜湊，Bob 和 Chan 也可以這樣做！
+
+[role="pagebreak-before"]
+「優化後的」HTLC 腳本看起來像這樣：
+
+----
+OP_HASH160 <H160> OP_EQUALVERIFY
+----
+
+用十六進位編碼，這是：
+
+----
+a9 9e017f6767971ed7cea17f98528d5f5c0ccb2c71 88
+----
+
+其中 +OP_HASH160+ 是 +a9+，+OP_EQUALVERIFY+ 是 +88+。這個腳本只有 22 位元組長！我們從每筆在鏈上兌換 HTLC 的交易中節省了 12 位元組。
+
+有了這個優化，你現在可以看到我們如何得出 <<received_htlc>> 第 10 行所示的 HTLC 腳本：
+
+----
+...
+    # To local node via HTLC-success transaction.
+    OP_HASH160 <RIPEMD160(payment_hash)> OP_EQUALVERIFY...
+----
+
+==== HTLC 合作失敗和超時失敗
+
+((("cooperative failure")))((("hash time-locked contracts (HTLCs)","cooperative/timeout failure")))((("timeout failure")))到目前為止，我們研究了 HTLC 的「雜湊」部分以及如果每個人都合作並在付款時在線，它會如何運作。
+
+如果有人離線或不合作會發生什麼？如果付款無法成功會發生什麼？
+
+我們需要確保一種「優雅失敗」的方式，因為偶爾的路由失敗是不可避免的。有兩種失敗方式：合作式和帶時間鎖退款。
+
+合作失敗相對簡單：HTLC 由路由中的每個參與者解除，從他們的承諾交易中移除 HTLC 輸出而不改變餘額。我們將在 <<channel_operation>> 中詳細研究這是如何運作的。
+
+讓我們看看如何在沒有一個或多個參與者合作的情況下逆轉 HTLC。我們需要確保如果其中一個參與者不合作，資金不會簡單地_永遠_鎖定在 HTLC 中。這會給某人勒索另一個參與者資金的機會：「如果你不付我贖金，我就讓你的資金永遠被鎖住。」
+
+為了防止這種情況，每個 HTLC 腳本都包含一個與時間鎖連接的退款條款。還記得我們最初的託管合約嗎？「Bob 在合約簽署後有 24 小時出示秘密。如果 Bob 在此時間前沒有提供秘密，Alice 的存款將由託管服務退還。」
+
+帶時間鎖的退款是確保_原子性_的腳本的重要部分，使整個端對端付款要麼成功，要麼優雅失敗。沒有需要擔心的「半支付」狀態。如果失敗，每個參與者都可以與他們的通道夥伴合作解除 HTLC，或者單方面將帶時間鎖的退款交易上鏈以取回他們的錢。
+
+要在比特幣腳本中實作這個退款，我們使用一個特殊的運算子 pass:[<code>O&#x2060;P&#x2060;_&#x2060;C&#x2060;H&#x2060;E&#x2060;C&#x2060;K&#x2060;L&#x2060;O&#x2060;C&#x2060;K&#x2060;T&#x2060;I&#x2060;M&#x2060;E&#x200b;V&#x2060;E&#x2060;R&#x2060;I&#x2060;F&#x2060;Y</code>]，簡稱 +OP_CLTV+。這是腳本，如之前在 <<received_htlc>> 第 13 行所見：
+
+----
+...
+	OP_DROP <cltv_expiry> OP_CHECKLOCKTIMEVERIFY OP_DROP
+	OP_CHECKSIG
+...
+----
+
++OP_CLTV+ 運算子採用一個到期時間，定義為此交易有效的區塊高度。如果交易時間鎖與 +<cltv_expiry>+ 設定不同，腳本評估失敗，交易無效。否則，腳本繼續而不輸出到堆疊。記住，+VERIFY+ 後綴意味著此運算子不輸出 +TRUE+ 或 +FALSE+，而是停止/失敗或繼續而不產生堆疊輸出。
+
+本質上，+OP_CLTV+ 作為「守門人」，如果比特幣區塊鏈上還沒有達到 +<cltv_expiry>+ 區塊高度，就阻止腳本繼續進行。
+
++OP_DROP+ 運算子簡單地丟棄腳本堆疊上最頂端的項目。這在開始時是必要的，因為有一個來自前面腳本行的「剩餘」項目。在 +OP_CLTV+ _之後_這是必要的，以從堆疊頂部移除 +<cltv_expiry>+ 項目，因為它不再需要。
+
+最後，一旦堆疊被清理，應該還剩下一個公鑰和簽名，+OP_CHECKSIG+ 可以驗證它們。正如我們在 <<preventing_theft>> 中看到的，這是必要的，以確保只有資金的合法所有者才能領取它們，透過將此輸出綁定到他們的公鑰並要求簽名。
+
+==== 遞減時間鎖
+
+((("hash time-locked contracts (HTLCs)","decrementing timelocks")))當 HTLC 從 Alice 擴展到 Dina 時，每個 HTLC 中的帶時間鎖退款條款有_不同的_ +cltv_expiry+ 值。我們將在 <<onion_routing>> 中更詳細地看到這一點。但足以說明的是，為了確保有序地解除失敗的付款，每一跳需要等待的退款時間略有不同。每跳之間時間鎖的差異稱為 +cltv_expiry_delta+，由每個節點設定並向網路公告，我們將在 <<gossip>> 中看到。
+
+例如，Alice 將第一個 HTLC 的退款時間鎖設定為當前 + 500 個區塊的區塊高度（「當前」是當前區塊高度）。Bob 然後將 HTLC 給 Chan 的時間鎖 +cltv_expiry+ 設定為當前 + 450 個區塊。Chan 將時間鎖設定為從當前區塊高度的當前 + 400 個區塊。這樣，Chan 可以在 Bob 獲得他提供給 Chan 的 HTLC 退款_之前_獲得他提供給 Dina 的 HTLC 的退款。Bob 可以在 Alice 可以獲得她提供給 Bob 的 HTLC 退款之前獲得他提供給 Chan 的 HTLC 的退款。遞減的時間鎖防止競爭條件並確保 HTLC 鏈從目的地向源頭反向解除。(((range="endofrange", startref="ix_08_routing_htlcs-asciidoc3")))(((range="endofrange", startref="ix_08_routing_htlcs-asciidoc2")))
+
+=== 結論
+
+在本章中，我們看到即使 Alice 與 Dina 沒有直接的支付通道，她也可以付款給 Dina。Alice 可以找到一條連接她到 Dina 的路徑，並透過多個支付通道路由付款，使其到達 Dina。
+
+為了確保付款在多跳之間是原子性和無需信任的，Alice 必須與路徑中的所有中間節點合作實作公平協定。公平協定目前實作為 HTLC，它將資金承諾到從秘密付款原像派生的付款雜湊。
+
+付款路由中的每個參與者都可以向下一個參與者擴展 HTLC，而不用擔心被盜或資金卡住。HTLC 可以透過揭示秘密付款原像來兌換。一旦 HTLC 到達 Dina，她就揭示原像，原像向後流動，解決所有提供的 HTLC。
+
+最後，我們看到帶時間鎖的退款條款如何完成 HTLC，確保每個參與者在付款失敗但由於某種原因其中一個參與者不合作解除 HTLC 時都能獲得退款。透過始終有上鏈退款的選項，HTLC 實現了原子性和無需信任操作的公平目標。(((range="endofrange", startref="ix_08_routing_htlcs-asciidoc0")))

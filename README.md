@@ -1,85 +1,79 @@
-# Mastering the Lightning Network
+# 精通閃電網路
 
 [![CC BY-SA 4.0][cc-by-sa-shield]][cc-by-sa]
 
-STATUS: First Edition published on Dec 21, 2021
+<img src="images/cover_thumb.png" width=200 alt="精通閃電網路封面">
 
-<img src="images/cover_thumb.png" width=200 alt="Mastering Lightning Cover">
+## 關於本書
 
-## About
-Mastering the Lightning Network is an O'Reilly Media book, by authors Andreas M. Antonopoulos ([@aantonop](https://twitter.com/aantonop)), Olaoluwa Osuntokun ([@roasbeef](https://twitter.com/roasbeef)), Rene Pickhardt ([@renepickhardt](https://twitter.com/renepickhardt)). It was published on Dec 21, 2021, in paperback and e-book, by O'Reilly Media. It is available everywhere that books are sold. This repository contains the manuscript of the book as published by O'Reilly Media, tagged as [firstedition_firstprint](https://github.com/lnbook/lnbook/releases/tag/firstedition_firstprint).
+《精通閃電網路》是由 Andreas M. Antonopoulos ([@aantonop](https://twitter.com/aantonop))、Olaoluwa Osuntokun ([@roasbeef](https://twitter.com/roasbeef)) 和 Rene Pickhardt ([@renepickhardt](https://twitter.com/renepickhardt)) 共同撰寫的 O'Reilly Media 書籍。英文版於 2021 年 12 月 21 日出版。
 
-The book describes the Lightning Network (LN), a Peer-to-Peer protocol running on top of Bitcoin and other blockchains, which provides near-instant, secure, micro-payments.
+本書描述了閃電網路 (Lightning Network)，一個運行在比特幣和其他區塊鏈之上的點對點協議，提供近乎即時、安全的微支付功能。
 
-The book is suitable for technical readers with an understanding of the fundamentals of Bitcoin and other open blockchains.
+本書適合對比特幣和其他開放區塊鏈基礎知識有一定了解的技術讀者閱讀。
 
-## Contents
+**線上閱讀**: [https://lnbook-zh.doge.tg/](https://lnbook-zh.doge.tg/)
 
-### Preface
+## 目錄
 
-*  [Cover](cover.html)
-*  [Titlepage](titlepage.html)
-*  [Copyright](copyright.html)
-*  [Table of Contents](toc.html)
-*  [Preface](preface.asciidoc)
+### 第一部分：基礎篇
 
-### Part 1
+* [前言](zh-TW/preface.adoc)
+* [第 1 章：簡介](zh-TW/01_introduction.adoc)
+* [第 2 章：入門指南](zh-TW/02_getting_started.adoc)
+* [第 3 章：閃電網路運作原理](zh-TW/03_how_ln_works.adoc)
+* [第 4 章：閃電網路節點軟體](zh-TW/04_node_client.adoc)
+* [第 5 章：節點操作](zh-TW/05_node_operations.adoc)
 
-*  [Part 1 - Intro](part_1_divider.asciidoc)
-*  [Introduction](01_introduction.asciidoc)
-*  [Getting Started](02_getting_started.asciidoc)
-*  [How the Lightning Network Works](03_how_ln_works.asciidoc)
-*  [Lightning Node Software](04_node_client.asciidoc)
-*  [Operating a Lightning Network Node](05_node_operations.asciidoc)
+### 第二部分：技術深入篇
 
-### Part 2
+* [第 6 章：閃電網路架構](zh-TW/06_lightning_architecture.adoc)
+* [第 7 章：支付通道](zh-TW/07_payment_channels.adoc)
+* [第 8 章：路由與 HTLC](zh-TW/08_routing_htlcs.adoc)
+* [第 9 章：通道操作與支付轉發](zh-TW/09_channel_operation.adoc)
+* [第 10 章：洋蔥路由](zh-TW/10_onion_routing.adoc)
+* [第 11 章：Gossip 協議與通道圖](zh-TW/11_gossip_channel_graph.adoc)
+* [第 12 章：路徑搜尋與支付傳遞](zh-TW/12_path_finding.adoc)
+* [第 13 章：Wire 協議](zh-TW/13_wire_protocol.adoc)
+* [第 14 章：加密訊息傳輸](zh-TW/14_encrypted_transport.adoc)
+* [第 15 章：閃電網路支付請求](zh-TW/15_payment_requests.adoc)
+* [第 16 章：安全性與隱私](zh-TW/16_security_privacy_ln.adoc)
+* [第 17 章：結論](zh-TW/17_conclusion.adoc)
 
-*  [Part 2 - Intro](part_2_divider.asciidoc)
-*  [Lightning Network Architecture](06_lightning_architecture.asciidoc)
-*  [Payment Channels](07_payment_channels.asciidoc)
-*  [Routing on a Network of Payment Channels](08_routing_htlcs.asciidoc)
-*  [Channel Operation and Payment Forwarding](09_channel_operation.asciidoc)
-*  [Onion Routing](10_onion_routing.asciidoc)
-*  [Gossip and the Channel Graph](11_gossip_channel_graph.asciidoc)
-*  [Pathfinding and Payment Delivery](12_path_finding.asciidoc)
-*  [Wire Protocol: Framing and Extensibility](13_wire_protocol.asciidoc)
-*  [Lightning's Encrypted Message Transport](14_encrypted_transport.asciidoc)
-*  [Lightning Payment Requests](15_payment_requests.asciidoc)
-*  [Security and Privacy of the Lightning Network](16_security_privacy_ln.asciidoc)
-*  [Conclusion](17_conclusion.asciidoc)
+### 附錄
 
-### Appendices
+* [術語表](zh-TW/glossary.adoc)
+* [比特幣基礎回顧](zh-TW/appendix_bitcoin_fundamentals_review.adoc)
+* [Docker 基礎](zh-TW/appendix_docker_basics.adoc)
+* [協議訊息](zh-TW/appendix_protocol_messages.adoc)
 
-*  [Bitcoin Fundamentals Review](appendix_bitcoin_fundamentals_review.asciidoc)
-*  [Docker Basics](appendix_docker_basics.asciidoc)
-*  [Protocol Messages](appendix_protocol_messages.asciidoc)
+## 翻譯進度
 
-### Glossary
+- [ ] 前言
+- [ ] 第 1-5 章（基礎篇）
+- [ ] 第 6-11 章（技術深入篇上）
+- [ ] 第 12-17 章（技術深入篇下）
+- [ ] 附錄與術語表
 
-*  [Glossary](glossary.asciidoc)
+## 授權
 
-### Author Bios and Colophon
-
-*  [Author Bios](author_bio.html)
-*  [Colophon](colo.html)
-
-## Creative Commons Attribution Sharealike License
-
-Mastering the Lightning Network is released under the Creative Commons CC-BY-SA 4.0 license. The full terms of the license can be found here:
+本書採用 Creative Commons CC-BY-SA 4.0 授權釋出。
 
 [![CC BY-SA 4.0][cc-by-sa-shield]][cc-by-sa]
 
-<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">Mastering the Lightning Network</span> by <span xmlns:cc="http://creativecommons.org/ns#" property="cc:attributionName">Andreas M. Antonopoulos, Olaoluwa Osuntokun, Rene Pickhardt</span> is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.<br />Based on a work at <a xmlns:dct="http://purl.org/dc/terms/" href="https://github.com/lnbook/lnbook" rel="dct:source">https://github.com/lnbook/lnbook</a>.
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a>
 
-This "Free Culture" compliant license was approved by our publisher O'Reilly Media (http://oreilly.com), who understands the value of open source. O'Reilly Media is not just the world's best publisher of technical books, but is also a strong supporter of this open culture and the sharing of knowledge.
+《精通閃電網路》繁體中文版基於原作翻譯。
 
-Thank you O'Reilly Media!
+原作者：Andreas M. Antonopoulos、Olaoluwa Osuntokun、Rene Pickhardt
 
-## Translations and Derivatives (eg. PDF, HTML, EPUB ebooks)
+繁體中文翻譯：Dr. Awesome Doge
 
-The current license permits derivative work, such as independent translations and the production and circulation of PDF, HTML or other derivative renderings of the source ASCIIDOC. *The license does not extend to O'Reilly Media intellectual property, such as the cover page.*
+原始專案：[https://github.com/lnbook/lnbook](https://github.com/lnbook/lnbook)
 
-If you are interested in translating this book please see [TRANSLATING.md](TRANSLATING.md)
+## 貢獻
+
+歡迎對翻譯內容提出修正或建議，請透過 Issue 或 Pull Request 參與貢獻。
 
 [cc-by-sa]: http://creativecommons.org/licenses/by-sa/4.0/
 [cc-by-sa-image]: https://licensebuttons.net/l/by-sa/4.0/88x31.png

@@ -1,0 +1,239 @@
+/* 精通閃電網路 - 繁體中文版樣式 */
+
+:root {
+  --primary-color: #f7931a;
+  --secondary-color: #4a90d9;
+  --text-color: #333;
+  --bg-color: #fff;
+  --code-bg: #f5f5f5;
+  --border-color: #ddd;
+}
+
+/* 基本設定 */
+body {
+  font-family: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif;
+  line-height: 1.8;
+  color: var(--text-color);
+  background-color: var(--bg-color);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* 標題 */
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+h1 {
+  font-size: 2.2em;
+  border-bottom: 3px solid var(--primary-color);
+  padding-bottom: 0.3em;
+}
+
+h2 {
+  font-size: 1.8em;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 0.2em;
+}
+
+h3 {
+  font-size: 1.4em;
+}
+
+/* 目錄 */
+#toc {
+  background-color: #f9f9f9;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  padding: 15px 20px;
+  margin-bottom: 30px;
+}
+
+#toc ul {
+  list-style-type: none;
+  padding-left: 20px;
+}
+
+#toc a {
+  color: var(--secondary-color);
+  text-decoration: none;
+}
+
+#toc a:hover {
+  text-decoration: underline;
+}
+
+/* 程式碼 */
+pre, code {
+  font-family: "Fira Code", "Source Code Pro", monospace;
+  background-color: var(--code-bg);
+  border-radius: 3px;
+}
+
+code {
+  padding: 2px 6px;
+  font-size: 0.9em;
+}
+
+pre {
+  padding: 15px;
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  line-height: 1.5;
+}
+
+pre code {
+  padding: 0;
+  background: none;
+}
+
+/* 區塊引用 */
+blockquote {
+  border-left: 4px solid var(--primary-color);
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  background-color: #fff9e6;
+}
+
+/* 提示區塊 */
+.admonitionblock {
+  margin: 1.5em 0;
+  padding: 1em;
+  border-radius: 5px;
+}
+
+.admonitionblock.tip {
+  background-color: #e7f5e7;
+  border-left: 4px solid #28a745;
+}
+
+.admonitionblock.note {
+  background-color: #e7f1ff;
+  border-left: 4px solid var(--secondary-color);
+}
+
+.admonitionblock.warning {
+  background-color: #fff3cd;
+  border-left: 4px solid #ffc107;
+}
+
+.admonitionblock.caution {
+  background-color: #ffe6e6;
+  border-left: 4px solid #dc3545;
+}
+
+.admonitionblock.important {
+  background-color: #f0e6ff;
+  border-left: 4px solid #6f42c1;
+}
+
+/* 表格 */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+
+th, td {
+  border: 1px solid var(--border-color);
+  padding: 10px 15px;
+  text-align: left;
+}
+
+th {
+  background-color: #f5f5f5;
+  font-weight: 700;
+}
+
+tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+/* 圖片 */
+.imageblock {
+  margin: 1.5em 0;
+  text-align: center;
+}
+
+.imageblock img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.imageblock .title {
+  font-size: 0.9em;
+  color: #666;
+  margin-top: 0.5em;
+}
+
+/* 連結 */
+a {
+  color: var(--secondary-color);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* 清單 */
+ul, ol {
+  margin: 1em 0;
+  padding-left: 2em;
+}
+
+li {
+  margin: 0.5em 0;
+}
+
+/* 分隔線 */
+hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 2em 0;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+
+  h1 {
+    font-size: 1.8em;
+  }
+
+  h2 {
+    font-size: 1.5em;
+  }
+
+  pre {
+    font-size: 0.85em;
+  }
+}
+
+/* 列印樣式 */
+@media print {
+  body {
+    max-width: none;
+  }
+
+  #toc {
+    page-break-after: always;
+  }
+
+  h1, h2, h3 {
+    page-break-after: avoid;
+  }
+
+  pre, blockquote {
+    page-break-inside: avoid;
+  }
+}

@@ -1,0 +1,1133 @@
+[[set_up_a_lightning_node]]
+== 閃電網路節點軟體
+
+((("Lightning node software", id="ix_04_node_client-asciidoc0", range="startofrange")))正如我們在前幾章所見，閃電網路節點是參與閃電網路的電腦系統。閃電網路不是一個產品或公司；它是一套定義互通性基準的開放標準。因此，閃電網路節點軟體已由多家公司和社群團體開發。絕大多數閃電網路軟體都是_開源_的，這意味著原始碼是開放的，並以允許協作、分享和社群參與開發過程的方式授權。同樣地，我們將在本章介紹的閃電網路節點實作都是開源的，並且是協作開發的。
+
+與比特幣不同，比特幣的標準是由軟體中的_參考實作_（Bitcoin Core）定義的，((("BOLT (Basis of Lightning Technology) standards documents")))閃電網路的標準是由一系列稱為_閃電網路技術基礎_（_Basis of Lightning Technology_，_BOLT_）的標準文件定義的，可在 https://github.com/lightningnetwork/lightning-rfc[_lightning-rfc_ 儲存庫]找到。
+
+閃電網路沒有參考實作，但有幾個相互競爭、符合 BOLT 標準且可互通的實作，由不同的團隊和組織開發。開發閃電網路軟體的團隊也參與 BOLT 標準的開發和演進。
+
+閃電網路節點軟體和比特幣節點軟體的另一個主要區別是，閃電網路節點不需要與共識規則同步運作，並且可以擁有超出 BOLT 基準的擴展功能。因此，不同的團隊可能會追求各種實驗性功能，如果這些功能成功並被廣泛部署，可能會在之後成為 BOLT 的一部分。
+
+[role="pagebreak-before"]
+在本章中，你將學習如何設定最流行的閃電網路節點實作的每個軟體套件。我們按字母順序呈現它們，以強調我們通常不偏好或背書任何一個。每個都有其優點和缺點，選擇哪一個取決於多種因素。由於它們是用不同的程式語言開發的（例如 Go、C 等），你的選擇也可能取決於你對特定語言和開發工具集的熟悉程度和專業知識。
+
+=== 閃電網路開發環境
+
+((("development environment","Lightning node software", id="ix_04_node_client-asciidoc1", range="startofrange")))((("Lightning node software","development environment", id="ix_04_node_client-asciidoc2", range="startofrange")))如果你是開發者，你會想要設定一個開發環境，其中包含用於編寫和執行閃電網路軟體的所有工具、函式庫和支援軟體。在這個高度技術性的章節中，我們將逐步介紹這個過程。如果材料變得過於密集，或者你實際上並沒有設定開發環境，那麼可以跳到下一章，那裡的技術性較低。
+
+==== 使用命令列
+
+((("command line")))((("development environment","command line")))((("Lightning node software","command line")))本章以及本書大部分內容中的範例都使用命令列終端機。這意味著你在終端機中輸入命令並接收文字回應。此外，這些範例是在基於 Linux 核心和 GNU 軟體系統的作業系統上演示的，特別是最新的 Ubuntu 長期穩定版本（Ubuntu 20.04 LTS）。大多數範例可以在其他作業系統（如 Windows 或 macOS）上複製執行，只需對命令進行少量修改。作業系統之間最大的區別是安裝各種軟體函式庫及其先決條件的_套件管理器_。在給出的範例中，我們將使用 +apt+，這是 Ubuntu 的套件管理器。在 macOS 上，一個常用於開源開發的套件管理器是 https://brew.sh[Homebrew]，透過命令 +brew+ 存取。
+
+在這裡的大多數範例中，我們將直接從原始碼建構軟體。雖然這可能相當具有挑戰性，但它給了我們最大的能力和控制權。如果遇到困難，你也可以選擇使用 Docker 容器、預編譯套件或其他安裝機制！
+
+[TIP]
+====
+在本章的許多範例中，我們將使用作業系統的命令列介面（也稱為 _shell_），透過_終端機_應用程式存取。shell 將首先顯示提示符作為準備好接收你命令的指示。然後你輸入命令並按 Enter 鍵，shell 會以一些文字和一個新的提示符回應，等待你的下一個命令。在你的系統上，提示符可能看起來不同，但在以下範例中，它用 +$+ 符號表示。在範例中，當你看到 +$+ 符號後面的文字時，不要輸入 +$+ 符號，而是輸入緊隨其後的命令。然後按 Enter 鍵執行命令。在範例中，每個命令後面的行是作業系統對該命令的回應。當你看到下一個 +$+ 前綴時，你就知道這是一個新命令，你應該重複這個過程。
+====
+
+為了保持一致性，我們在所有命令列範例中使用 +bash+ shell。雖然其他 shell 會以類似的方式運作，並且你可以在沒有它的情況下執行所有範例，但一些 shell 腳本是專門為 +bash+ shell 編寫的，可能需要一些更改或自訂才能在其他 shell 中執行。為了一致性，你可以在 Windows 和 macOS 上安裝 +bash+ shell，而它在大多數 Linux 系統上預設已安裝。
+
+==== 下載本書儲存庫
+
+((("development environment","downloading the book repository")))所有程式碼範例都可在本書的線上儲存庫中找到。由於儲存庫會盡可能保持更新，你應該始終在線上儲存庫中查找最新版本，而不是從紙本書或電子書中複製。
+
+你可以訪問 https://github.com/lnbook/lnbook[GitHub] 並選擇右側的綠色 Code 按鈕，以 ZIP 壓縮包的形式下載儲存庫。
+
+
+或者，你可以使用 +git+ 命令在本地電腦上建立儲存庫的版本控制複製品，從而讓你可以與後續更改保持同步，而不需要再次下載整個儲存庫。按照 https://git-scm.com[Git 專案]的說明下載並安裝 +git+。
+
+
+要在你的電腦上建立儲存庫的本地副本，請按以下方式執行 +git+ 命令：
+
+[[git-clone-lnbook]]
+----
+$ git clone https://github.com/lnbook/lnbook.git
+----
+
+你現在在一個名為 +lnbook+ 的資料夾中擁有了本書儲存庫的完整副本。你會想要透過執行以下命令切換到新下載的目錄：
+
+[[cd-lnbook]]
+----
+$ cd lnbook
+----
+
+所有後續範例將假設你在這個資料夾內執行命令。(((range="endofrange", startref="ix_04_node_client-asciidoc2")))(((range="endofrange", startref="ix_04_node_client-asciidoc1")))
+
+=== Docker 容器
+
+((("Docker containers","Lightning node software and")))((("Lightning node software","Docker containers")))許多開發者使用_容器_，這是一種虛擬機器，用於安裝預先配置的作業系統和應用程式及所有必要的依賴項。大部分閃電網路軟體也可以使用容器系統（如 _Docker_）來安裝，可在 https://docker.com[Docker 主頁]找到。容器安裝要容易得多，特別是對於那些不習慣命令列環境的人。
+
+本書的儲存庫包含一系列 Docker 容器，可用於設定一致的開發環境，以便在任何系統上練習和複製範例。因為容器是一個完整的作業系統，以一致的配置執行，你可以確保範例將在你的電腦上運作，而不需要擔心依賴項、函式庫版本或配置差異。
+
+Docker 容器通常被優化為小型的，即佔用最小的磁碟空間。然而，在本書中，我們使用容器來_標準化_環境並使其對所有讀者保持一致。此外，這些容器並不是要用來在後台執行服務的。相反，它們是用來測試範例並透過與軟體互動來學習的。因此，這些容器相當大，並附帶了大量的開發工具和實用程式。通常，Alpine 發行版用於 Linux 容器，因為它們的體積較小。儘管如此，我們提供的容器是基於 Ubuntu 建構的，因為更多的開發者熟悉 Ubuntu，對我們來說，這種熟悉度比體積更重要。
+
+Docker 的安裝和使用及其命令在 <<appendix_docker>> 中有詳細說明。如果你不熟悉 Docker，現在是快速瀏覽該部分的好時機。
+
+你可以在本書儲存庫的 _code/docker_ 資料夾下找到最新的容器定義和建構配置。每個容器都在一個單獨的資料夾中，如下所示：
+
+[[tree]]
+----
+$ tree -F --charset=asciii code/docker
+----
+
+[[docker-dir-list]]
+----
+code/docker
+|-- bitcoind/
+|   |-- bashrc
+|   |-- bitcoind/
+|   |   |-- bitcoin.conf
+|   |   `-- keys/
+|   |       |-- demo_address.txt
+|   |       |-- demo_mnemonic.txt
+|   |       `-- demo_privkey.txt
+|   |-- bitcoind-entrypoint.sh
+|   |-- cli
+|   |-- Dockerfile
+|   `-- mine.sh*
+|-- c-lightning/
+|   |-- bashrc
+|   |-- cli
+|   |-- c-lightning-entrypoint.sh
+|   |-- devkeys.pem
+|   |-- Dockerfile
+|   |-- fund-c-lightning.sh
+|   |-- lightningd/
+|   |   `-- config
+|   |-- logtail.sh
+|   `-- wait-for-bitcoind.sh
+|-- eclair/
+|   |-- bashrc
+|   |-- cli
+|   |-- Dockerfile
+|   |-- eclair/
+|   |   `-- eclair.conf
+|   |-- eclair-entrypoint.sh
+|   |-- logtail.sh
+|   `-- wait-for-bitcoind.sh
+|-- lnd/
+|   |-- bashrc
+|   |-- cli
+|   |-- Dockerfile
+|   |-- fund-lnd.sh
+|   |-- lnd/
+|   |   `-- lnd.conf
+|   |-- lnd-entrypoint.sh
+|   |-- logtail.sh
+|   `-- wait-for-bitcoind.sh
+|-- check-versions.sh
+|-- docker-compose.yml
+|-- Makefile
+`-- run-payment-demo.sh*
+----
+
+正如我們將在接下來幾節中看到的，你可以在本地建構這些容器，或者你可以從 https://hub.docker.com/orgs/lnbook[_Docker Hub_] 上本書的儲存庫拉取它們。以下各節將假設你已安裝 Docker 並熟悉 +docker+ 命令的基本用法。
+
+=== Bitcoin Core 和 Regtest
+
+((("Bitcoin Core", id="ix_04_node_client-asciidoc3", range="startofrange")))((("Lightning node software","Bitcoin Core and regtest", id="ix_04_node_client-asciidoc4", range="startofrange")))大多數閃電網路節點實作需要存取完整的比特幣節點才能運作。
+
+安裝完整的比特幣節點並同步比特幣區塊鏈超出了本書的範圍，這本身就是一個相對複雜的工作。如果你想嘗試，請參考 https://github.com/bitcoinbook/bitcoinbook[_精通比特幣_]，「第 3 章：Bitcoin Core：參考實作」，其中討論了比特幣節點的安裝和操作。
+
+((("regtest mode")))比特幣節點可以在 `regtest` 模式下運作，其中節點建立一個本地模擬的比特幣區塊鏈用於測試目的。在以下範例中，我們將使用 +regtest+ 模式，讓我們能夠演示閃電網路，而不需要同步比特幣節點或冒任何資金風險。
+
+Bitcoin Core 的容器是 +bitcoind+。它被配置為在 +regtest+ 模式下執行 Bitcoin Core，並每 10 秒挖掘 6 個新區塊。它的遠端程序呼叫（RPC）埠暴露在埠 18443 上，可以使用使用者名稱 +regtest+ 和密碼 +regtest+ 進行 RPC 呼叫。你也可以使用互動式 shell 並在本地執行 +bitcoin-cli+ 命令。
+
+==== 建構 Bitcoin Core 容器
+
+((("bitcoind container", id="ix_04_node_client-asciidoc5", range="startofrange")))((("Docker containers","Bitcoin Core container", id="ix_04_node_client-asciidoc6", range="startofrange")))讓我們準備 +bitcoind+ 容器。最簡單的方法是從 _Docker Hub_ 拉取最新的容器：
+
+[source,bash]
+----
+$ docker pull lnbook/bitcoind
+Using default tag: latest
+latest: Pulling from lnbook/bitcoind
+35807b77a593: Pull complete
+e1b85b9c5571: Pull complete
+[...]
+288f1cc78a00: Pull complete
+Digest: sha256:861e7e32c9ad650aa367af40fc5acff894e89e47aff4bd400691ae18f1b550e2
+Status: Downloaded newer image for lnbook/bitcoind:latest
+docker.io/lnbook/bitcoind:latest
+
+----
+
+或者，你可以從 _code/docker/bitcoind/Dockerfile_ 中的本地容器定義自行建構容器。
+
+[NOTE]
+====
+如果你之前使用 +pull+ 命令從 Docker Hub 拉取了容器，則不需要建構容器。
+====
+
+在本地建構容器將使用較少的網路頻寬，但會使用更多的 CPU 時間來建構。我們使用 +docker build+ 命令來建構它：
+
+[source,bash]
+----
+$ cd code/docker
+$ docker run -it --name bitcoind lnbook/bitcoind
+Starting bitcoind...
+Bitcoin Core starting
+Waiting for bitcoind to start
+bitcoind started
+================================================
+Imported demo private key
+Bitcoin address:  2NBKgwSWY5qEmfN2Br4WtMDGuamjpuUc5q1
+Private key:  cSaejkcWwU25jMweWEewRSsrVQq2FGTij1xjXv4x1XvxVRF1ZCr3
+================================================
+================================================
+Balance: 0.00000000
+================================================
+Mining 101 blocks to unlock some bitcoin
+[
+  "34c744207fd4dd32b70bac467902bd8d030fba765c9f240a2e98f15f05338964",
+  "64d82721c641c378d79b4ff2e17572c109750bea1d4eddbae0b54f51e4cdf23e",
+
+ [...]
+
+  "7a8c53dc9a3408c9ecf9605b253e5f8086d67bbc03ea05819b2c9584196c9294",
+  "39e61e50e34a9bd1d6eab51940c39dc1ab56c30b21fc28e1a10c14a39b67a1c3",
+  "4ca7fe9a55b0b767d2b7f5cf4d51a2346f035fe8c486719c60a46dcbe33de51a"
+]
+Mining 6 blocks every 10 seconds
+Balance: 50.00000000
+[
+  "5ce76cc475e40515b67e3c0237d1eef597047a914ba3f59bbd62fc3691849055",
+  "1ecb27a05ecfa9dfa82a7b26631e0819b2768fe5e6e56c7a2e1078b078e21e9f",
+  "717ceb8b6c329d57947c950dc5668fae65bddb7fa03203984da9d2069e20525b",
+  "185fc7cf3557a6ebfc4a8cdd1f94a8fa08ed0c057040cdd68bfb7aee2d5be624",
+  "59001ae237a3834ebe4f6e6047dcec8fd67df0352ddc70b6b02190f982a60384",
+  "754c860fe1b9e0e7292e1de96a65eaa78047feb4c72dbbde2a1d224faa1499dd"
+]
+
+----
+
+如你所見，+bitcoind+ 啟動並挖掘 101 個模擬區塊以啟動區塊鏈。這是因為根據比特幣共識規則，新挖出的比特幣在經過 100 個區塊之前是不能花費的。透過挖掘 101 個區塊，我們使第一個區塊的 coinbase 可以花費。之後，每 10 秒挖掘 6 個新區塊，以保持區塊鏈向前推進。
+
+目前沒有交易。但我們有一些測試比特幣已經被挖掘到錢包中，可以使用。當我們將一些閃電網路節點連接到這條鏈時，我們會發送一些比特幣到它們的錢包，這樣我們就可以在閃電網路節點之間開設一些閃電網路通道。
+
+===== 與 bitcoin core 容器互動
+
+同時，我們也可以透過向 +bitcoind+ 容器發送 shell 命令來與之互動。容器正在向終端機發送日誌檔案，顯示 +bitcoind+ 進程的挖礦過程。要與 shell 互動，我們可以在另一個終端機中使用 +docker exec+ 命令發出命令。由於我們之前使用 +name+ 參數命名了正在執行的容器，當我們執行 +docker exec+ 命令時，可以透過該名稱引用它。首先，讓我們執行一個互動式 +bash+ shell：
+
+----
+$ docker exec -it bitcoind /bin/bash
+root@e027fd56e31a:/bitcoind# ps x
+  PID TTY      STAT   TIME COMMAND
+    1 pts/0    Ss+    0:00 /bin/bash /usr/local/bin/mine.sh
+    7 ?        Ssl    0:03 bitcoind -datadir=/bitcoind -daemon
+   97 pts/1    Ss     0:00 /bin/bash
+  124 pts/0    S+     0:00 sleep 10
+  125 pts/1    R+     0:00 ps x
+root@e027fd56e31a:/bitcoind#
+----
+
+執行互動式 shell 讓我們進入容器「內部」。它以使用者 +root+ 登入，如新 shell 提示符 +root@e027fd56e31a:/bitcoind#+ 中的 +root@+ 前綴所示。如果我們發出 +ps x+ 命令查看正在執行的進程，我們會看到 +bitcoind+ 和腳本 +mine.sh+ 都在背景執行。要退出此 shell，請按 Ctrl-D 或輸入 *+exit+*，你將返回到你的作業系統提示符。
+
+除了執行互動式 shell，我們還可以發出在容器內執行的單個命令。為了方便，+bitcoin-cli+ 命令有一個別名「cli」，它傳遞正確的配置。因此，讓我們執行它來向 Bitcoin Code 詢問區塊鏈資訊。我們執行 +cli getblockchaininfo+：
+
+[source,bash]
+----
+$ docker exec bitcoind cli getblockchaininfo
+{
+  "chain": "regtest",
+  "blocks": 131,
+  "headers": 131,
+  "bestblockhash": "2cf57aac35365f52fa5c2e626491df634113b2f1e5197c478d57378e5a146110",
+
+[...]
+
+  "warnings": ""
+}
+
+----
+
++bitcoind+ 容器中的 +cli+ 命令允許我們向 Bitcoin Core 節點發出 RPC 命令並獲取 JavaScript 物件表示法（JSON）編碼的結果。
+
+此外，我們所有的 Docker 容器都預裝了一個名為 +jq+ 的命令列 JSON 編碼器/解碼器。+jq+ 幫助我們透過命令列或從腳本內處理 JSON 格式的資料。你可以使用 +|+ 字元將任何命令的 JSON 輸出發送到 +jq+。這個字元以及這個操作稱為「管道」。讓我們將 +pipe+ 和 +jq+ 應用到前面的命令如下：
+
+[source,bash]
+----
+$ docker exec bitcoind bash -c "cli getblockchaininfo | jq .blocks"
+197
+----
+
++jq .blocks+ 指示 +jq+ JSON 解碼器從 [.keep-together]#+getblockchaininfo+# 結果中提取欄位 +blocks+。在我們的例子中，它提取並列印值 197，我們可以在後續命令中使用。
+
+正如你將在以下章節中看到的，我們可以同時執行多個容器，然後單獨與它們互動。我們可以發出命令提取資訊，例如閃電網路節點公鑰，或採取行動，例如向另一個節點開設閃電網路通道。+docker run+ 和 +docker exec+ 命令，加上用於 JSON 解碼的 +jq+，是我們建構混合許多不同節點實作的工作閃電網路所需的全部。這使我們能夠在自己的電腦上嘗試各種實驗(((range="endofrange", startref="ix_04_node_client-asciidoc6")))(((range="endofrange", startref="ix_04_node_client-asciidoc5")))。(((range="endofrange", startref="ix_04_node_client-asciidoc4")))(((range="endofrange", startref="ix_04_node_client-asciidoc3")))
+
+=== c-lightning 閃電網路節點專案
+
+((("c-lightning Lightning Node project", id="ix_04_node_client-asciidoc7", range="startofrange")))((("Lightning node software","c-lightning Lightning Node project", id="ix_04_node_client-asciidoc8", range="startofrange")))`c-lightning` 是一個輕量級、高度可自訂且符合標準的閃電網路協定實作，由 Blockstream 作為 Elements 專案的一部分開發。該專案是開源的，在 https://github.com/ElementsProject/lightning[GitHub] 上協作開發。
+
+在以下各節中，我們將建構一個 Docker 容器，執行連接到我們之前建構的 +bitcoind+ 容器的 `c-lightning` 節點。我們還將向你展示如何直接從原始碼配置和建構 `c-lightning` 軟體。
+
+==== 建構 c-lightning 作為 Docker 容器
+
+((("c-lightning Lightning Node project","building c-lightning as Docker container")))((("Docker containers","building c-lightning as")))`c-lightning` 軟體發行版有一個 Docker 容器，但它設計用於在生產系統中執行 `c-lightning` 並與 +bitcoind+ 節點一起執行。我們將使用一個稍微簡單的容器，配置為在演示目的下執行 `c-lightning`。
+
+讓我們從本書的 Docker Hub 儲存庫拉取 `c-lightning` 容器：
+
+[source,bash]
+----
+$ docker pull lnbook/c-lightning
+Using default tag: latest
+latest: Pulling from lnbook/c-lightning
+
+[...]
+
+Digest: sha256:bdefcefe8a9712e7b3a236dcc5ab12d999c46fd280e209712e7cb649b8bf0688
+Status: Downloaded image for lnbook/c-lightning:latest
+docker.io/lnbook/c-lightning:latest
+
+----
+
+
+或者，我們可以從你之前下載到名為 +lnbook+ 目錄中的本書檔案建構 `c-lightning` Docker 容器。和之前一樣，我們將在 +code/docker+ 子目錄中使用 +docker build+ 命令。我們將使用標籤 +lnbook/c-lightning+ 標記容器映像，如下所示：
+
+[source,bash]
+----
+$ cd code/docker
+$ docker build -t lnbook/c-lightning c-lightning
+Sending build context to Docker daemon  91.14kB
+Step 1/34 : ARG OS=ubuntu
+Step 2/34 : ARG OS_VER=focal
+Step 3/34 : FROM ${OS}:${OS_VER} as os-base
+ ---> fb52e22af1b0
+
+ [...]
+
+Step 34/34 : CMD ["/usr/local/bin/logtail.sh"]
+ ---> Running in 8d3d6c8799c5
+Removing intermediate container 8d3d6c8799c5
+ ---> 30b6fd5d7503
+Successfully built 30b6fd5d7503
+Successfully tagged lnbook/c-lightning:latest
+
+----
+
+我們的容器現在已建構並準備好執行。然而，在執行 `c-lightning` 容器之前，我們需要在另一個終端機中啟動 +bitcoind+ 容器，因為 `c-lightning` 依賴於 +bitcoind+。我們還需要設定一個 Docker 網路，允許容器相互連接，就像它們位於同一個區域網路上一樣。
+
+[TIP]
+====
+Docker 容器可以透過 Docker 系統管理的虛擬區域網路相互「對話」。每個容器可以有一個自訂名稱，其他容器可以使用該名稱解析其 IP 位址並輕鬆連接到它。
+====
+
+==== 設定 Docker 網路
+
+((("c-lightning Lightning Node project","Docker network setup")))一旦設定了 Docker 網路，每次 Docker 啟動時（例如重新開機後），Docker 都會在我們的本地電腦上啟動該網路。因此，我們只需要使用 +docker network create+ 命令設定一次網路。網路名稱本身並不重要，但它必須在我們的電腦上是唯一的。預設情況下，Docker 有三個名為 +host+、+bridge+ 和 +none+ 的網路。我們將把新網路命名為 +lnbook+ 並像這樣建立它：
+
+[source,bash]
+----
+$ docker network create lnbook
+ad75c0e4f87e5917823187febedfc0d7978235ae3e88eca63abe7e0b5ee81bfb
+$ docker network ls
+NETWORK ID          NAME                DRIVER              SCOPE
+7f1fb63877ea        bridge              bridge              local
+4e575cba0036        host                host                local
+ad75c0e4f87e        lnbook              bridge              local
+ee8824567c95        none                null                local
+----
+
+如你所見，執行 +docker network ls+ 給我們一個 Docker 網路列表。我們的 +lnbook+ 網路已建立。我們可以忽略網路 ID，因為它是自動管理的。
+
+==== 執行 bitcoind 和 c-lightning 容器
+
+((("bitcoind container","and c-lightning containers")))((("c-lightning Lightning Node project","running bitcoind and c-lightning containers")))下一步是啟動 +bitcoind+ 和 `c-lightning` 容器並將它們連接到 +lnbook+ 網路。要在特定網路中執行容器，我們必須將 [.keep-together]#+network+# 參數傳遞給 +docker run+。為了讓容器容易找到彼此，我們還將使用 +name+ 參數給每個容器一個名稱。我們像這樣啟動 +bitcoind+：
+
+[source,bash]
+----
+$ docker run -it --network lnbook --name bitcoind lnbook/bitcoind
+----
+
+你應該看到 +bitcoind+ 啟動並開始每 10 秒挖掘區塊。讓它繼續執行並開啟一個新的終端機視窗來啟動 `c-lightning`。我們使用帶有 +network+ 和 +name+ 參數的類似 +docker run+ 命令來啟動 `c-lightning`，如下所示：
+
+[source,bash]
+----
+$ docker run -it --network lnbook --name c-lightning lnbook/c-lightning
+Waiting for bitcoind to start...
+Waiting for bitcoind to mine blocks...
+Starting c-lightning...
+2021-09-12T13:14:50.434Z UNUSUAL lightningd: Creating configuration directory /lightningd/regtest
+Startup complete
+Funding c-lightning wallet
+8a37a183274c52d5a962852ba9f970229ea6246a096ff1e4602b57f7d4202b31
+lightningd: Opened log file /lightningd/lightningd.log
+lightningd: Creating configuration directory /lightningd/regtest
+lightningd: Opened log file /lightningd/lightningd.log
+
+----
+
+`c-lightning` 容器啟動並透過 Docker 網路連接到 +bitcoind+ 容器。首先，我們的 `c-lightning` 節點將等待 +bitcoind+ 啟動，然後它將等待 +bitcoind+ 挖掘一些比特幣到其錢包中。最後，作為容器啟動的一部分，一個腳本將向 +bitcoind+ 節點發送一個 RPC 命令，建立一筆交易，用 10 個測試 BTC 為 `c-lightning` 錢包注資。現在我們的 `c-lightning` 節點不僅在執行，而且還有一些測試比特幣可以使用！
+
+正如我們對 +bitcoind+ 容器所演示的，我們可以在另一個終端機中向 `c-lightning` 容器發出命令，以提取資訊、開設通道等。允許我們向 `c-lightning` 節點發出命令列指令的命令稱為 +lightning-cli+。這個 +lightning-cli+ 命令在此容器中也有別名 +cli+。要獲取 `c-lightning` 節點的資訊，請在另一個終端機視窗中使用以下 +docker exec+ 命令：
+
+[source,bash]
+----
+$ docker exec c-lightning cli getinfo
+{
+   "id": "026ec53cc8940df5fed5fa18f8897719428a15d860ff4cd171fca9530879c7499e",
+   "alias": "IRATEARTIST",
+   "color": "026ec5",
+   "num_peers": 0,
+   "num_pending_channels": 0,
+
+[...]
+
+   "version": "0.10.1",
+   "blockheight": 221,
+   "network": "regtest",
+   "msatoshi_fees_collected": 0,
+   "fees_collected_msat": "0msat",
+   "lightning-dir": "/lightningd/regtest"
+}
+
+----
+
+我們現在有了第一個在虛擬網路上執行並與測試比特幣區塊鏈通訊的閃電網路節點。稍後在本章中，我們將啟動更多節點並將它們相互連接，以進行一些閃電網路支付。
+
+在下一節中，我們還將看看如何直接從原始碼下載、配置和編譯 `c-lightning`。這是一個可選的進階步驟，將教你如何使用建構工具，並允許你對 [.keep-together]#`c-lightning`# 原始碼進行修改。有了這些知識，你可以編寫一些程式碼、修復一些錯誤或為 `c-lightning` 建立外掛程式。
+
+[NOTE]
+====
+如果你不打算深入研究閃電網路節點的原始碼或程式設計，可以完全跳過下一節。我們剛剛建構的 Docker 容器足以完成本書中的大多數範例。
+====
+
+==== 從原始碼安裝 c-lightning
+
+((("c-lightning Lightning Node project","installing c-lightning from source code")))`c-lightning` 開發者提供了從原始碼建構 `c-lightning` 的詳細說明。我們將遵循 https://github.com/ElementsProject/lightning/blob/master/doc/INSTALL.md[GitHub 上的說明]。
+
+==== 安裝先決條件函式庫和套件
+
+((("c-lightning Lightning Node project","installing prerequisite libraries and packages")))這些安裝說明假設你在 Linux 或類似系統上使用 GNU 建構工具建構 `c-lightning`。如果不是這種情況，請在 Elements 專案儲存庫中查找適用於你作業系統的說明。
+
+常見的第一步是安裝先決條件函式庫。我們使用 +apt+ 套件管理器來安裝這些：
+
+[source,bash]
+----
+$ sudo apt-get update
+
+Get:1 http://security.ubuntu.com/ubuntu bionic-security InRelease [88.7 kB]
+Hit:2 http://eu-north-1b.clouds.archive.ubuntu.com/ubuntu bionic InRelease
+Get:3 http://eu-north-1b.clouds.archive.ubuntu.com/ubuntu bionic-updates InRelease [88.7 kB]
+
+[...]
+
+Fetched 18.3 MB in 8s (2,180 kB/s)
+Reading package lists... Done
+
+$ sudo apt-get install -y \
+  autoconf automake build-essential git libtool libgmp-dev \
+  libsqlite3-dev python python3 python3-mako net-tools zlib1g-dev \
+  libsodium-dev gettext
+
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+The following additional packages will be installed:
+  autotools-dev binutils binutils-common binutils-x86-64-linux-gnu cpp cpp-7 dpkg-dev fakeroot g++ g++-7 gcc gcc-7 gcc-7-base libalgorithm-diff-perl
+
+ [...]
+
+Setting up libsigsegv2:amd64 (2.12-2) ...
+Setting up libltdl-dev:amd64 (2.4.6-14) ...
+Setting up python2 (2.7.17-2ubuntu4) ...
+Setting up libsodium-dev:amd64 (1.0.18-1) ...
+
+[...]
+$
+----
+
+幾分鐘後和大量的螢幕活動之後，你將安裝好所有必要的套件和函式庫。許多這些函式庫也被其他閃電網路套件使用，並且是軟體開發的一般需求。
+
+==== 複製 c-lightning 原始碼
+
+((("c-lightning Lightning Node project","copying the latest version of c-lightning source code")))接下來，我們將從原始碼儲存庫複製最新版本的 `c-lightning`。為此，我們將使用 +git clone+ 命令，它會在你的本地機器上複製一個版本控制的副本，從而讓你可以與後續更改保持同步，而不需要再次下載整個儲存庫：
+
+[source,bash]
+----
+$ git clone --recurse https://github.com/ElementsProject/lightning.git
+Cloning into 'lightning'...
+remote: Enumerating objects: 24, done.
+remote: Counting objects: 100% (24/24), done.
+remote: Compressing objects: 100% (22/22), done.
+remote: Total 53192 (delta 5), reused 5 (delta 2), pack-reused 53168
+Receiving objects: 100% (53192/53192), 29.59 MiB | 19.30 MiB/s, done.
+Resolving deltas: 100% (39834/39834), done.
+
+$ cd lightning
+
+----
+
+我們現在在 _lightning_ 子資料夾中有了 `c-lightning` 的副本，並且我們使用 +cd+（更改目錄）命令進入該子資料夾。
+
+==== 編譯 c-lightning 原始碼
+
+((("c-lightning Lightning Node project","compiling the c-lightning source code")))接下來，我們使用一組在許多開源專案中常見的_建構腳本_。這些建構腳本使用 +configure+ 和 +make+ 命令，讓 pass:[<span class="keep-together">我們</span>]可以：
+
+* 選擇建構選項並檢查必要的依賴項（+configure+）
+* 建構並安裝可執行檔和函式庫（+make+）
+
+使用 +help+ 選項執行 +configure+ 將向我們顯示所有可用選項：
+
+----
+$ ./configure --help
+Usage: ./configure [--reconfigure] [setting=value] [options]
+
+Options include:
+  --prefix= (default /usr/local)
+    Prefix for make install
+  --enable/disable-developer (default disable)
+    Developer mode, good for testing
+  --enable/disable-experimental-features (default disable)
+    Enable experimental features
+  --enable/disable-compat (default enable)
+    Compatibility mode, good to disable to see if your software breaks
+  --enable/disable-valgrind (default (autodetect))
+    Run tests with Valgrind
+  --enable/disable-static (default disable)
+    Static link sqlite3, gmp and zlib libraries
+  --enable/disable-address-sanitizer (default disable)
+    Compile with address-sanitizer
+----
+
+在本範例中，我們不需要更改任何預設值。因此，我們不帶任何選項再次執行 [.keep-together]#+configure+# 以使用預設值：
+
+----
+$ ./configure
+
+Compiling ccan/tools/configurator/configurator...done
+checking for python3-mako... found
+Making autoconf users comfortable... yes
+checking for off_t is 32 bits... no
+checking for __alignof__ support... yes
+
+[...]
+
+Setting COMPAT... 1
+PYTEST not found
+Setting STATIC... 0
+Setting ASAN... 0
+Setting TEST_NETWORK... regtest
+$
+----
+
+接下來，我們使用 +make+ 命令來建構 `c-lightning` 專案的函式庫、元件和可執行檔。這部分需要幾分鐘才能完成，並且會大量使用你電腦的 CPU 和磁碟。預期會聽到風扇的噪音！執行 +make+：
+
+[source,bash]
+----
+$ make
+
+cc -DBINTOPKGLIBEXECDIR="\"../libexec/c-lightning\"" -Wall -Wundef -Wmis...
+
+[...]
+
+cc   -Og  ccan-asort.o ccan-autodata.o ccan-bitmap.o ccan-bitops.o ccan-...
+
+----
+
+如果一切順利，你不會看到任何 +ERROR+ 訊息阻止前述命令的執行。`c-lightning` 軟體套件已從原始碼編譯完成，我們現在準備安裝在前一步驟中建立的可執行元件：
+
+----
+$ sudo make install
+
+mkdir -p /usr/local/bin
+mkdir -p /usr/local/libexec/c-lightning
+mkdir -p /usr/local/libexec/c-lightning/plugins
+mkdir -p /usr/local/share/man/man1
+mkdir -p /usr/local/share/man/man5
+mkdir -p /usr/local/share/man/man7
+mkdir -p /usr/local/share/man/man8
+mkdir -p /usr/local/share/doc/c-lightning
+install cli/lightning-cli lightningd/lightningd /usr/local/bin
+[...]
+----
+
+要驗證 +lightningd+ 和 +lightning-cli+ 命令是否已正確安裝，我們將向每個可執行檔詢問其版本資訊：
+
+[source,bash]
+----
+$ lightningd --version
+v0.10.1-34-gfe86c11
+$ lightning-cli --version
+v0.10.1-34-gfe86c11
+----
+
+版本由最新發布版本（v0.10.1）組成，後面是發布後的更改數量（34），最後是一個精確識別修訂版的雜湊值（fe86c11）。你可能會看到與前面顯示的不同版本，因為軟體在本書出版後會繼續發展。然而，無論你看到什麼版本，命令執行並以版本資訊回應的事實意味著你已成功建構 `c-lightning` 軟體。
+
+=== Lightning Network Daemon 節點專案
+
+((("Lightning Network Daemon (LND) node project")))((("Lightning node software","Lightning Network Daemon node project")))Lightning Network Daemon（LND）是由 Lightning Labs 完整實作的閃電網路節點。LND 專案提供了許多可執行應用程式，包括 +lnd+（守護程式本身）和 +lncli+（命令列工具）。LND 有幾個可插拔的後端鏈服務，包括 btcd（完整節點）、+bitcoind+（Bitcoin Core）和 Neutrino（一個新的實驗性輕客戶端）。LND 是用 Go 程式語言編寫的。該專案是開源的，在 https://github.com/LightningNetwork/lnd[GitHub] 上協作開發。
+
+在接下來的幾節中，我們將建構一個 Docker 容器來執行 LND，從原始碼建構 LND，並學習如何配置和執行 LND。
+
+==== LND Docker 容器
+
+((("Lightning Network Daemon (LND) node project","LND Docker container")))我們可以從本書的 Docker Hub pass:[<span class="keep-together">儲存庫</span>]拉取 LND 範例 Docker 容器：
+
+[source,bash]
+----
+$ docker pull lnbook/lnd
+Using default tag: latest
+latest: Pulling from lnbook/lnd
+35807b77a593: Already exists
+e1b85b9c5571: Already exists
+52f9c252546e: Pull complete
+
+[...]
+
+Digest: sha256:e490a0de5d41b781c0a7f9f548c99e67f9d728f72e50cd4632722b3ed3d85952
+Status: Downloaded newer image for lnbook/lnd:latest
+docker.io/lnbook/lnd:latest
+
+----
+
+或者，我們可以在本地建構 LND 容器。該容器位於 _code/docker/lnd_。我們將工作目錄更改為 _code/docker_ 並執行 +docker build+ 命令：
+
+[source,bash]
+----
+$ cd code/docker
+$ docker build -t lnbook/lnd lnd
+Sending build context to Docker daemon  9.728kB
+Step 1/29 : FROM golang:1.13 as lnd-base
+ ---> e9bdcb0f0af9
+Step 2/29 : ENV GOPATH /go
+
+[...]
+
+Step 29/29 : CMD ["/usr/local/bin/logtail.sh"]
+ ---> Using cache
+ ---> 397ce833ce14
+Successfully built 397ce833ce14
+Successfully tagged lnbook/lnd:latest
+
+----
+
+我們的容器現在準備好執行了。與我們之前建構的 `c-lightning` 容器一樣，LND 容器也依賴於正在執行的 Bitcoin Core 實例。和之前一樣，我們需要在另一個終端機中啟動 +bitcoind+ 容器，並透過 Docker 網路將 LND 連接到它。我們已經設定了一個名為 +lnbook+ 的 Docker 網路，並將在這裡再次使用它。
+
+[TIP]
+====
+通常，每個節點運營者在自己的伺服器上執行自己的閃電網路節點和比特幣節點。對我們來說，單個 +bitcoind+ 容器可以服務多個閃電網路節點。在我們的模擬網路上，我們可以執行多個閃電網路節點，所有節點都連接到處於 +regtest+ 模式的單個比特幣節點。
+====
+
+==== 執行 bitcoind 和 LND 容器
+
+((("bitcoind container","and LND containers")))((("Lightning Network Daemon (LND) node project","running bitcoind and LND containers")))和之前一樣，我們在一個終端機中啟動 +bitcoind+ 容器，在另一個終端機中啟動 LND。如果你已經在執行 +bitcoind+ 容器，則不需要重新啟動它。只需讓它繼續執行並跳過下一步。要在 +lnbook+ 網路中啟動 +bitcoind+，我們像這樣使用 +docker run+：
+
+[source,bash]
+----
+$ docker run -it --network lnbook --name bitcoind lnbook/bitcoind
+----
+
+接下來，我們啟動剛剛建構的 LND 容器。和之前一樣，我們需要將它附加到 +lnbook+ 網路並給它一個名稱：
+
+[source,bash]
+----
+$ docker run -it --network lnbook --name lnd lnbook/lnd
+Waiting for bitcoind to start...
+Waiting for bitcoind to mine blocks...
+Starting lnd...
+Startup complete
+Funding lnd wallet
+{"result":"dbd1c8e2b224e0a511c11efb985dabd84d72d935957ac30935ec4211d28beacb","error":null,"id":"lnd-run-container"}
+[INF] LTND: Version: 0.13.1-beta commit=v0.13.1-beta, build=production, logging=default, debuglevel=info
+[INF] LTND: Active chain: Bitcoin (network=regtest)
+[INF] RPCS: Generating TLS certificates...
+
+----
+
+LND 容器啟動並透過 Docker 網路連接到 +bitcoind+ 容器。首先，我們的 LND 節點將等待 +bitcoind+ 啟動，然後它將等待 +bitcoind+ 挖掘一些比特幣到其錢包中。最後，作為容器啟動的一部分，一個腳本將向 +bitcoind+ 節點發送一個 RPC 命令，從而建立一筆交易，用 10 個測試 BTC 為 LND 錢包注資。
+
+正如我們之前演示的，我們可以在另一個終端機中向容器發出命令，以提取資訊、開設通道等。允許我們向 +lnd+ 守護程式發出命令列指令的命令稱為 +lncli+。同樣，在此容器中，我們提供了別名 +cli+，它以所有適當的參數執行 +lncli+。讓我們在另一個終端機視窗中使用 +docker exec+ 命令獲取節點資訊：
+
+[source,bash]
+----
+$ docker exec lnd cli getinfo
+{
+    "version": "0.13.1-beta commit=v0.13.1-beta",
+    "commit_hash": "596fd90ef310cd7abbf2251edaae9ba4d5f8a689",
+    "identity_pubkey": "02d4545dccbeda29a10f44e891858940f4f3374b75c0f85dcb7775bb922fdeaa14",
+
+[...]
+
+}
+----
+
+我們現在在 +lnbook+ 網路上執行了另一個閃電網路節點，並與 +bitcoind+ 通訊。如果你仍在執行 `c-lightning` 容器，那麼現在有兩個節點在執行。它們還沒有相互連接，但我們很快就會將它們連接起來。
+
+如果需要，你可以在同一個閃電網路上執行 LND 和 `c-lightning` 節點的任意組合。例如，要執行第二個 LND 節點，你可以使用不同的容器名稱發出 +docker run+ 命令，如下所示：
+
+[source,bash]
+----
+$ docker run -it --network lnbook --name lnd2 lnbook/lnd
+----
+
+在前面的命令中，我們啟動了另一個 LND 容器，命名為 +lnd2+。名稱完全由你決定，只要它們是唯一的。如果你不提供名稱，Docker 將透過隨機組合兩個英文單詞來構造一個唯一的名稱，例如「naughty_einstein」。這是我們撰寫這段文字時 Docker 為我們選擇的實際名稱。多有趣！
+
+在下一節中，我們將看看如何直接從原始碼下載和編譯 LND。這是一個可選的進階步驟，將教你如何使用 Go 語言建構工具，並允許你對 LND 原始碼進行修改。有了這些知識，你可以編寫一些程式碼或修復一些錯誤。
+
+[NOTE]
+====
+如果你不打算深入研究閃電網路節點的原始碼或程式設計，可以完全跳過下一節。我們剛剛建構的 Docker 容器足以完成本書中的大多數範例。
+====
+
+==== 從原始碼安裝 LND
+
+((("Lightning Network Daemon (LND) node project","installing LND from source code")))在本節中，我們將從頭開始建構 LND。LND 是用 Go 程式語言編寫的。如果你想了解更多關於 Go 的資訊，搜尋 +golang+ 而不是 +go+ 以避免不相關的結果。因為它是用 Go 而不是 C 或 C++ 編寫的，所以它使用的「建構」框架與我們之前在 `c-lightning` 中看到的 GNU autotools/make 框架不同。不過不用擔心，安裝和使用 golang 工具非常容易，我們將在這裡展示每個步驟。Go 是一種適合協作軟體開發的出色語言，因為無論作者數量如何，它都能產生非常一致、精確且易於閱讀的程式碼。Go 專注且「極簡」，以一種鼓勵語言版本間一致性的方式。作為編譯語言，它也相當高效。讓我們開始吧。
+
+我們將遵循 https://github.com/lightningnetwork/lnd/blob/master/docs/INSTALL.md[LND 專案文件]中的安裝說明。
+
+首先，我們將安裝 +golang+ 套件和相關函式庫。我們嚴格要求 Go 版本 1.13 或更高版本。官方 Go 語言套件作為二進位檔案從 https://golang.org/dl[Go 專案]分發。為方便起見，它們也被打包為 Debian 套件，可透過 +apt+ 命令獲得。你可以按照 https://golang.org/dl[Go 專案]的說明，或者如 https://github.com/golang/go/wiki/Ubuntu[GitHub 關於 Go 語言的 wiki 頁面]所述，在 Debian/Ubuntu Linux 系統上使用以下 +apt+ 命令：
+
+[source,bash]
+----
+$ sudo apt install golang-go
+----
+
+透過執行以下命令檢查你是否安裝並準備好使用正確的版本：
+
+[source,bash]
+----
+$ go version
+go version go1.13.4 linux/amd64
+----
+
+我們有 1.13.4，所以我們準備好...Go！接下來我們需要告訴任何程式在哪裡找到 Go 程式碼。這是透過設定環境變數 +GOPATH+ 來完成的。通常，Go 程式碼位於使用者主目錄下一個名為 _gocode_ 的目錄中。透過以下兩個命令，我們一致地設定 +GOPATH+ 並確保你的 shell 將其添加到可執行 +PATH+ 中。請注意，使用者的主目錄在 shell 中稱為 +~+。
+
+[source,bash]
+----
+$ export GOPATH=~/gocode
+$ export PATH=$PATH:$GOPATH/bin
+----
+
+為了避免每次開啟 shell 時都必須設定這些環境變數，你可以使用你選擇的編輯器將這兩行添加到主目錄中 +bash+ shell 配置檔案 _.bashrc_ 的末尾。
+
+==== 複製 LND 原始碼
+
+((("Lightning Network Daemon (LND) node project","copying LND source code")))與現今許多開源專案一樣，LND 的原始碼在 GitHub（_www.github.com_）上。+go get+ 命令可以使用 Git 協定直接獲取它：
+
+[source,bash]
+----
+$ go get -d github.com/lightningnetwork/lnd
+----
+
+一旦 +go get+ 完成，你將在 +GOPATH+ 下有一個包含 LND 原始碼的子目錄。
+
+==== 編譯 LND 原始碼
+
+((("Lightning Network Daemon (LND) node project","compiling LND source code")))LND 使用 +make+ 建構系統。要建構專案，我們切換目錄到 LND 的原始碼，然後像這樣使用 +make+：
+
+[source,bash]
+----
+$ cd $GOPATH/src/github.com/lightningnetwork/lnd
+$ make && make install
+----
+
+幾分鐘後，你將安裝好兩個新命令 +lnd+ 和 +lncli+。嘗試它們並檢查它們的版本以確保它們已安裝：
+
+[source,bash]
+----
+$ lnd --version
+lnd version 0.10.99-beta commit=clock/v1.0.0-106-gc1ef5bb908606343d2636c8cd345169e064bdc91
+$ lncli --version
+lncli version 0.10.99-beta commit=clock/v1.0.0-106-gc1ef5bb908606343d2636c8cd345169e064bdc91
+----
+
+你可能會看到與前面顯示的不同版本，因為軟體在本書出版後會繼續發展。然而，無論你看到什麼版本，命令執行並顯示版本資訊的事實意味著你已成功建構 LND 軟體。(((range="endofrange", startref="ix_04_node_client-asciidoc8")))(((range="endofrange", startref="ix_04_node_client-asciidoc7")))
+
+=== Eclair 閃電網路節點專案
+
+((("Eclair Lightning node project", id="ix_04_node_client-asciidoc11", range="startofrange")))((("Lightning node software","Eclair Lightning node project", id="ix_04_node_client-asciidoc12", range="startofrange")))Eclair（法語中的閃電）是由 ACINQ 製作的閃電網路 Scala 實作。Eclair 也是最受歡迎和開創性的行動閃電網路錢包之一，我們在 <<getting-started>> 中使用它來演示閃電網路支付。在本節中，我們將檢視執行閃電網路節點的 Eclair 伺服器專案。Eclair 是一個開源專案，可在 https://github.com/ACINQ/eclair[GitHub] 上找到。
+
+在接下來的幾節中，我們將建構一個 Docker 容器來執行 Eclair，就像我們之前對 `c-lightning` 和 LND 所做的那樣。我們還將直接從原始碼建構 Eclair。
+
+==== Eclair Docker 容器
+
+((("Eclair Lightning node project","Docker container for")))讓我們從 Docker Hub 儲存庫拉取本書的 Eclair 容器：
+
+[source,bash]
+----
+$ docker pull lnbook/eclair
+Using default tag: latest
+latest: Pulling from lnbook/eclair
+35807b77a593: Already exists
+e1b85b9c5571: Already exists
+
+[...]
+
+c7d5d5c616c2: Pull complete
+Digest: sha256:17a3d52bce11a62381727e919771a2d5a51da9f91ce2689c7ecfb03a6f028315
+Status: Downloaded newer image for lnbook/eclair:latest
+docker.io/lnbook/eclair:latest
+
+----
+
+或者，我們可以在本地建構容器。到目前為止，你幾乎是 Docker 基本操作的專家了！在本節中，我們將重複許多之前看到的命令來建構 Eclair 容器。該容器位於 _code/docker/eclair_。我們在終端機中首先將工作目錄切換到 _code/docker_ 並發出 +docker build+ 命令：
+
+[source,bash]
+----
+$ cd code/docker
+$ docker build -t lnbook/eclair eclair
+Sending build context to Docker daemon  11.26kB
+Step 1/27 : ARG OS=ubuntu
+Step 2/27 : ARG OS_VER=focal
+Step 3/27 : FROM ${OS}:${OS_VER} as os-base
+ ---> fb52e22af1b0
+
+[...]
+
+Step 27/27 : CMD ["/usr/local/bin/logtail.sh"]
+ ---> Running in fe639120b726
+Removing intermediate container fe639120b726
+ ---> e6c8fe92a87c
+Successfully built e6c8fe92a87c
+Successfully tagged lnbook/eclair:latest
+
+----
+
+我們的映像現在準備好執行了。Eclair 容器也依賴於正在執行的 Bitcoin Core 實例。和之前一樣，我們需要在另一個終端機中啟動 +bitcoind+ 容器，並透過 Docker 網路將 Eclair 連接到它。我們已經設定了一個名為 +lnbook+ 的 Docker 網路，並將在這裡重複使用它。
+
+Eclair 與 LND 或 `c-lightning` 的一個顯著區別是，Eclair 不包含單獨的比特幣錢包，而是直接依賴 Bitcoin Core 中的比特幣錢包。回想一下，使用 LND 時，我們透過執行交易從 Bitcoin Core 的錢包轉移比特幣到 LND 的比特幣錢包來為其注資。使用 Eclair 時，這個步驟是不必要的。執行 Eclair 時，Bitcoin Core 錢包直接用作開設通道的資金來源。因此，與 LND 或 `c-lightning` 容器不同，Eclair 容器不包含在啟動時將比特幣轉入其錢包的腳本。
+
+==== 執行 bitcoind 和 Eclair 容器
+
+((("bitcoind container","and Eclair containers", id="ix_04_node_client-asciidoc13", range="startofrange")))((("Eclair Lightning node project","running bitcoind and Eclair containers", id="ix_04_node_client-asciidoc14", range="startofrange")))和之前一樣，我們在一個終端機中啟動 +bitcoind+ 容器，在另一個終端機中啟動 Eclair 容器。如果你已經在執行 +bitcoind+ 容器，則不需要重新啟動它。只需讓它繼續執行並跳過下一步。要在 +lnbook+ 網路中啟動 +bitcoind+，我們像這樣使用 +docker run+：
+
+[source,bash]
+----
+$ docker run -it --network lnbook --name bitcoind lnbook/bitcoind
+----
+
+接下來，我們啟動剛剛建構的 Eclair 容器。我們需要將它附加到 +lnbook+ 網路並給它一個名稱，就像我們對其他容器所做的那樣：
+
+[source,bash]
+----
+$ docker run -it --network lnbook --name eclair lnbook/eclair
+Waiting for bitcoind to start...
+Waiting for bitcoind to mine blocks...
+Starting eclair...
+Eclair node started
+INFO  o.b.Secp256k1Context - secp256k1 library successfully loaded
+INFO  fr.acinq.eclair.Plugin - loading 0 plugins
+INFO  a.e.slf4j.Slf4jLogger - Slf4jLogger started
+INFO  fr.acinq.eclair.Setup - hello!
+INFO  fr.acinq.eclair.Setup - version=0.4.2 commit=52444b0
+
+[...]
+
+----
+
+Eclair 容器啟動並透過 Docker 網路連接到 +bitcoind+ 容器。首先，我們的 Eclair 節點將等待 +bitcoind+ 啟動，然後它將等待 +bitcoind+ 挖掘一些比特幣到其錢包中。
+
+正如我們之前演示的，我們可以在另一個終端機中向容器發出命令，以提取資訊、開設通道等。允許我們向 +eclair+ 守護程式發出命令列指令的命令稱為 +eclair-cli+。和之前一樣，在此容器中，我們提供了 +eclair-cli+ 的有用別名，簡稱為 +cli+，它提供必要的參數。在另一個終端機視窗中使用 +docker exec+ 命令，我們從 Eclair 獲取節點資訊：
+
+[source,bash]
+----
+$ docker exec eclair cli getinfo
+{
+  "version": "0.4.2-52444b0",
+  "nodeId": "02fa6d5042eb8098e4d9c9d99feb7ebc9e257401ca7de829b4ce757311e0301de7",
+  "alias": "eclair",
+  "color": "#49daaa",
+  "features": {
+
+[...]
+
+  },
+  "chainHash": "06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f",
+  "network": "regtest",
+  "blockHeight": 779,
+  "publicAddresses": [],
+  "instanceId": "01eb7a68-5db0-461b-bdd0-29010df40d73"
+}
+
+----
+
+我們現在在 +lnbook+ 網路上執行了另一個閃電網路節點，並與 +bitcoind+ 通訊。你可以在同一個閃電網路上執行任意數量和任意組合的閃電網路節點。任意數量的 Eclair、LND 和 `c-lightning` 節點都可以共存。例如，要執行第二個 Eclair 節點，你可以使用不同的容器名稱發出 +docker run+ 命令，如下所示：
+
+[source,bash]
+----
+$ docker run -it --network lnbook --name eclair2 lnbook/eclair
+----
+
+在前面的命令中，我們啟動了另一個名為 +eclair2+ 的 Eclair 容器。
+
+在下一節中，我們還將看看如何直接從原始碼下載和編譯 Eclair。這是一個可選的進階步驟，將教你如何使用 Scala 和 Java 語言建構工具，並允許你對 Eclair 的原始碼進行修改。有了這些知識，你可以編寫一些程式碼或修復一些錯誤。
+
+[NOTE]
+====
+如果你不打算深入研究閃電網路節點的原始碼或程式設計，可以完全跳過下一節。我們剛剛建構的 Docker 容器足以完成本書中的大多數範例。(((range="endofrange", startref="ix_04_node_client-asciidoc14")))(((range="endofrange", startref="ix_04_node_client-asciidoc13")))
+====
+
+==== 從原始碼安裝 Eclair
+
+((("Eclair Lightning node project","installing Eclair from source code")))在本節中，我們將從頭開始建構 Eclair。Eclair 是用 Scala 程式語言編寫的，使用 Java 編譯器編譯。要執行 Eclair，我們首先需要安裝 Java 及其建構工具。我們將遵循 https://github.com/ACINQ/eclair/blob/master/BUILD.md[Eclair 專案的 _BUILD.md_ 文件]中的說明。
+
+所需的 Java 編譯器是 OpenJDK 11 的一部分。我們還需要一個名為 Maven 的建構框架，版本 3.6.0 或更高。
+
+在 Debian/Ubuntu Linux 系統上，我們可以使用 +apt+ 命令安裝 OpenJDK 11 和 Maven，如下所示：
+
+[source,bash]
+----
+$ sudo apt install openjdk-11-jdk maven
+----
+
+透過執行以下命令驗證你是否安裝了正確的版本：
+
+[source,bash]
+----
+$ javac -version
+javac 11.0.7
+$ mvn -v
+Apache Maven 3.6.1
+Maven home: /usr/share/maven
+Java version: 11.0.7, vendor: Ubuntu, runtime: /usr/lib/jvm/java-11-openjdk-amd64
+
+----
+
+我們有 OpenJDK 11.0.7 和 Maven 3.6.1，所以我們準備好了。
+
+==== 複製 Eclair 原始碼
+
+((("Eclair Lightning node project","copying Eclair source code")))Eclair 的原始碼在 GitHub 上。+git clone+ 命令可以為我們建立一個本地副本。讓我們切換到主目錄並在那裡執行它：
+
+[source,bash]
+----
+$ cd ~
+$ git clone https://github.com/ACINQ/eclair.git
+
+----
+
+一旦 +git clone+ 完成，你將有一個名為 +eclair+ 的子目錄，其中包含 Eclair 伺服器的原始碼。
+
+==== 編譯 Eclair 原始碼
+
+((("Eclair Lightning node project","compiling Eclair source code")))Eclair 使用 +Maven+ 建構系統。要建構專案，我們將工作目錄更改為 Eclair 的原始碼，然後像這樣使用 +mvn package+：
+
+[source,bash]
+----
+$ cd eclair
+$ mvn package
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO]
+[INFO] --------------------< fr.acinq.eclair:eclair_2.13 >---------------------
+[INFO] Building eclair_2.13 0.4.3-SNAPSHOT                                [1/4]
+[INFO] --------------------------------[ pom ]---------------------------------
+
+[...]
+
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:06 min
+[INFO] Finished at: 2020-12-12T09:43:21-04:00
+[INFO] ------------------------------------------------------------------------
+
+----
+
+幾分鐘後，Eclair 套件的建構應該完成。然而，「package」操作也會執行測試，其中一些連接到網路，可能會失敗。如果你想跳過測試，請在命令中添加 +-DskipTests+。
+
+現在，按照 GitHub 上的 https://github.com/ACINQ/eclair#installing-eclair[安裝 Eclair 說明]解壓縮並執行建構的套件。
+
+恭喜！你已從原始碼建構了 Eclair，你準備好編寫程式碼、測試、修復錯誤並為這個專案做出貢獻！(((range="endofrange", startref="ix_04_node_client-asciidoc12")))(((range="endofrange", startref="ix_04_node_client-asciidoc11")))
+
+=== 建構多樣化閃電網路節點的完整網路
+
+((("Lightning Network (example)","building a complete network of diverse Lightning nodes", id="ix_04_node_client-asciidoc15", range="startofrange")))((("Lightning node software","building a complete network of diverse Lightning nodes", id="ix_04_node_client-asciidoc16", range="startofrange")))本節介紹的最後一個範例，將把我們建構的所有各種容器組合在一起，形成一個由多樣化（LND、`c-lightning`、Eclair）節點實作組成的閃電網路。我們將透過將節點相互連接並從一個節點到另一個節點開設通道來組建網路。作為最後一步，我們將透過這些通道路由一筆支付！
+
+在這個範例中，我們將建構一個由四個閃電網路節點組成的演示閃電網路，分別命名為 Alice、Bob、Chan 和 Dina。我們將把 Alice 連接到 Bob，Bob 連接到 Chan，Chan 連接到 Dina。這在 <<alice_bob_chan_dina_network_demo>> 中顯示。
+
+[[alice_bob_chan_dina_network_demo]]
+.四個節點的小型演示網路
+image::images/mtln_1002.png["四個節點的小型演示網路"]
+
+最後，我們將讓 Dina 建立一張發票，並讓 Alice 支付該發票。由於 Alice 和 Dina 沒有直接連接，支付將作為 HTLC 在所有支付通道上路由。
+
+==== 使用 docker-compose 編排 Docker 容器
+
+((("docker-compose","orchestrating Docker containers with")))((("Lightning Network (example)","using docker-compose to orchestrate Docker containers")))為了使這個範例運作，我們將使用一個_容器編排_工具，作為名為 +docker-compose+ 的命令提供。這個命令允許我們指定一個由多個容器組成的應用程式，並透過一起啟動所有協作容器來執行應用程式。
+
+首先，讓我們安裝 +docker-compose+。https://docs.docker.com/compose/install[說明]取決於你的作業系統。
+
+安裝完成後，你可以透過像這樣執行 `docker-compose` 來驗證安裝：
+
+[source,bash]
+----
+$ docker-compose version
+docker-compose version 1.21.0, build unknown
+[...]
+
+----
+
+最常見的 +docker-compose+ 命令是 +up+ 和 +down+，例如 +docker-compose up+。
+
+==== docker-compose 配置
+
+((("docker-compose","configuration")))((("Lightning Network (example)","docker-compose configuration")))+docker-compose+ 的配置檔案位於 _code/docker_ 目錄中，名為 _docker-compose.yml_。它包含網路和四個容器中每個容器的規格。頂部看起來像這樣：
+
+----
+version: "3.3"
+networks:
+  lnnet:
+
+services:
+  bitcoind:
+    container_name: bitcoind
+    build:
+        context: bitcoind
+    image: lnbook/bitcoind:latest
+    networks:
+      - lnnet
+    expose:
+      - "18443"
+      - "12005"
+      - "12006"
+
+  Alice:
+    container_name: Alice
+----
+
+前面的片段定義了一個名為 +lnnet+ 的網路和一個名為 +bitcoind+ 的容器，該容器將附加到 +lnnet+ 網路。這個容器與我們在本章開頭建構的相同。我們暴露了容器的三個埠，允許我們向它發送命令並監控區塊和交易。接下來，配置指定了一個名為「Alice」的 LND 容器。往下你還會看到名為「Bob」（`c-lightning`）、「Chan」（Eclair）和「Dina」（又是 LND）的容器規格。
+
+由於所有這些不同的實作都遵循 BOLT 規範，並且已經過廣泛的互通性測試，因此它們可以毫無困難地一起工作來建構閃電網路。
+
+==== 啟動範例閃電網路
+
+((("Lightning Network (example)","starting the network")))在開始之前，我們應該確保沒有正在執行任何容器。如果新容器與已經執行的容器共用相同的名稱，它將無法啟動。根據需要使用 +docker ps+、+docker stop+ 和 +docker rm+ 來停止和刪除任何當前正在執行的容器！
+
+[TIP]
+====
+因為我們對這些編排的 Docker 容器使用相同的名稱，我們可能需要「清理」以避免任何名稱衝突。
+====
+
+[role="pagebreak-before"]
+要啟動範例，我們切換到包含 _docker-compose.yml_ 配置檔案的目錄，然後發出 +docker-compose up+ 命令：
+
+[source,bash]
+----
+$ cd code/docker
+$ docker-compose up
+Creating Chan     ... done
+Creating Dina     ... done
+Creating bitcoind ... done
+Creating Bob      ... done
+Creating Alice    ... done
+Attaching to Chan, Dina, Alice, bitcoind, Bob
+Alice       | Waiting for bitcoind to start...
+Bob         | Waiting for bitcoind to start...
+Dina        | Waiting for bitcoind to start...
+Chan        | Waiting for bitcoind to start...
+bitcoind    | Starting bitcoind...
+bitcoind    | Waiting for bitcoind to start
+bitcoind    | bitcoind started
+bitcoind    | ================================================
+
+[...]
+
+Chan        | Starting eclair...
+Dina        | Starting lnd...
+Chan        | Eclair node started
+Alice       | ...Waiting for bitcoind to mine blocks...
+Bob         | ...Waiting for bitcoind to mine blocks...
+Alice       | Starting lnd...
+Bob         | Starting c-lightning...
+
+[...]
+
+----
+
+啟動後，你會看到每個節點啟動並報告其進度時的整個日誌流。在你的螢幕上可能看起來相當混亂，但每個輸出行都以容器名稱為前綴，如前所示。如果你想只觀看一個容器的日誌，可以在另一個終端機視窗中使用帶有 +f+（_follow_）標誌和特定容器名稱的 +docker-compose logs+ 命令：
+
+[source,bash]
+----
+$ docker-compose logs -f Alice
+----
+
+==== 開設通道和路由支付
+
+((("Lightning Network (example)","opening channels and routing a payment", id="ix_04_node_client-asciidoc17", range="startofrange")))((("payment channel","opening in Lightning Network", id="ix_04_node_client-asciidoc18", range="startofrange")))((("routing","Lightning Network example", id="ix_04_node_client-asciidoc19", range="startofrange")))我們的閃電網路現在應該正在執行。正如我們在本章前面章節中看到的，我們可以使用 +docker exec+ 命令向正在執行的 Docker 容器發出命令。無論我們是使用 +docker run+ 啟動容器還是使用 +docker-compose up+ 啟動一堆容器，我們仍然可以使用 Docker 命令單獨存取容器。
+
+支付演示包含在名為 +run-payment-demo.sh+ 的 Bash shell 腳本中。要執行此演示，你必須在電腦上安裝 Bash shell。大多數 Linux 和類 Unix 系統（例如 macOS）都預裝了 +bash+。Windows 使用者可以安裝 Windows Subsystem for Linux 並使用像 Ubuntu 這樣的 Linux 發行版來在其電腦上獲得原生的 +bash+ 命令。
+
+讓我們執行腳本看看效果，然後我們將看看它內部是如何運作的。我們使用 +bash+ 作為命令執行它：
+
+----
+$ cd code/docker
+$ bash run-payment-demo.sh
+Starting Payment Demo
+======================================================
+
+Waiting for nodes to startup
+- Waiting for bitcoind startup...
+- Waiting for bitcoind mining...
+- Waiting for Alice startup...
+- Waiting for Bob startup...
+- Waiting for Chan startup...
+- Waiting for Dina startup...
+All nodes have started
+======================================================
+
+Getting node IDs
+- Alice:  0335e200756e156f1e13c3b901e5ed5a28b01a3131cd0656a27ac5cc20d4e71129
+- Bob:    033e9cb673b641d2541aaaa821c3f9214e8a11ada57451ed5a0eab2a4afbce7daa
+- Chan:   02f2f12182f56c9f86b9aa7d08df89b79782210f0928cb361de5138364695c7426
+- Dina: 02d9354cec0458e0d6dee5cfa56b83040baddb4ff88ab64960e0244cc618b99bc3
+======================================================
+
+[...]
+
+Setting up connections and channels
+- Alice to Bob
+- Open connection from Alice node to Bob's node
+
+- Create payment channel Alice->Bob
+
+
+[...]
+
+Get 10k sats invoice from Dina
+- Dina invoice:
+lnbcrt100u1psnuzzrpp5rz5dg4wy27973yr7ehwns5ldeusceqdaq0hguu8c29n4nsqkznjsdqqcqzpgxqyz5vqsp5vdpehw33fljnmmexa6ljk55544f3syd8nfttqlm3ljewu4r0q20q9qyyssqxh5nhkpjgfm47yxn4p9ecvndz7zddlsgpufnpyjl0kmnq227tdujlm0acdv39hcuqp2vhs40aav70c9yp0tee6tgzk8ut79mr877q0cpkjcfvr
+======================================================
+
+Attempting payment from Alice to Dina
+Successful payment!
+
+----
+
+
+如你從輸出中看到的，腳本首先獲取四個節點中每個節點的節點 ID（公鑰）。然後，它連接節點並從網路中每個節點到下一個節點建立一個 1,000,000 聰的通道。最後，它從 Dina 的節點發出一張 10,000 聰的發票，並從 Alice 的節點支付該發票。
+
+[TIP]
+====
+如果腳本失敗，你可以嘗試從頭開始再次執行它。或者你可以手動逐一發出腳本中的命令並查看結果。
+====
+
+該腳本中有很多內容需要回顧，但隨著你對底層技術的理解加深，越來越多的資訊將變得清晰。歡迎你稍後再回顧這個範例。
+
+當然，你可以用這個測試網路做的事情遠不止三通道、四節點的支付。以下是一些實驗的想法：
+
+* 透過啟動更多不同類型的節點來建立更複雜的網路。編輯 _docker-compose.yml_ 檔案並複製章節，根據需要重新命名容器。
+
+* 以更複雜的拓撲結構連接節點：循環路由、輪輻式或全網狀。
+
+* 執行大量支付以耗盡通道容量。然後以相反方向執行支付以重新平衡通道。看看路由演算法如何適應。
+
+* 更改通道費用，看看路由演算法如何協商多條路由以及它應用什麼優化。便宜的長路由是否比昂貴的短路由更好？
+
+* 執行一個從節點返回到自身的循環支付以重新平衡自己的通道。看看這如何影響所有其他通道和節點。
+
+* 在迴圈中生成數百或數千張小額發票，然後在另一個迴圈中盡可能快地支付它們。測量你可以從這個測試網路中擠出多少每秒交易量。
+
+[TIP]
+====
+https://lightningpolar.com[Lightning Polar] 允許你視覺化你一直在使用 Docker 進行實驗的網路(((range="endofrange", startref="ix_04_node_client-asciidoc19")))(((range="endofrange", startref="ix_04_node_client-asciidoc18")))(((range="endofrange", startref="ix_04_node_client-asciidoc17")))。(((range="endofrange", startref="ix_04_node_client-asciidoc16")))(((range="endofrange", startref="ix_04_node_client-asciidoc15")))
+====
+
+=== 結論
+
+在本章中，我們研究了實作 BOLT 規範的各種專案。我們建構了容器來執行一個範例閃電網路，並學習了如何從原始碼建構每個專案。你現在已準備好進一步探索和深入挖掘。(((range="endofrange", startref="ix_04_node_client-asciidoc0")))

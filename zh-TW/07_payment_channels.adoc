@@ -1,0 +1,782 @@
+[[payment_channels]]
+== 支付通道
+
+((("payment channel", id="ix_07_payment_channels-asciidoc0", range="startofrange")))在本章中，我們將深入探討支付通道，了解它們是如何構建的。我們將從 Alice 的節點向 Bob 的節點開啟通道開始，建構在本書開頭介紹的範例之上。
+
+[role="pagebreak-after"]
+Alice 和 Bob 的節點交換的訊息在 https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md[「BOLT #2：通道管理的對等協定」] 中定義。Alice 和 Bob 的節點創建的交易在 https://github.com/lightningnetwork/lightning-rfc/blob/master/03-transactions.md[「BOLT #3：比特幣交易和腳本格式」] 中定義。在本章中，我們聚焦於閃電網路協定架構的「通道開啟和關閉」以及「通道狀態機」部分，在 <<LN_protocol_channel_highlight>> 中心（點對點層）用輪廓線突顯。
+
+[[LN_protocol_channel_highlight]]
+.閃電網路協定套件中的支付通道
+image::images/mtln_0701.png["閃電網路協定套件中的支付通道"]
+
+=== 使用比特幣系統的不同方式
+
+((("payment channel","Lightning Network as different way of using Bitcoin system")))閃電網路通常被描述為「第二層比特幣協定」，這使它聽起來與比特幣截然不同。另一種描述閃電網路的方式是「更智慧的比特幣使用方式」，或者只是「建構在比特幣之上的應用程式」。讓我們來探索一下。
+
+從歷史上看，比特幣交易被廣播給所有人，並記錄在比特幣區塊鏈上才被視為有效。然而，正如我們將看到的，如果某人持有一個預先簽名的比特幣交易，該交易花費一個 2-of-2 多重簽名輸出，給予他們獨家花費該比特幣的能力，那麼他們實際上擁有該比特幣，即使他們沒有廣播該交易。
+
+你可以把預先簽名的比特幣交易想像成一張遠期支票，可以隨時兌現。然而，與傳統銀行系統不同，這筆交易不是付款的「承諾」（也稱為欠條 IOU），而是一種可驗證的持票人票據，相當於現金。只要交易中引用的比特幣在贖回時（或你試圖「兌現」支票時）尚未被花費，比特幣系統就保證這筆預先簽名的交易可以隨時廣播和記錄。當然，這只有在這是唯一的預先簽名交易時才成立。在閃電網路中，同時存在兩個或多個這樣的預先簽名交易；因此，我們需要一個更複雜的機制來仍然具有這種可驗證持票人票據的功能，正如你將在本章中學到的。
+
+閃電網路只是使用比特幣的一種不同且創造性的方式。在閃電網路中，記錄在區塊鏈上（鏈上）的交易和預先簽名但保留（鏈下）的交易的組合形成了一個「層」的支付，這是一種更快、更便宜、更私密的比特幣使用方式。你可以在 <<on_off_chain>> 中看到鏈上和鏈下比特幣交易之間的關係。
+
+[[on_off_chain]]
+.由鏈上和鏈下交易組成的閃電網路支付通道
+image::images/mtln_0702.png["由鏈上和鏈下交易組成的閃電網路支付通道"]
+
+閃電網路就是比特幣。它只是使用比特幣系統的不同方式。
+
+=== 比特幣的所有權和控制權
+
+((("bitcoin (currency)","ownership and control in payment channels", id="ix_07_payment_channels-asciidoc1", range="startofrange")))((("payment channel","bitcoin ownership and control", id="ix_07_payment_channels-asciidoc2", range="startofrange")))在我們理解支付通道之前，我們必須退後一小步，了解比特幣中的所有權和控制權是如何運作的。
+
+((("private keys","Bitcoin ownership and")))當某人說他們「擁有」比特幣時，他們通常是指他們知道某個比特幣地址的私鑰，該地址有一些未花費的交易輸出（參見 <<bitcoin_fundamentals_review>>）。私鑰允許他們透過將比特幣轉移到不同的地址來簽署交易以花費該比特幣。在比特幣中，比特幣的「所有權」可以定義為_花費_該比特幣的能力。
+
+請記住，比特幣中使用的「所有權」一詞與法律意義上使用的「所有權」一詞不同。擁有私鑰並能花費比特幣的小偷是該比特幣的_事實上的所有者_，即使他們不是合法所有者。
+
+[TIP]
+====
+比特幣的所有權只與金鑰的控制以及使用這些金鑰花費比特幣的能力有關。正如流行的比特幣諺語所說：「你的金鑰，你的代幣——不是你的金鑰，不是你的代幣。」
+====
+
+==== 獨立所有權的多樣性和多重簽名
+
+((("bitcoin (currency)","diversity of independent ownership and multisig")))私鑰的所有權和控制權並不總是掌握在一個人手中。這就是事情變得有趣和複雜的地方。我們知道，不止一個人可以知道相同的私鑰，無論是透過盜竊還是因為原始金鑰持有者複製並交給其他人。這些人都是所有者嗎？從實際意義上說，他們是的，因為知道私鑰的任何人都可以在未經任何其他人批准的情況下花費比特幣。
+
+比特幣還有多重簽名地址，在花費之前需要多個私鑰簽名（參見 <<multisig>>）。從實際角度來看，多重簽名地址中的所有權取決於 __K__-of-__N__ 方案中定義的法定人數（_K_）和總數（_N_）。1-of-10 多重簽名方案將允許 10 個（_N_）簽名者中的任何 1 個（_K_）花費鎖定在該地址中的比特幣金額。這類似於 10 個人擁有相同私鑰副本且任何人都可以獨立花費的場景。
+
+==== 沒有獨立控制權的共同所有權
+
+((("bitcoin (currency)","joint ownership without independent control")))還有一種_無人_擁有法定人數的情況。在閃電網路使用的 2-of-2 方案中，任何一方都不能在未獲得對方簽名的情況下花費比特幣。在這種情況下，誰擁有比特幣？實際上沒有人擁有所有權，因為沒有人擁有控制權。他們每個人擁有相當於決策中的投票權，但需要雙方投票。在比特幣和法律中，2-of-2 方案的一個關鍵問題（雙關語）是，如果其中一方無法聯繫，或者如果投票陷入僵局且任何一方拒絕合作，會發生什麼。
+
+==== 防止「鎖定」和無法花費的比特幣
+
+((("bitcoin (currency)","preventing locked and un-spendable bitcoin")))如果 2-of-2 多重簽名的兩個簽名者之一不能或不願意簽名，資金將變得無法花費。這種情況不僅可能意外發生（金鑰丟失），而且可以被任何一方用作一種勒索形式：「除非你把部分資金給我，否則我不簽名。」
+
+閃電網路中的支付通道基於 2-of-2 多重簽名地址，兩個通道合作夥伴作為多重簽名中的簽名者。目前，通道只由兩個通道合作夥伴中的一個出資：當你選擇「開啟」一個通道時，你透過交易將資金存入 2-of-2 多重簽名地址。一旦該交易被挖掘並且資金在多重簽名中，如果沒有你的通道合作夥伴的合作，你就無法取回它們，因為你也需要他們的簽名來花費比特幣。
+
+在下一節中，當我們研究如何開啟（創建）閃電網路通道時，我們將看到如何透過實施通道建構的公平協定來防止資金損失或兩個合作夥伴之間的任何勒索情況，借助預先簽名的交易來花費多重簽名輸出，以一種給予通道中對等方獨家能力花費其中一個輸出的方式，該輸出編碼了他們在通道中擁有的比特幣數量。(((range="endofrange", startref="ix_07_payment_channels-asciidoc2")))(((range="endofrange", startref="ix_07_payment_channels-asciidoc1")))
+
+
+=== 構建支付通道
+
+((("payment channel","elements", id="ix_07_payment_channels-asciidoc3", range="startofrange")))在 <<what_is_payment_channel>> 中，我們將支付通道描述為兩個閃電網路節點之間的_金融關係_，透過向兩個通道合作夥伴的 2-of-2 多重簽名地址注資而建立。
+
+假設 Alice 想要構建一個支付通道，允許她直接連接到 Bob 的商店。首先，兩個節點（Alice 的和 Bob 的）必須建立彼此之間的網路連線，以便他們可以協商支付通道。
+
+==== 節點私鑰和公鑰
+
+((("node public key")))((("payment channel","node private/public keys")))閃電網路上的每個節點都由一個_節點公鑰_標識。公鑰唯一標識特定節點，通常以十六進制編碼呈現。例如，René Pickhardt 目前運行一個閃電網路節點（+ln.rene-pickhardt.de+），由以下節點公鑰標識：
+
+----
+02a1cebfacb2674143b5ad0df3c22c609e935f7bc0ebe801f37b8e9023d45ea7b8
+----
+
+((("private keys","generation of")))((("root private key generation")))每個節點在首次初始化時生成一個根私鑰。私鑰始終保持私密（從不分享）並安全地儲存在節點的錢包中。從該私鑰，節點衍生出作為節點標識符並與網路分享的公鑰。由於金鑰空間非常龐大，只要每個節點隨機生成私鑰，它就會擁有唯一的公鑰，因此可以在網路上唯一標識它。
+
+==== 節點網路地址
+
+((("payment channel","node network address")))此外，每個節點還會公告可以聯繫到它的網路地址，以下幾種可能的格式之一：
+
+TCP/IP:: IPv4 或 IPv6 地址和 TCP 埠號
+
+TCP/Tor:: Tor「洋蔥」地址和 TCP 埠號
+
+網路地址標識符寫作 +Address:Port+，這與國際標準的網路標識符一致，例如在網頁上使用的。
+
+例如，René 的節點公鑰為 +02a1ceb...45ea7b8+，目前公告其網路地址為 TCP/IP 地址：
+
+----
+172.16.235.20:9735
+----
+
+[TIP]
+====
+閃電網路的預設 TCP 埠是 9735，但節點可以選擇監聽任何 TCP 埠。
+====
+
+==== 節點標識符
+
+((("node identifiers")))((("payment channel","node identifiers")))節點公鑰和網路地址一起，以以下格式書寫，用 +@+ 符號分隔，如 __++NodeID@Address:Port++__。
+
+所以 René 的節點的完整標識符將是：
+
+----
+02a1cebfacb2674143b5ad0df3c22c609e935f7bc0ebe801f37b8e9023d45ea7b8
+@172.16.235.20:9735
+----
+
+[TIP]
+====
+René 的節點別名是 +ln.rene-pickhardt.de+；然而，這個名稱只是為了更好的可讀性而存在。每個節點操作員都可以公告他們想要的任何別名，沒有機制阻止節點操作員選擇已經被使用的別名。因此，要引用一個節點，必須使用 __++NodeID@Address:Port++__ 格式。
+====
+
+前面的標識符通常編碼在 QR 碼中，如果使用者想要將他們自己的節點連接到由該地址標識的特定節點，可以更容易地掃描。
+
+就像比特幣節點一樣，閃電網路節點透過「八卦」其節點公鑰和網路地址來公告它們在閃電網路上的存在。這樣，其他節點可以找到它們，並保持一個清單（資料庫），記錄所有它們可以連接並交換閃電網路 P2P 訊息協定中定義的訊息的已知節點。
+
+==== 將節點連接為直接對等方
+
+((("payment channel","connecting nodes as direct peers")))為了讓 Alice 的節點連接到 Bob 的節點，她需要 Bob 的節點公鑰，或者包含公鑰、IP 或 Tor 地址和埠的完整地址。因為 Bob 經營一家商店，Bob 的節點地址可以從發票或網路上的商店支付頁面獲取。Alice 可以掃描包含地址的 QR 碼，並指示她的節點連接到 Bob 的節點。
+
+一旦 Alice 連接到 Bob 的節點，他們的節點現在就是直接連接的對等方。
+
+[TIP]
+====
+要開啟支付通道，兩個節點必須首先透過網路（或 Tor）建立連線，作為直接對等方連接。(((range="endofrange", startref="ix_07_payment_channels-asciidoc3")))
+====
+
+=== 構建通道
+
+((("Lightning Peer Protocol for Channel Management", id="ix_07_payment_channels-asciidoc4", range="startofrange")))((("payment channel","construction of", id="ix_07_payment_channels-asciidoc5", range="startofrange")))現在 Alice 和 Bob 的閃電網路節點已經連接，他們可以開始構建支付通道的過程。在本節中，我們將回顧他們節點之間的通訊，稱為_通道管理的閃電網路對等協定_，以及他們用於構建比特幣交易的加密協定。
+
+[TIP]
+====
+我們在這個場景中描述兩個不同的協定。首先，有一個_訊息協定_，它建立閃電網路節點如何透過網路通訊以及它們彼此交換什麼訊息。其次，有_加密協定_，它建立兩個節點如何構建和簽署比特幣 pass:[<span class="keep-together">交易</span>]。
+====
+
+[[peer_protocol_channel_management]]
+==== 通道管理的對等協定
+
+通道管理的閃電網路對等協定在 https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md[BOLT #2：通道管理的對等協定] 中定義。在本章中，我們將更詳細地回顧 BOLT #2 的「通道建立」和「通道關閉」部分。
+
+==== 通道建立訊息流程
+
+((("channel establishment message flow", id="ix_07_payment_channels-asciidoc6", range="startofrange")))((("payment channel","channel establishment message flow", id="ix_07_payment_channels-asciidoc7", range="startofrange")))通道建立是透過 Alice 和 Bob 節點之間交換六個訊息實現的（每個對等方三個）：+open_channel+、+accept_channel+、+funding_created+、+funding_signed+、+funding_locked+ 和 +funding_locked+。這六個訊息在 <<funding_message_flow>> 中以時序圖顯示。
+
+[[funding_message_flow]]
+.通道建立訊息流程
+image::images/mtln_0703.png["通道建立訊息流程"]
+
+在 <<funding_message_flow>> 中，Alice 和 Bob 的節點由圖表兩側的垂直線「A」和「B」表示。像這樣的時序圖顯示時間向下流動，訊息在兩個通訊對等方之間從一側流向另一側。線條向下傾斜以表示傳輸每個訊息所需的時間，訊息的方向由每條線末端的箭頭顯示。
+
+通道建立涉及三個部分。首先，兩個對等方透過 Alice 發起 +open_channel+ 請求和 Bob 透過 +accept_channel+ 接受通道請求來溝通他們的能力和期望。
+
+其次，Alice 構建資金和退款交易（我們將在本節稍後看到），並向 Bob 發送 +funding_created+。「退款」交易的另一個名稱是「承諾」交易，因為它承諾了通道中餘額的當前分配。Bob 透過 +funding_signed+ 回覆必要的簽名。這種互動是保護通道和防止盜竊的_加密協定_的基礎。Alice 現在將廣播資金交易（鏈上）以建立和錨定支付通道。該交易需要在比特幣區塊鏈上得到確認。
+
+[TIP]
+====
++funding_signed+ 訊息的名稱可能有點令人困惑。此訊息不包含資金交易的簽名，而是包含 Bob 對退款交易的簽名，允許 Alice 從多重簽名中取回她的比特幣。
+====
+
+一旦交易有足夠的確認（由 `accept_channel` 訊息中的 `minimum_depth` 欄位定義），Alice 和 Bob 交換 +funding_locked+ 訊息，通道進入正常運作模式。
+
+===== open_channel 訊息
+
+((("channel establishment message flow","open_channel message")))((("open_channel message")))Alice 的節點透過發送 +open_channel+ 訊息向 Bob 的節點請求支付通道。該訊息包含關於 Alice 對通道設定的_期望_的資訊，Bob 可以接受或拒絕。
+
++open_channel+ 訊息的結構（取自 BOLT #2）如 <<open_channel_message>> 所示。
+
+[[open_channel_message]]
+.`open_channel` 訊息
+====
+----
+[chain_hash:chain_hash]
+[32*byte:temporary_channel_id]
+[u64:funding_satoshis]
+[u64:push_msat]
+[u64:dust_limit_satoshis]
+[u64:max_htlc_value_in_flight_msat]
+[u64:channel_reserve_satoshis]
+[u64:htlc_minimum_msat]
+[u32:feerate_per_kw]
+[u16:to_self_delay]
+[u16:max_accepted_htlcs]
+[point:funding_pubkey]
+[point:revocation_basepoint]
+[point:payment_basepoint]
+[point:delayed_payment_basepoint]
+[point:htlc_basepoint]
+[point:first_per_commitment_point]
+[byte:channel_flags]
+[open_channel_tlvs:tlvs]
+----
+====
+
+此訊息中包含的欄位指定了 Alice 想要的通道參數，以及來自 Alice 節點的各種配置設定，反映了通道運作的安全期望。
+
+[role="pagebreak-before"]
+以下列出了一些通道建構參數：
+
++chain_hash+:: 這標識將用於此通道的區塊鏈（例如比特幣主網）。它通常是該區塊鏈創世區塊的雜湊。
+
++funding_satoshis+:: Alice 用於為通道注資的金額，即總通道容量。
+
++channel_reserve_satoshis+:: 在通道每一側保留的最低餘額，以 satoshi 為單位。我們在談論懲罰時會回到這個問題。
+
++push_msat+:: 一個可選金額，Alice 將在通道注資後立即「推送」給 Bob 作為付款。_將此值設定為 0 以外的任何值實際上意味著將資金贈送給你的通道合作夥伴，應謹慎使用。_
+
++to_self_delay+:: 協定的一個非常重要的安全參數。`open_channel` 訊息中的值用於回應者的承諾交易，`accept_channel` 中的值用於發起者的承諾交易。這種不對稱性的存在是為了允許每一方表達對方在單方面索取承諾交易中的資金時需要等待多長時間。如果 Bob 在任何時候違背 Alice 的意願單方面關閉通道，他承諾在這裡定義的延遲期內不存取他自己的資金。這個值越高，Alice 的安全性越高，但 Bob 的資金可能被鎖定的時間越長。
+
++funding_pubkey+:: Alice 將貢獻給錨定此通道的 2-of-2 多重簽名的公鑰。
+
++X_basepoint+:: 主金鑰，用於為承諾、撤銷、路由付款（HTLCs）和關閉交易的各個部分衍生子金鑰。這些將在後續章節中使用和解釋。
+
+[TIP]
+====
+如果你想了解我們在本書中未討論的其他欄位和閃電網路對等協定訊息，我們建議你在 BOLT 規範中查閱它們。這些訊息和欄位很重要，但無法在本書的範圍內足夠詳細地涵蓋。我們希望你能夠充分理解基本原則，以便你可以透過閱讀實際的協定規範（BOLTs）來填補細節。
+====
+
+===== accept_channel 訊息
+
+((("accept_channel message")))((("channel establishment message flow","accept_channel message")))回應 Alice 的 +open_channel+ 訊息，Bob 發回 <<accept_channel_message>> 中顯示的 +accept_channel+ 訊息。
+
+[[accept_channel_message]]
+.`accept_channel` 訊息
+====
+----
+[32*byte:temporary_channel_id]
+[u64:dust_limit_satoshis]
+[u64:max_htlc_value_in_flight_msat]
+[u64:channel_reserve_satoshis]
+[u64:htlc_minimum_msat]
+[u32:minimum_depth]
+[u16:to_self_delay]
+[u16:max_accepted_htlcs]
+[point:funding_pubkey]
+[point:revocation_basepoint]
+[point:payment_basepoint]
+[point:delayed_payment_basepoint]
+[point:htlc_basepoint]
+[point:first_per_commitment_point]
+[accept_channel_tlvs:tlvs]
+----
+====
+
+如你所見，這與 +open_channel+ 訊息類似，包含 Bob 的節點期望和配置值。
+
+Alice 將用於構建支付通道的 +accept_channel+ 中最重要的兩個欄位是：
+
++funding_pubkey+:: Bob 的節點為錨定通道的 2-of-2 多重簽名地址貢獻的公鑰。
+
++minimum_depth+:: Bob 的節點期望資金交易在區塊鏈上有多少確認數才認為通道「開啟」並準備使用。(((range="endofrange", startref="ix_07_payment_channels-asciidoc7")))(((range="endofrange", startref="ix_07_payment_channels-asciidoc6")))
+
+==== 資金交易
+
+((("funding transaction")))((("payment channel","funding transaction")))一旦 Alice 的節點收到 Bob 的 +accept_channel+ 訊息，它就有了構建將通道錨定到比特幣區塊鏈的_資金交易_所需的資訊。正如我們在前幾章中討論的，閃電網路支付通道由 2-of-2 多重簽名地址錨定。首先，我們需要生成該多重簽名地址，以便我們可以構建資金交易（以及隨後描述的退款交易）。
+
+==== 生成多重簽名地址
+
+((("multisignature addresses")))((("payment channel","multisignature addresses")))資金交易將一定數量的比特幣（來自 +open_channel+ 訊息的 +funding_satoshis+）發送到由 Alice 和 Bob 的 +funding_pubkey+ 公鑰構建的 2-of-2 多重簽名輸出。
+
+Alice 的節點構建如下所示的多重簽名腳本：
+
+++++
+<pre data-type="programlisting">2 &lt;<em>Alice_funding_pubkey</em>&gt; &lt;<em>Bob_funding_pubkey</em>&gt; 2 CHECKMULTISIG
+</pre>
+++++
+
+請注意，在實踐中，資金金鑰在放入見證腳本之前會確定性地_排序_（使用序列化壓縮格式公鑰的字典順序）。透過事先同意這種排序順序，我們確保雙方將構建相同的資金交易輸出，該輸出由交換的承諾交易簽名簽署。
+
+
+此腳本編碼為 Pay-to-Witness-Script-Hash（P2WSH）比特幣地址，看起來像這樣：
+
+----
+bc1q89ju02heg32yrqdrnqghe6132wek25p6sv6e564znvrvez7tq5zqt4dn02
+----
+==== 構建資金交易
+
+((("payment channel","constructing the funding transaction")))Alice 的節點現在可以構建資金交易，將與 Bob 商定的金額（`funding_satoshis`）發送到 2-of-2 多重簽名地址。假設 funding_satoshis 是 140,000，Alice 正在花費一個 200,000 satoshi 的輸出並創建 60,000 satoshi 的找零。交易看起來會像 <<A_B_funding_Tx>>。
+
+[[A_B_funding_Tx]]
+.Alice 構建資金交易
+image::images/mtln_0704.png["Alice 構建資金交易"]
+
+Alice _不廣播_這筆交易，因為這樣做會讓她的 140,000 satoshi 面臨風險。一旦花費到 2-of-2 多重簽名，如果沒有 Bob 的簽名，Alice 就無法取回她的錢。
+
+[role="pagebreak-before less_space"]
+.雙向注資支付通道
+****
+((("dual-funded payment channels")))((("payment channel","dual-funded")))在閃電網路的當前實作中，通道只由發起通道的節點（在我們的例子中是 Alice）注資。雙向注資通道已被提出，但尚未實作。在雙向注資通道中，Alice 和 Bob 都將向資金交易貢獻輸入。雙向注資通道需要稍微更複雜的訊息流程和加密協定，因此它們尚未實作，但計劃在未來的閃電網路 BOLT 更新中實作。`c-lightning` 實作包含雙向注資通道變體的實驗版本。
+****
+
+==== 持有已簽名的交易而不廣播
+
+((("payment channel","holding signed transactions without broadcasting")))使閃電網路成為可能的一個重要比特幣功能是構建和簽署交易但不廣播它們的能力。該交易在各方面都是_有效的_，但在它被廣播並在比特幣區塊鏈上確認之前，它不被承認，其輸出不能花費，因為它們尚未在區塊鏈上創建。我們將在閃電網路中多次使用這種能力，Alice 的節點在構建資金交易時使用這種能力：持有它並且尚未廣播它。
+
+==== 先有退款後有注資
+
+((("payment channel","refund before funding")))為了防止資金損失，Alice 在有辦法在出問題時獲得退款之前，不能將她的比特幣放入 2-of-2。本質上，她必須在進入這種安排之前計劃好「退出」通道。
+
+考慮婚前協議的法律構造，也稱為「prenup」。當兩個人結婚時，他們的錢依法（取決於司法管轄區）綁定在一起。在結婚之前，他們可以簽署一份協議，指定如果他們透過離婚解除婚姻，如何分割他們的資產。
+
+我們可以在比特幣中創建類似的協議。例如，我們可以創建一個退款交易，它的功能類似於婚前協議，允許雙方在他們的資金實際鎖定到多重簽名資金地址之前決定如何分配他們通道中的資金。
+
+==== 構建預先簽名的退款交易
+
+((("payment channel","constructing the presigned refund transaction")))((("refund transactions")))Alice 將在構建（但不廣播）資金交易後立即構建退款交易。退款交易將 2-of-2 pass:[<span class="keep-together">多重簽名</span>] 花費回 Alice 的錢包。((("commitment transactions","refund transactions and")))我們將這個退款交易稱為_承諾交易_，因為它承諾雙方通道合作夥伴公平分配通道餘額。由於 Alice 獨自為通道注資，她獲得全部餘額，Alice 和 Bob 都承諾用這筆交易退款給 Alice。
+
+在實踐中，它比較複雜，我們將在後續章節中看到，但現在讓我們保持簡單，假設它看起來像 <<A_B_fund_refund_Tx>>。
+
+[[A_B_fund_refund_Tx]]
+.Alice 也構建退款交易
+image::images/mtln_0705.png["Alice 也構建退款交易"]
+
+在本章後面，我們將看到如何創建更多承諾交易以不同金額分配通道餘額。
+
+==== 在不廣播的情況下鏈接交易
+
+((("payment channel","chaining transactions without broadcasting")))現在，Alice 已經構建了 <<A_B_fund_refund_Tx>> 中顯示的兩個交易。但你可能想知道這是怎麼可能的。Alice 還沒有將資金交易廣播到比特幣區塊鏈。就網路上的每個人而言，該交易不存在。退款交易被構建為_花費_資金交易的其中一個輸出，即使該輸出也還不存在。如何花費尚未在比特幣區塊鏈上確認的輸出？
+
+退款交易尚不是有效交易。要使其成為有效交易，必須發生兩件事：
+
+* 資金交易必須廣播到比特幣網路。（為了確保閃電網路的安全，我們還要求它被比特幣區塊鏈確認，儘管這對於鏈接 pass:[<span class="keep-together">交易</span>] 並不是嚴格必要的。）
+* 退款交易的輸入需要 Alice 和 Bob 的簽名。
+
+[role="pagebreak-before"]
+但即使這兩件事尚未發生，即使 Alice 的節點尚未廣播資金交易，她仍然可以構建退款交易。她可以這樣做，因為她可以計算資金交易的雜湊並在退款交易中將其引用為輸入。
+
+請注意 Alice 是如何計算出 +6da3c2...387710+ 作為資金交易雜湊的？如果資金交易被廣播，該雜湊將被記錄為資金交易的交易 ID。因此，資金交易的 `0` 輸出（2-of-2 地址輸出）將被引用為輸出 ID +6da3c2...387710:0+。即使退款交易尚不存在，也可以構建為花費該資金交易輸出，因為 Alice 知道一旦確認其標識符將是什麼。
+
+這意味著 Alice 可以透過引用尚不存在的輸出來創建鏈接交易，知道如果資金交易被確認，該引用將是有效的，使退款交易也有效。正如我們將在下一節中看到的，這種在廣播之前鏈接交易的「技巧」需要比特幣在 2017 年 8 月引入的一個非常重要的功能：_隔離見證_。
+
+==== 解決可塑性問題（隔離見證）
+
+((("payment channel","Transaction Malleability and Segregated Witness", id="ix_07_payment_channels-asciidoc8", range="startofrange")))((("Segregated Witness (SegWit) protocol", id="ix_07_payment_channels-asciidoc9", range="startofrange")))((("Transaction Malleability", id="ix_07_payment_channels-asciidoc10", range="startofrange")))Alice 必須依賴在確認之前知道資金交易的交易 ID。但在 2017 年 8 月引入隔離見證（SegWit）之前，這不足以保護 Alice。由於交易的構建方式，簽名（見證）包含在交易 ID 中，第三方（例如 Bob）有可能廣播一個具有_可塑_（修改的）交易 ID 的替代版本交易。這被稱為_交易可塑性_，在 SegWit 之前，這個問題使得安全實作無限期生命週期的支付通道變得困難。
+
+如果 Bob 可以在確認之前修改 Alice 的資金交易，並產生具有不同交易 ID 的副本，Bob 可以使 Alice 的退款交易無效並劫持她的比特幣。Alice 將任由 Bob 擺佈，需要他的簽名來釋放她的資金，並且很容易被勒索。Bob 無法竊取資金，但他可以阻止 Alice 取回資金。
+
+SegWit 的引入使未確認的交易 ID 從第三方的角度變得不可變，這意味著 Alice 可以確定資金交易的交易 ID 不會改變。因此，Alice 可以確信，如果她獲得 Bob 對退款交易的簽名，她就有辦法收回她的錢。她現在有辦法在將資金鎖定到多重簽名之前實施比特幣版的「婚前協議」。
+
+[TIP]
+====
+你可能想知道 Bob 如何能夠更改（可塑化）Alice 創建並簽署的交易。Bob 當然沒有 Alice 的私鑰。然而，訊息的 ECDSA 簽名不是唯一的。知道簽名（包含在有效交易中）允許人們產生許多看起來不同但仍然有效的簽名。在 SegWit 從交易摘要演算法中移除簽名之前，Bob 可以用等效的有效簽名替換簽名，產生不同的交易 ID，打破資金交易和退款交易之間的鏈接。
+====
+
+===== funding_created 訊息
+
+((("funding_created message")))((("Segregated Witness (SegWit) protocol","funding_created message and")))現在 Alice 已經構建了必要的交易，通道建構訊息流程繼續。Alice 向 Bob 傳輸 +funding_created+ 訊息。你可以在這裡看到此訊息的內容：
+
+[[funding_created_message]]
+.funding_created 訊息
+----
+[32*byte:temporary_channel_id]
+[sha256:funding_txid]
+[u16:funding_output_index]
+[signature:signature]
+----
+
+透過此訊息，Alice 向 Bob 提供了錨定支付通道的資金交易的重要資訊：
+
++funding_txid+:: 這是資金交易的交易 ID（TxID），用於在通道建立後創建通道 ID。
+
++funding_output_index+:: 這是輸出索引，讓 Bob 知道交易的哪個輸出（例如輸出 `0`）是 Alice 注資的 2-of-2 多重簽名輸出。這也用於形成通道 ID。
+
+最後，Alice 還發送對應於 Alice 的 `funding_pubkey` 的 +signature+，用於從 2-of-2 多重簽名花費。Bob 需要這個是因為他也需要創建他自己版本的承諾交易。該承諾交易需要 Alice 的簽名，她提供給他。請注意，Alice 和 Bob 的承諾交易看起來略有不同，因此簽名也會不同。知道對方的承諾交易是什麼樣子是至關重要的，也是提供有效簽名的協定的一部分。
+
+[TIP]
+====
+在閃電網路協定中，我們經常看到節點發送簽名而不是整個已簽名的交易。這是因為任何一方都可以重建相同的交易，因此只需要簽名就可以使其有效。只發送簽名而不是整個交易可以節省大量網路頻寬。
+====
+
+
+===== funding_signed 訊息
+
+((("funding_signed message")))((("Segregated Witness (SegWit) protocol","funding_signed message and")))從 Alice 收到 +funding_created+ 訊息後，Bob 現在知道了資金交易 ID 和輸出索引。通道 ID 是透過資金交易 ID 和輸出索引的逐位元「互斥或」（XOR）生成的：
+
+----
+channel_id = funding_txid XOR funding_output_index
+----
+
+更準確地說，`channel_id` 是資金 UTXO 的 32 位元組表示，透過將資金 TxID 的低 2 位元組與資金輸出的索引進行 XOR 運算生成。
+
+Bob 還需要向 Alice 發送他對退款交易的簽名，基於形成 2-of-2 多重簽名的 Bob 的 `funding_pubkey`。雖然 Bob 已經有他的本地退款交易，但這將允許 Alice 用所有必要的簽名完成退款交易，並確保她的錢在出問題時可以退還。
+
+Bob 構建一個 +funding_signed+ 訊息並發送給 Alice。在這裡我們看到此訊息的內容：(((range="endofrange", startref="ix_07_payment_channels-asciidoc10")))(((range="endofrange", startref="ix_07_payment_channels-asciidoc9")))(((range="endofrange", startref="ix_07_payment_channels-asciidoc8")))
+
+[[funding_signed_message]]
+.funding_signed 訊息
+----
+
+[channel_id:channel_id]
+[signature:signature]
+
+----
+
+==== 廣播資金交易
+
+((("payment channel","broadcasting the funding transaction")))從 Bob 收到 +funding_signed+ 訊息後，Alice 現在有了簽署退款交易所需的兩個簽名。她的「退出計劃」現在是安全的，因此她可以廣播資金交易而不用擔心資金被鎖定。如果出了什麼問題，Alice 可以簡單地廣播退款交易並取回她的錢，而無需 Bob 的任何進一步幫助。
+
+Alice 現在將資金交易發送到比特幣網路，以便它可以被挖掘到區塊鏈中。Alice 和 Bob 都將監控這筆交易，並等待比特幣區塊鏈上的 +minimum_depth+ 確認（例如六次確認）。
+
+[TIP]
+====
+當然，Alice 將使用比特幣協定來驗證 Bob 發送給她的簽名是否確實有效。這一步非常關鍵。如果出於某種原因 Bob 向 Alice 發送了錯誤的資料，她的「退出計劃」將被破壞。
+====
+
+===== funding_locked 訊息
+
+((("funding_locked message")))一旦資金交易達到所需的確認數，Alice 和 Bob 都會向對方發送 +funding_locked+ 訊息，通道就準備好使用了。(((range="endofrange", startref="ix_07_payment_channels-asciidoc5")))(((range="endofrange", startref="ix_07_payment_channels-asciidoc4")))
+
+=== 透過通道發送付款
+
+((("payment channel","sending payments across", id="ix_07_payment_channels-asciidoc11", range="startofrange")))通道已經建立，但在初始狀態下，所有容量（140,000 satoshi）都在 Alice 這一側。這意味著 Alice 可以透過通道向 Bob 發送付款，但 Bob 還沒有資金可以發送給 Alice。
+
+在接下來的幾節中，我們將展示付款是如何透過支付通道進行的，以及_通道狀態_是如何更新的。
+
+假設 Alice 想要向 Bob 發送 70,000 satoshi 來支付她在 Bob 咖啡店的帳單。
+
+==== 分割餘額
+
+((("payment channel","splitting the payment balance")))原則上，從 Alice 向 Bob 發送付款只是重新分配通道餘額的問題。在付款發送之前，Alice 有 140,000 satoshi，Bob 沒有。在 70,000 satoshi 付款發送後，Alice 有 70,000 satoshi，pass:[<span class="keep-together">Bob 也有</span>] 70,000 satoshi。
+
+((("commitment transactions","splitting balances with")))因此，Alice 和 Bob 所要做的就是創建並簽署一個交易，將 2-of-2 多重簽名花費到兩個輸出，分別支付 Alice 和 Bob 他們對應的餘額。我們將這個更新的交易稱為_承諾交易_。
+
+Alice 和 Bob 透過_推進通道狀態_來操作支付通道，透過一系列承諾。每個承諾更新餘額以反映流經通道的付款。Alice 和 Bob 都可以發起新的承諾來更新通道。
+
+在 <<competing_commitments_1>> 中我們看到幾個承諾交易。
+
+<<competing_commitments_1>> 中顯示的第一個承諾交易是 Alice 在為通道注資之前構建的退款交易。在圖中，這是承諾 #0。在 Alice 向 Bob 支付 70,000 satoshi 後，新的承諾交易（承諾 #1）有兩個輸出，分別支付 Alice 和 Bob 各自的餘額。我們包含了兩個後續的承諾交易（承諾 #2 和承諾 #3），分別代表 Alice 向 Bob 額外支付 10,000 satoshi 和然後 20,000 satoshi。
+
+每個簽署且有效的承諾交易都可以被任一通道合作夥伴在任何時候用於關閉通道，透過將其廣播到比特幣網路。由於他們都有最新的承諾交易並且可以隨時使用它，他們也可以只是持有它而不廣播。這是他們公平退出通道的保證。
+
+[[competing_commitments_1]]
+.多個承諾交易
+image::images/mtln_0706.png[多個承諾交易]
+
+==== 競爭的承諾
+
+((("commitment transactions","completing commitments")))((("payment channel","completing commitments")))你可能想知道 Alice 和 Bob 怎麼可能有多個承諾交易，所有這些交易都試圖花費資金交易的同一個 2-of-2 輸出。這些承諾交易不是衝突的嗎？((("double-spending")))這不是比特幣系統旨在防止的「雙重花費」嗎？
+
+確實是！事實上，我們依賴比特幣_防止_雙重花費的能力來使閃電網路運作。無論 Alice 和 Bob 構建和簽署多少承諾交易，只有其中一個可以真正得到確認。
+
+只要 Alice 和 Bob 持有這些交易而不廣播它們，資金輸出就是未花費的。但如果一個承諾交易被廣播並確認，它將花費資金輸出。如果 Alice 或 Bob 試圖廣播多個承諾交易，只有其中一個會被確認，其他的將被拒絕為嘗試（且失敗的）雙重花費。
+
+如果多個承諾交易被廣播，有許多因素會決定哪一個首先被確認：包含的費用金額、這些競爭交易的傳播速度、網路拓撲等。本質上它變成了一場結果不可預測的競賽。這聽起來不太安全。聽起來像是有人可以作弊。
+
+==== 用舊承諾交易作弊
+
+((("cheating","with old transactions")))((("commitment transactions","cheating with old transactions")))((("payment channel","cheating with old commitment transactions")))讓我們更仔細地看看 <<competing_commitments_1>> 中的承諾交易。所有四個承諾交易都已簽署且有效。但只有最後一個準確反映了最新的通道餘額。在這個特定場景中，Alice 有機會透過廣播一個較舊的承諾並讓它在比特幣區塊鏈上確認來作弊。假設 Alice 傳輸承諾 #0 並讓它確認：她將有效地關閉通道並獨自拿走所有 140,000 satoshi。事實上，在這個特定例子中，除了承諾 #3 以外的任何承諾都會改善 Alice 的狀況，並允許她「取消」至少部分反映在通道中的付款。
+
+在下一節中，我們將看到閃電網路如何透過撤銷和懲罰機制解決這個問題——防止較舊的承諾交易被通道合作夥伴使用。還有其他方法可以防止傳輸較舊的承諾交易，例如 eltoo 通道，但它們需要對比特幣進行升級，稱為輸入重新綁定（參見 <<bitcoin_prot_17>>）。
+
+==== 撤銷舊承諾交易
+
+((("commitment transactions","revoking old transactions")))((("payment channel","revoking old commitment transactions")))比特幣交易不會過期，也不能被「取消」。一旦廣播，它們也不能被停止或審查。那麼我們如何「撤銷」另一個人持有的已經簽署的交易呢？
+
+閃電網路中使用的解決方案是公平協定的另一個例子。((("penalty mechanisms")))不是試圖控制廣播交易的能力，而是有一個內建的_懲罰機制_，確保潛在作弊者傳輸舊承諾交易不符合其最佳利益。他們總是可以廣播它，但如果他們這樣做，很可能會損失金錢。
+
+[TIP]
+====
+「撤銷」這個詞是用詞不當，因為它暗示舊承諾在某種程度上變得無效，不能被廣播和確認。但事實並非如此，因為有效的比特幣交易不能被撤銷。相反，閃電網路協定使用懲罰機制來懲罰廣播舊承諾的通道合作夥伴。
+====
+
+閃電網路協定的撤銷和懲罰機制有三個組成要素：
+
+不對稱承諾交易:: Alice 的承諾交易與 Bob 持有的略有不同。
+
+延遲花費:: 向持有承諾交易的一方的付款被延遲（時間鎖定），而向另一方的付款可以立即領取。
+
+撤銷金鑰:: 用於解鎖舊承諾的懲罰選項。
+
+讓我們依次看看這三個要素。
+
+
+==== 不對稱承諾交易
+
+((("commitment transactions","asymmetric")))((("payment channel","asymmetric commitment transactions")))Alice 和 Bob 持有略有不同的承諾交易。讓我們更詳細地看看 <<competing_commitments_1>> 中的承諾 #2，如 <<commitment_2>> 所示。
+
+[[commitment_2]]
+.承諾交易 #2
+image::images/mtln_0707.png[承諾交易 #2]
+
+Alice 和 Bob 持有此交易的兩個不同變體，如 <<asymmetric_1>> 所示。
+
+[[asymmetric_1]]
+.不對稱承諾交易
+image::images/mtln_0708.png[不對稱承諾交易]
+
+按照慣例，在閃電網路協定中，我們將兩個通道合作夥伴稱為 `self`（也稱為 `local`）和 `remote`，取決於我們從哪一側看。支付給每個通道合作夥伴的輸出分別稱為 `to_local` 和 `to_remote`。
+
+在 <<asymmetric_1>> 中，我們看到 Alice 持有一個交易，支付 60,000 satoshi `to_self`（可以由 Alice 的金鑰花費），和 80,000 satoshi `to_remote`（可以由 Bob 的金鑰花費）。
+
+Bob 持有該交易的鏡像，其中第一個輸出是 80,000 satoshi `to_self`（可以由 Bob 的金鑰花費），和 60,000 satoshi `to_remote`（可以由 Alice 的金鑰花費）。
+
+==== 延遲（時間鎖定）花費 to_self
+
+((("payment channel","delayed spending to_self")))使用不對稱交易允許協定輕鬆將_責任_歸咎於作弊方。確保_廣播_方必須始終等待的不變性確保「誠實」方有時間反駁索賠並撤銷他們的資金。這種不對稱性體現在每一方的不同輸出形式中：`to_local` 輸出始終被時間鎖定，不能立即花費，而 `to_remote` 輸出沒有時間鎖定，可以立即花費。
+
+例如，在 Alice 持有的承諾交易中，支付給她的 `to_local` 輸出被時間鎖定 432 個區塊，而支付給 Bob 的 `to_remote` 輸出可以立即花費（參見 <<asymmetric_delayed_1>>）。Bob 對承諾 #2 的承諾交易是鏡像的：他自己的（`to_local`）輸出被時間鎖定，Alice 的 `to_remote` 輸出可以立即花費。
+
+[[asymmetric_delayed_1]]
+.不對稱和延遲的承諾交易
+image::images/mtln_0709.png[不對稱和延遲的承諾交易]
+
+[role="pagebreak-before"]
+這意味著如果 Alice 透過廣播並確認她持有的承諾交易來關閉通道，她在 432 個區塊內不能花費她的餘額，但 Bob 可以立即領取他的餘額。如果 Bob 使用他持有的承諾交易關閉通道，他在 432 個區塊內不能花費他的輸出，而 Alice 可以立即花費她的。
+
+延遲存在的一個原因是：允許_遠端_方在舊的（已撤銷的）承諾被另一個通道合作夥伴廣播時行使懲罰選項。接下來讓我們看看撤銷金鑰和懲罰選項。
+
+延遲是在初始通道建構訊息流程中由 Alice 和 Bob 協商的，作為一個名為 +to_self_delay+ 的欄位。為了確保通道的安全，延遲會根據通道容量進行調整——這意味著擁有更多資金的通道在承諾的 +to_self+ 輸出中有更長的延遲。Alice 的節點在 +open_channel+ 訊息中包含所需的 +to_self_delay+。如果 Bob 認為可以接受，他的節點在 +accept_channel+ 訊息中包含相同的 +to_self_delay+ 值。如果他們不同意，通道就會被拒絕（參見 <<theShutdownmessage>>）。
+
+==== 撤銷金鑰
+
+((("payment channel","revocation keys")))((("revocation keys")))正如我們之前討論的，「撤銷」這個詞有點誤導，因為它暗示「已撤銷」的交易不能被使用。
+
+事實上，已撤銷的交易可以被使用，但如果它被使用，而且它已經被撤銷，那麼通道合作夥伴之一可以透過創建懲罰交易來獲取所有通道資金。
+
+運作方式是 `to_local` 輸出不僅被時間鎖定，而且在腳本中還有兩個花費條件：它可以在時間鎖定延遲後由 _self_ 花費，_或者_它可以由 _remote_ 使用此承諾的撤銷金鑰立即花費。
+
+所以，在我們的例子中，每一方持有的承諾交易在 `to_local` 輸出中都包含一個撤銷選項，如 <<asymmetric_delayed_revocable_1>> 所示。(((range="endofrange", startref="ix_07_payment_channels-asciidoc11")))
+
+[[asymmetric_delayed_revocable_1]]
+.不對稱、延遲和可撤銷的承諾
+image::images/mtln_0710.png["不對稱、延遲和可撤銷的承諾"]
+
+[[commitment_transaction]]
+=== 承諾交易
+
+((("commitment transactions", id="ix_07_payment_channels-asciidoc12", range="startofrange")))((("payment channel","commitment transaction", id="ix_07_payment_channels-asciidoc13", range="startofrange")))現在我們理解了承諾交易的結構以及為什麼我們需要不對稱、延遲、可撤銷的承諾，讓我們看看實作這些的比特幣腳本。
+
+承諾交易的第一個（`to_local`）輸出在 https://github.com/lightningnetwork/lightning-rfc/blob/master/03-transactions.md#to_local-output[BOLT #3：承諾交易，`to_local` 輸出] 中定義，如下：
+
+----
+OP_IF
+    # 懲罰交易
+    <revocationpubkey>
+OP_ELSE
+    <to_self_delay>
+    OP_CHECKSEQUENCEVERIFY
+    OP_DROP
+    <local_delayedpubkey>
+OP_ENDIF
+OP_CHECKSIG
+----
+
+這是一個條件腳本（參見 <<conditional_scripts>>），這意味著如果滿足兩個條件中的_任一個_，輸出就可以被花費。第一個子句允許任何能為 +<revocationpubkey>+ 簽名的人花費輸出。第二個子句被 +<to_self_delay>+ 個區塊時間鎖定，只有在那麼多區塊之後才能被任何能為 +<local_delayedpubkey>+ 簽名的人花費。在我們的例子中，我們將 +<to_self_delay>+ 時間鎖設定為 432 個區塊，但這是一個可配置的延遲，由兩個通道合作夥伴協商。+to_self_delay+ 時間鎖持續時間通常根據通道容量成比例選擇，這意味著更大容量的通道（更多資金）有更長的 +to_self_delay+ 時間鎖來保護各方。
+
+第一個子句允許任何能為 +<revocationpubkey>+ 簽名的人花費輸出。此腳本安全性的一個關鍵要求是遠端方_不能_單方面用 `revocationpubkey` 簽名。要了解為什麼這很重要，考慮遠端方違反先前撤銷的承諾的場景。如果他們可以用這個金鑰簽名，那麼他們可以簡單地_自己_獲取撤銷子句並竊取通道中的所有資金。相反，我們根據_自身_（本地）和遠端方的資訊為_每個_狀態衍生 `revocationpubkey`。巧妙地使用對稱和非對稱加密，允許雙方計算 `revocationpubkey` 公鑰，但在給定其秘密資訊的情況下，只允許誠實的自身方計算私鑰，如 <<revocation_sidebar>> 中詳述。
+
+[[revocation_sidebar]]
+.撤銷和承諾秘密衍生
+****
+((("payment channel","revocation and commitment secret derivations")))每一方在初始通道協商訊息期間發送一個 `revocation_basepoint` 以及一個 `first_per_commitment_point`。`revocation_basepoint` 在通道的生命週期內是靜態的，而每個新的通道狀態將基於新的 `first_per_commitment_point`。
+
+給定這些資訊，每個通道狀態的 `revocationpubkey` 透過以下一系列橢圓曲線和雜湊運算衍生：
+
+----
+revocationpubkey = revocation_basepoint * sha256(revocation_basepoint || per_commitment_point) + per_commitment_point * sha256(per_commitment_point || revocation_basepoint)
+----
+
+由於橢圓曲線定義在阿貝爾群上的交換性質，一旦遠端方透露 `per_commitment_secret`（`per_commitment_point` 的私鑰），自身可以用以下操作衍生 `revocationpubkey` 的私鑰：
+
+----
+revocation_priv = (revocationbase_priv * sha256(revocation_basepoint || per_commitment_point)) + (per_commitment_secret * sha256(per_commitment_point || revocation_basepoint)) mod N
+----
+
+要了解為什麼這在實踐中有效，請注意我們可以_重新排序_（交換）並展開原始 `revocationpubkey` 公式的公鑰計算：
+```
+revocationpubkey = G*(revocationbase_priv * sha256(revocation_basepoint || per_commitment_point) + G*(per_commitment_secret * sha256(per_commitment_point || revocation_basepoint))
+                 = revocation_basepoint * sha256(revocation_basepoint || per_commitment_point) + per_commitment_point * sha256(per_commitment_point || revocation_basepoint))
+```
+
+換句話說，`revocationbase_priv` 只能由知道 `revocationbase_priv` _和_ `per_commitment_secret` 的一方衍生（並用於為 `revocationpubkey` 簽名）。這個小技巧是使閃電網路中使用的基於公鑰的撤銷系統安全的關鍵。
+****
+
+
+[TIP]
+====
+((("relative timelock")))承諾交易中使用 +CHECK&#x200b;SE&#x2060;QUENCEVERIFY+ 的時間鎖是_相對時間鎖_。它計算從此輸出確認開始經過的區塊數。這意味著在此承諾交易廣播並確認後的 +to_self_delay+ 個區塊_之後_它才能被花費。
+====
+
+承諾交易的第二個輸出（to_remote）在 https://github.com/lightningnetwork/lightning-rfc/blob/master/03-transactions.md#to_remote-output[BOLT #3：承諾交易，`to_remote` 輸出] 中定義，最簡單的形式是 +<remote_pubkey>+ 的 Pay-to-Witness-Public-Key-Hash（P2WPKH），這意味著它只是支付給能為 +<remote_pubkey>+ 簽名的所有者。
+
+現在我們已經詳細定義了承諾交易，讓我們看看 Alice 和 Bob 如何推進通道狀態，創建和簽署新的承諾交易，以及撤銷舊的承諾交易。(((range="endofrange", startref="ix_07_payment_channels-asciidoc13")))(((range="endofrange", startref="ix_07_payment_channels-asciidoc12")))
+
+=== 推進通道狀態
+
+((("channel state","advancing", id="ix_07_payment_channels-asciidoc14", range="startofrange")))((("payment channel","advancing the channel state", id="ix_07_payment_channels-asciidoc15", range="startofrange")))為了推進通道狀態，Alice 和 Bob 交換兩個訊息：+commitment_signed+ 和 +revoke_and_ack+ 訊息。當任一通道合作夥伴有通道狀態更新時，可以發送 +commitment_signed+ 訊息。另一個通道合作夥伴然後可以用 +revoke_and_ack+ 回應以_撤銷_舊承諾並_確認_新承諾。
+
+在 <<commitment_message_flow>> 中，我們看到 Alice 和 Bob 交換兩對 +commitment_signed+ 和 +revoke_and_ack+。第一個流程顯示由 Alice 發起的狀態更新（從左到右 +commitment_signed+），Bob 回應（從右到左 +revoke_and_ack+）。第二個流程顯示由 Bob 發起並由 Alice 回應的狀態更新。
+
+[[commitment_message_flow]]
+.承諾和撤銷訊息流程
+image::images/mtln_0711.png[承諾和撤銷訊息流程]
+
+==== commitment_signed 訊息
+
+((("channel state","commitment_signed message")))((("commitment_signed message")))+commitment_signed+ 訊息的結構在 https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#committing-updates-so-far-commitment_signed[BOLT #2：對等協定，`commitment_signed`] 中定義，如下所示：
+
+[[commitment_signed_message]]
+.commitment_signed 訊息
+----
+[channel_id:channel_id]
+[signature:signature]
+[u16:num_htlcs]
+[num_htlcs*signature:htlc_signature]
+----
+
++channel_id+:: 通道的標識符
++signature+:: 新遠端承諾的簽名
++num_htlcs+:: 此承諾中更新的 HTLC 數量
++htlc_signature+:: 更新的簽名
+
+[NOTE]
+====
+使用 HTLC 提交更新將在 <<htlcs>> 和 <<channel_operation>> 中詳細解釋。
+====
+
+Alice 的 +commitment_signed+ 訊息給 Bob 提供了新承諾交易所需的簽名（Alice 在 2-of-2 中的部分）。
+
+==== revoke_and_ack 訊息
+
+((("channel state","revoke_and_ack message")))((("revoke_and_ack message")))現在 Bob 有了新的承諾交易，他可以透過給 Alice 一個撤銷金鑰來撤銷先前的承諾，並用 Alice 的簽名構建新的承諾。
+
++revoke_and_ack+ 訊息在 https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#completing-the-transition-to-the-updated-state-revoke_and_ack[BOLT #2：對等協定，`revoke_and_ack`] 中定義，如下所示：
+
+[[revoke_and_ack_message]]
+.revoke_and_ack 訊息
+----
+
+[channel_id:channel_id]
+[32*byte:per_commitment_secret]
+[point:next_per_commitment_point]
+
+----
+
++channel_id+:: 這是通道的標識符。
++per_commitment_secret+:: 用於為先前（舊的）承諾生成撤銷金鑰，有效地撤銷它。
++next_per_commitment_point+:: 用於為新承諾構建 `revocation_pubkey`，以便以後可以撤銷。
+
+[[revocation]]
+==== 撤銷和重新承諾
+
+((("channel state","revoking and recommitting")))讓我們更仔細地看看 Alice 和 Bob 之間的這種互動。
+
+Alice 給 Bob 提供了創建新承諾的方法。作為回報，Bob 撤銷舊承諾以向 Alice 保證他不會使用它。只有當 Alice 有撤銷金鑰來懲罰 Bob 發布舊承諾時，她才能信任新的承諾。從 Bob 的角度來看，他可以安全地撤銷舊承諾，透過給 Alice 懲罰他的金鑰，因為他有新承諾的簽名。
+
+當 Bob 用 +revoke_and_ack+ 回應時，他給 Alice 一個 +per_commitment_secret+。這個秘密可以用來構建舊承諾的撤銷簽名金鑰，允許 Alice 透過行使懲罰來奪取所有通道資金。
+
+一旦 Bob 將這個秘密給了 Alice，他_絕不能_再廣播那個舊承諾。如果他這樣做，他將給 Alice 機會透過獲取資金來懲罰他。本質上，Bob 給 Alice 讓他對廣播舊承諾負責的能力，實際上他已經撤銷了使用那個舊承諾的能力。
+
+一旦 Alice 從 Bob 收到 +revoke_and_ack+，她可以確信 Bob 不能在不受懲罰的情況下廣播舊承諾。她現在有必要的金鑰來創建懲罰交易，如果 Bob 廣播舊承諾的話。
+
+[[revocation_secret_derivation]]
+==== 作弊和懲罰的實踐
+
+((("channel state","cheating and penalty in practice", id="ix_07_payment_channels-asciidoc16", range="startofrange")))((("cheating","monitoring for", id="ix_07_payment_channels-asciidoc17", range="startofrange")))在實踐中，Alice 和 Bob 都必須監控作弊行為。他們監控比特幣區塊鏈，尋找與他們正在操作的任何通道相關的任何承諾交易。如果他們看到承諾交易在鏈上確認，他們將檢查它是否是最新的承諾。如果它是「舊的」承諾，他們必須立即構建並廣播懲罰交易。懲罰交易花費 +to_local+ 和 +to_remote+ 輸出_兩者_，關閉通道並將兩個餘額都發送給被欺騙的通道合作夥伴。
+
+為了更容易讓雙方跟蹤過去撤銷承諾的承諾號碼，每個承諾實際上在鎖定時間和序列欄位中_編碼_承諾的號碼。在 ((("state hints")))協定中，這種特殊編碼被稱為_狀態提示_。假設一方知道當前的承諾號碼，他們能夠使用狀態提示輕鬆識別廣播的承諾是否是已撤銷的，如果是，哪個承諾號碼被違反，因為該號碼用於輕鬆查找撤銷秘密樹（shachain）中應該使用哪個撤銷秘密。
+
+((("obfuscated state hints")))不是將狀態提示以明文編碼，而是使用_混淆的_狀態提示。這種混淆是透過首先將當前承諾號碼與使用雙方資金公鑰確定性生成的一組隨機位元組進行 XOR 來實現的。鎖定時間和序列中共有 6 個位元組（鎖定時間的 24 位元和序列的 24 位元）用於在承諾交易中編碼狀態提示，因此需要 6 個隨機位元組用於 XOR。為了獲得這 6 個位元組，雙方獲取發起者資金金鑰與回應者資金金鑰連接的 SHA-256 雜湊。在編碼當前承諾高度之前，整數與此狀態提示混淆器進行 XOR，然後編碼在鎖定時間的低 24 位元和序列的高 64 位元中。
+
+讓我們回顧 Alice 和 Bob 之間的通道，並展示懲罰交易的具體例子。在 <<competing_commitments_2>> 中，我們看到 Alice 和 Bob 通道上的四個承諾。Alice 向 Bob 進行了三筆付款：
+
+* 用承諾 #1 支付並承諾給 Bob 70,000 satoshi
+* 用承諾 #2 支付並承諾給 Bob 10,000 satoshi
+* 用承諾 #3 支付並承諾給 Bob 20,000 satoshi
+
+[[competing_commitments_2]]
+.已撤銷和當前承諾
+image::images/mtln_0712.png[已撤銷和當前承諾]
+
+每次承諾，Alice 都撤銷了先前（較舊的）承諾。通道的當前狀態和正確餘額由承諾 #3 表示。所有先前的承諾都已被撤銷，Bob 有必要的金鑰對它們發出懲罰交易，以防 Alice 試圖廣播其中之一。
+
+Alice 可能有動機作弊，因為所有先前的承諾交易都會給她比她應得的更高比例的通道餘額。例如，假設 Alice 試圖廣播承諾 #1。該承諾交易將支付 Alice 70,000 satoshi 和 Bob 70,000 satoshi。如果 Alice 能夠廣播並花費她的 +to_local+ 輸出，她實際上是透過回滾她對 Bob 的最後兩筆付款來從 Bob 那裡偷走 30,000 satoshi。
+
+Alice 決定冒巨大風險，廣播已撤銷的承諾 #1，從 Bob 那裡偷走 30,000 satoshi。在 <<cheating_commitment>> 中，我們看到 Alice 的舊承諾，她將其廣播到比特幣區塊鏈。
+
+[[cheating_commitment]]
+.Alice 作弊
+image::images/mtln_0713.png[Alice 作弊]
+
+如你所見，Alice 的舊承諾有兩個輸出，一個支付給她自己 70,000 satoshi（+to_local+ 輸出），一個支付給 Bob 70,000 satoshi。Alice 還不能花費她的 70,000 +to_local+ 輸出，因為它有 432 個區塊（3 天）的時間鎖。她現在希望 Bob 三天內不會注意到。
+
+不幸的是對 Alice 來說，Bob 的節點正在勤奮地監控比特幣區塊鏈，看到一個舊承諾交易被廣播並（最終）在鏈上確認。
+
+Bob 的節點將立即廣播懲罰交易。由於這個舊承諾被 Alice 撤銷，Bob 有 Alice 發送給他的 +per_commitment_secret+。他使用那個秘密為 +revocation_pubkey+ 構建簽名。雖然 Alice 必須等待 432 個區塊，Bob 可以立即花費_兩個_輸出。他可以用他的私鑰花費 +to_remote+ 輸出，因為它本來就是要支付給他的。他也可以用撤銷金鑰的簽名花費本來給 Alice 的輸出。他的節點廣播 <<penalty_transaction>> 中顯示的懲罰交易。
+
+[[penalty_transaction]]
+.作弊和懲罰
+image::images/mtln_0714.png[作弊和懲罰]
+
+Bob 的懲罰交易將 140,000 satoshi 支付到他自己的錢包，獲取了整個通道容量。Alice 不僅沒能作弊成功，她還在嘗試中失去了一切！(((range="endofrange", startref="ix_07_payment_channels-asciidoc17")))(((range="endofrange", startref="ix_07_payment_channels-asciidoc16")))
+
+==== 通道儲備金：確保利益攸關
+
+((("channel reserve")))((("channel state","channel reserve")))你可能注意到有一種特殊情況需要處理。如果 Alice 可以繼續花費她的餘額直到為零，她將處於可以透過廣播舊承諾交易關閉通道而不冒懲罰風險的位置：要麼已撤銷的承諾交易在延遲後成功，要麼作弊者被抓住但沒有後果因為懲罰是零。從博弈論的角度來看，在這種情況下嘗試作弊是免費的錢。這就是為什麼通道儲備金在起作用，所以潛在的作弊者總是面臨懲罰的風險。(((range="endofrange", startref="ix_07_payment_channels-asciidoc15")))(((range="endofrange", startref="ix_07_payment_channels-asciidoc14")))
+
+=== 關閉通道（協作關閉）
+
+((("payment channel","closing the channel", id="ix_07_payment_channels-asciidoc18", range="startofrange")))((("payment channel","cooperative close", id="ix_07_payment_channels-asciidoc19", range="startofrange")))到目前為止，我們已經將承諾交易視為關閉通道的一種可能方式，即單方面關閉。這種類型的通道關閉不是理想的，因為它對使用它的通道合作夥伴施加時間鎖。
+
+關閉通道的更好方式是協作關閉。在協作關閉中，兩個 ((("closing transactions")))通道合作夥伴協商一個最終的承諾交易，稱為_關閉交易_，立即支付每一方的餘額到他們選擇的目標錢包。然後，發起通道關閉流程的合作夥伴將廣播關閉交易。
+
+關閉訊息流程在 https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#channel-close[BOLT #2：對等協定，通道關閉] 中定義，並顯示在 <<closing_message_flow>> 中。
+
+[[closing_message_flow]]
+.通道關閉訊息流程
+image::images/mtln_0715.png[通道關閉訊息流程]
+
+[[theShutdownmessage]]
+==== shutdown 訊息
+
+((("closing the channel","shutdown message")))((("shutdown message")))通道關閉從兩個通道合作夥伴之一發送 +shutdown+ 訊息開始。此訊息的內容如下所示：
+
+[[shutdown_message]]
+.shutdown 訊息
+----
+
+[channel_id:channel_id]
+[u16:len]
+[len*byte:scriptpubkey]
+
+----
+
++channel_id+:: 我們想要關閉的通道的通道標識符
++len+:: 此通道合作夥伴希望接收其餘額的目標錢包腳本長度
++scriptpubkey+:: 目標錢包的比特幣腳本，使用「標準」比特幣地址格式之一（P2PKH、P2SH、P2WPKH、P2WSH 等；參見 <<glossary>>）
+
+假設 Alice 向 Bob 發送 +shutdown+ 訊息以關閉他們的通道。Alice 將指定一個對應於她錢包比特幣地址的比特幣腳本。她告訴 Bob：讓我們創建一個關閉交易，將我的餘額支付到這個錢包。
+
+Bob 將用他自己的 +shutdown+ 訊息回應，表示他同意協作關閉通道。他的 +shutdown+ 訊息包含他錢包地址的腳本。
+
+現在 Alice 和 Bob 都有對方的首選錢包地址，他們可以構建相同的關閉交易來結算通道餘額。
+
+==== closing_signed 訊息
+
+((("closing the channel","closing_signed message")))((("closing_signed message")))假設通道沒有未完成的承諾或更新，並且通道合作夥伴已經交換了前一節中顯示的 +shutdown+ 訊息，他們現在可以完成這個協作關閉。
+
+通道的_資助者_（在我們的例子中是 Alice）首先向 Bob 發送 +closing_signed+ 訊息。此訊息為鏈上交易提議交易費用，以及 Alice 對關閉交易的簽名（2-of-2 多重簽名）。+closing_signed+ 訊息如下所示：
+
+[[closing_signed_message]]
+.closing_signed 訊息
+----
+[channel_id:channel_id]
+[u64:fee_satoshis]
+[signature:signature]
+----
+
++channel_id+:: 通道標識符
++fee_satoshis+:: 提議的鏈上交易費用，以 satoshi 為單位
++signature+:: 發送者對關閉交易的簽名
+
+當 Bob 收到這個訊息時，他可以用自己的 +closing_signed+ 訊息回覆。如果他同意費用，他只需返回相同的提議費用和他自己的簽名。如果他不同意，他必須提議不同的 +fee_satoshis+ 費用。
+
+這種協商可能會繼續進行來回的 +closing_signed+ 訊息，直到兩個通道合作夥伴同意費用。
+
+一旦 Alice 收到一個 +closing_signed+ 訊息，其費用與她在上一條訊息中提議的相同，協商就完成了。Alice 簽署並廣播關閉交易，通道就關閉了。
+
+==== 協作關閉交易
+
+((("closing the channel","cooperative close transaction")))((("cooperative close transaction")))協作關閉交易看起來類似於 Alice 和 Bob 商定的最後一個承諾交易。然而，與最後一個承諾交易不同，它的輸出中沒有時間鎖或懲罰撤銷金鑰。由於雙方合作產生此交易並且他們不會進行任何進一步的承諾，因此此交易中不需要不對稱、延遲和可撤銷的元素。
+
+通常，此協作關閉交易中使用的地址是為每個被關閉的通道新生成的。然而，雙方也可以_鎖定_一個「交付」地址，用於發送他們協作結算的資金。在 `open_channel` 和 `accept_channel` 訊息的 TLV 命名空間內，雙方可以自由指定「預先關閉腳本」。通常，此地址從駐留在冷儲存中的金鑰衍生。這種做法有助於增加通道的安全性：如果通道合作夥伴以某種方式被入侵，那麼駭客就無法使用他們控制的地址協作關閉通道。相反，如果未使用指定的預先關閉地址，未受損的誠實通道合作夥伴將拒絕在通道關閉上合作。此功能有效地創建了一個「閉環」，限制資金從給定通道流出。
+
+Alice 廣播 <<closing_transaction>> 中顯示的交易來關閉通道。
+
+[[closing_transaction]]
+.協作關閉交易
+image::images/mtln_0716.png[協作關閉交易]
+
+一旦這個關閉交易在比特幣區塊鏈上確認，通道就關閉了。現在，Alice 和 Bob 可以隨意花費他們的輸出。(((range="endofrange", startref="ix_07_payment_channels-asciidoc19")))(((range="endofrange", startref="ix_07_payment_channels-asciidoc18")))
+
+=== 結論
+
+在本節中，我們更詳細地研究了支付通道。我們檢視了 Alice 和 Bob 用於協商注資、承諾和關閉通道的三個訊息流程。我們還展示了資金、承諾和關閉交易的結構，並研究了撤銷和懲罰機制。
+
+正如我們將在接下來的幾章中看到的，HTLC 甚至用於通道合作夥伴之間的本地付款。它們不是必需的，但如果本地（一個通道）和路由（多個通道）付款以相同的方式進行，協定會簡單得多。
+
+在單個支付通道中，每秒付款的數量僅受 Alice 和 Bob 之間網路容量的限制。只要通道合作夥伴能夠來回發送幾個位元組的資料以同意新的通道餘額，他們就有效地進行了一筆付款。這就是為什麼我們可以在閃電網路（鏈下）上實現比比特幣區塊鏈（鏈上）可以處理的交易吞吐量大得多的付款吞吐量。(((range="endofrange", startref="ix_07_payment_channels-asciidoc0")))
+
+在接下來的幾章中，我們將討論路由、HTLC 及其在通道操作中的使用。

@@ -1,0 +1,449 @@
+[[gossip]]
+== 八卦協定與通道圖
+
+(((「通道圖」, id=「ix_11_gossip_channel_graph-asciidoc0」, range=「startofrange」)))(((「八卦協定」, id=「ix_11_gossip_channel_graph-asciidoc1」, range=「startofrange」)))在本章中，我們將描述閃電網路的八卦協定（gossip protocol）以及節點如何使用它來建構和維護通道圖。我們還將回顧用於尋找「八卦」對等節點的 DNS 引導機制。
+
+「路由費用和八卦中繼」部分在 <<LN_protocol_gossip_highlight>> 中以跨越路由層和點對點層的輪廓突顯。
+
+[[LN_protocol_gossip_highlight]]
+.閃電網路協定套件中的八卦協定
+image::images/mtln_1101.png["閃電網路協定套件中的八卦協定"]
+
+正如我們已經了解的，閃電網路使用基於源的洋蔥路由協定將付款從發送者傳遞給接收者。為此，發送節點必須能夠構建一條連接它與接收者的支付通道路徑，正如我們將在 <<path_finding>> 中看到的。因此，發送者必須能夠通過構建通道圖來繪製閃電網路的地圖。_通道圖_ 是公開宣告的通道以及這些通道連接的節點的互連集合。
+
+由於通道是由鏈上發生的資金交易支持的，人們可能會錯誤地認為閃電網路節點可以直接從比特幣區塊鏈中提取現有通道。然而，這只能在一定程度上實現。(((「P2WSH（見證腳本雜湊支付）」)))(((「見證腳本雜湊支付（P2WSH）」)))資金交易是見證腳本雜湊支付（P2WSH）地址，只有當資金交易輸出被花費時才會揭示腳本的性質（2-of-2 多重簽名）。即使腳本的性質是已知的，重要的是要記住並非所有 2-of-2 多重簽名腳本都對應於支付通道。
+
+還有更多原因說明為什麼查看比特幣區塊鏈可能沒有幫助。例如，在閃電網路上，用於簽名的比特幣密鑰由節點為每個通道和更新進行輪換。因此，即使我們可以可靠地檢測到比特幣區塊鏈上的資金交易，我們也不知道閃電網路上的哪兩個節點擁有該特定通道。
+
+閃電網路通過實現 _八卦協定_ 來解決這個問題。八卦協定是點對點（P2P）網路的典型協定，允許節點僅通過幾個與對等節點的直接連接就能與整個網路共享資訊。閃電節點彼此之間建立加密的點對點連接，並共享（八卦）它們從其他對等節點收到的資訊。一旦一個節點想要共享一些資訊，例如關於新建立的通道，它就會向所有對等節點發送一條訊息。收到訊息後，節點會決定收到的訊息是否是新的，如果是，則將資訊轉發給其對等節點。這樣，如果點對點網路連接良好，所有對網路運作必要的新資訊最終都會傳播到所有其他對等節點。
+
+顯然，如果一個新的對等節點第一次加入網路，它需要知道網路上的一些其他對等節點，這樣它才能連接到其他節點並參與網路。
+
+在本章中，我們將探討閃電節點如何發現彼此、發現和更新其節點狀態，以及如何相互通訊。
+
+當大多數人提到閃電網路的 _網路_ 部分時，他們指的是 _通道圖_，它本身是一種獨特的認證資料結構，_錨定_ 在基礎比特幣區塊鏈中。
+
+然而，閃電網路也是一個節點的點對點網路，八卦傳播支付通道和節點的資訊。通常，為了讓兩個對等節點維護一個支付通道，它們需要直接相互通訊，這意味著它們之間會有一個對等連接。這暗示通道圖是點對點網路的子網路。然而這並不正確，因為即使一個或兩個對等節點暫時離線，支付通道也可以保持開放。
+
+讓我們重新回顧一下我們在整本書中使用的一些術語，特別是看看它們在通道圖和點對點網路方面的含義（見 <<network_terminology>>）。
+
+[[network_terminology]]
+.不同網路的術語
+[options="header"]
+|===
+| 通道圖  | 點對點網路
+|  通道 | 連接
+| 開啟 | 連線
+| 關閉 | 斷開連線
+|  資金交易 | 加密的 TCP/IP 連接
+| 發送	|	傳輸
+| 付款 |  訊息
+|===
+
+因為閃電網路是一個點對點網路，需要一些初始引導才能讓對等節點發現彼此。在本章中，我們將跟隨一個新對等節點第一次連接到網路的故事，並檢查引導過程中的每個步驟，從初始對等節點發現到通道圖同步和驗證。
+
+作為初始步驟，我們的新節點需要以某種方式 _發現_ 至少 _一個_ 已經連接到網路並具有完整通道圖的對等節點（正如我們稍後將看到的，沒有規範版本的通道圖）。使用多種初始引導協定之一找到第一個對等節點後，在建立連接後，我們的新對等節點現在需要 _下載_ 和 _驗證_ 通道圖。一旦通道圖完全驗證，我們的新對等節點就可以開始開啟通道並在網路上發送付款了。
+
+在初始引導之後，網路上的節點需要繼續維護其通道圖視圖，方法是處理新的通道路由策略更新、發現和驗證新通道、移除已在鏈上關閉的通道，最後修剪那些未能每兩週左右發送適當「心跳」的通道。
+
+完成本章後，你將理解點對點閃電網路的一個關鍵組件：即對等節點如何發現彼此並維護通道圖的本地副本（視角）。我們將從探索一個剛剛啟動並需要找到網路上其他對等節點連接的新節點的故事開始。(((range=「endofrange」, startref=「ix_11_gossip_channel_graph-asciidoc1」)))(((range=「endofrange」, startref=「ix_11_gossip_channel_graph-asciidoc0」)))
+
+[role="pagebreak-before less_space"]
+=== 對等節點發現
+
+(((「八卦協定」,「對等節點發現」, id=「ix_11_gossip_channel_graph-asciidoc2」, range=「startofrange」)))(((「對等節點發現」, id=「ix_11_gossip_channel_graph-asciidoc3」, range=「startofrange」)))在本節中，我們將開始跟隨一個希望加入網路的新閃電節點經歷三個步驟：
+
+. 發現一組引導對等節點
+. 下載並驗證通道圖
+. 開始通道圖本身的持續維護過程
+
+
+==== P2P 引導
+
+(((「引導」,「P2P」)))(((「初始對等節點引導」)))(((「P2P 引導」)))(((「對等節點發現」,「P2P 引導」)))在做任何其他事情之前，我們的新節點首先需要發現一組已經是網路一部分的對等節點。我們稱這個過程為初始對等節點引導，這是每個點對點網路都需要正確實現的事情，以確保一個健壯、健康的網路。
+
+將新對等節點引導到現有點對點網路是一個研究得非常透徹的問題，有幾種已知的解決方案，每種都有其獨特的權衡。這個問題最簡單的解決方案是在打包的 P2P 節點軟體中打包一組 _硬編碼_ 的引導對等節點。這很簡單，因為每個新節點在其運行的軟體中都有一個引導對等節點列表，但相當脆弱，因為如果引導對等節點集離線，則沒有新節點能夠加入網路。由於這種脆弱性，這個選項通常用作備用方案，以防其他 P2P 引導機制無法正常工作。
+
+(((「初始對等節點發現」)))與其在軟體/二進位檔本身中硬編碼引導對等節點集，我們可以讓對等節點動態獲取一組新鮮的引導對等節點，用於加入網路。我們將稱這個過程為 _初始對等節點發現_。通常我們會利用現有的網際網路協定來維護和分發一組引導對等節點。過去用於完成初始對等節點發現的協定的非詳盡列表包括：
+
+  * 域名系統（DNS）
+  * 網際網路中繼聊天（IRC）
+  * 超文本傳輸協定（HTTP）
+
+與比特幣協定類似，閃電網路中使用的主要初始對等節點發現機制是通過 DNS 進行的。因為初始對等節點發現是網路的關鍵和通用任務，這個過程已在 https://github.com/lightningnetwork/lightning-rfc/blob/master/10-dns-bootstrap.md[BOLT #10：DNS 引導] 中被 _標準化_。
+
+==== DNS 引導
+
+(((「引導」,「DNS」, id=「ix_11_gossip_channel_graph-asciidoc4」, range=「startofrange」)))(((「DNS 引導」, id=「ix_11_gossip_channel_graph-asciidoc5」, range=「startofrange」)))(((「對等節點發現」,「DNS 引導」, id=「ix_11_gossip_channel_graph-asciidoc6」, range=「startofrange」)))https://github.com/lightningnetwork/lightning-rfc/blob/master/10-dns-bootstrap.md[BOLT #10] 文件描述了使用 DNS 實現對等節點發現的標準化方式。閃電網路的 DNS 引導風格使用多達三種不同的記錄類型：
+
+  * +SRV+ 記錄用於發現一組 _節點公鑰_。
+  * +A+ 記錄用於將節點的公鑰映射到其當前的 +IPv4+ 地址。
+  * +AAA+ 記錄用於將節點的公鑰映射到其當前的 +IPv6+ 地址。
+
+那些對 DNS 協定有些熟悉的人可能已經熟悉 +A+（名稱到 IPv4 地址）和 +AAA+（名稱到 IPv6 地址）記錄類型，但不熟悉 +SRV+ 類型。+SRV+ 記錄類型被構建在 DNS 之上的協定用於確定指定服務的 _位置_。在我們的上下文中，所討論的服務是給定的閃電節點，位置是其 IP 地址。我們需要使用這個額外的記錄類型，因為與比特幣協定中的節點不同，我們需要公鑰 _和_ IP 地址才能連接到節點。正如我們在 <<wire_protocol>> 中看到的，閃電網路中使用的傳輸加密協定需要在連接之前知道節點的公鑰，以便為網路中的節點實現身份隱藏。
+
+===== 新對等節點的引導工作流程
+
+在深入了解 https://github.com/lightningnetwork/lightning-rfc/blob/master/10-dns-bootstrap.md[BOLT #10] 的細節之前，我們將首先概述一個希望使用 BOLT #10 加入網路的新節點的高層流程。
+
+首先，節點需要識別一個或一組理解 BOLT #10 的 DNS 伺服器，以便用於 P2P 引導。
+
+雖然 BOLT #10 使用 _lseed.bitcoinstats.com_ 作為種子伺服器，但並不存在用於此目的的「官方」DNS 種子集，但每個主要實現都維護自己的 DNS 種子，並且它們會互相查詢對方的種子以實現冗餘。在 <<dns_seeds>> 中，你將看到一些流行 DNS 種子伺服器的非詳盡列表。
+
+[[dns_seeds]]
+.已知閃電網路 DNS 種子伺服器表
+[options="header"]
+|===
+| DNS 伺服器     | 維護者
+| _lseed.bitcoinstats.com_ | Christian Decker
+| _nodes.lightning.directory_ | Lightning Labs (Olaoluwa Osuntokun)
+| _soa.nodes.lightning.directory_ | Lightning Labs (Olaoluwa Osuntokun)
+| _lseed.darosior.ninja_ | Antoine Poinsot
+|===
+
+
+DNS 種子存在於比特幣的主網和測試網。為了我們的範例，我們將假設在 _nodes.lightning.directory_ 存在一個有效的 BOLT #10 DNS 種子。
+
+接下來，我們的新節點將發出 +SRV+ 查詢以獲取一組 _候選引導對等節點_。對我們查詢的回應將是一系列 bech32 編碼的公鑰。因為 DNS 是基於文本的協定，我們無法發送原始二進位資料，所以需要一個編碼方案。由於 bech32 在更廣泛的比特幣生態系統中的使用，BOLT #10 指定了 bech32 編碼。返回的編碼公鑰數量取決於返回查詢的伺服器，以及位於客戶端和權威伺服器之間的所有解析器。
+
+使用廣泛可用的 +dig+ 命令列工具，我們可以使用以下命令查詢前面提到的 DNS 種子的 _測試網_ 版本：
+
+----
+$ dig @8.8.8.8 test.nodes.lightning.directory SRV
+----
+
+我們使用 +@+ 參數強制通過 Google 的名稱伺服器（IP 地址為 8.8.8.8）解析，因為它不會過濾大型 SRV 查詢回應。在命令末尾，我們指定只需要返回 +SRV+ 記錄。範例回應如 <<ex1101>> 所示。
+
+[[ex1101]]
+.查詢 DNS 種子以獲取可達節點
+====
+----
+$ dig @8.8.8.8 test.nodes.lightning.directory SRV
+
+; <<>> DiG 9.10.6 <<>> @8.8.8.8 test.nodes.lightning.directory SRV
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 43610
+;; flags: qr rd ra; QUERY: 1, ANSWER: 25, AUTHORITY: 0, ADDITIONAL: 1
+
+;; QUESTION SECTION:
+;test.nodes.lightning.directory.	IN	SRV
+
+;; ANSWER SECTION:
+test.nodes.lightning.directory.	59 IN	SRV	10 10 9735 <1>
+ln1qfkxfad87fxx7lcwr4hvsalj8vhkwta539nuy4zlyf7hqcmrjh40xx5frs7.test.nodes.lightning.directory. <2>
+test.nodes.lightning.directory.	59 IN	SRV	10 10 15735 ln1qtgsl3efj8verd4z27k44xu0a59kncvsarxatahm334exgnuvwhnz8dkhx8.test.nodes.lightning.directory.
+
+ [...]
+
+;; Query time: 89 msec
+;; SERVER: 8.8.8.8#53(8.8.8.8)
+;; WHEN: Thu Dec 31 16:41:07 PST 2020
+----
+<1> 可以連接到閃電節點的 TCP 連接埠號。
+<2> 作為虛擬域名編碼的節點公鑰（ID）。
+====
+
+為簡潔起見，我們截斷了回應，只顯示兩個返回的回應。回應包含目標節點的「虛擬」域名，然後在左邊我們有可以連接到該節點的 _TCP 連接埠_。第一個回應使用閃電網路的標準 TCP 連接埠：+9735+。第二個回應使用自訂連接埠，這是協定允許的。
+
+接下來，我們將嘗試獲取連接到節點所需的另一條資訊：其 IP 地址。然而，在我們可以查詢之前，我們將首先 _解碼_ 虛擬域名中公鑰的 bech32 編碼：
+
+----
+ln1qfkxfad87fxx7lcwr4hvsalj8vhkwta539nuy4zlyf7hqcmrjh40xx5frs7
+----
+
+解碼這個 bech32 字串，我們得到以下有效的 +secp256k1+ 公鑰：
+
+----
+026c64f5a7f24c6f7f0e1d6ec877f23b2f672fb48967c2545f227d70636395eaf3
+----
+
+現在我們有了原始公鑰，我們將要求 DNS 伺服器 _解析_ 給定的虛擬主機，以便我們可以獲取節點的 IP 資訊（+A+ 記錄），如 <<ex1102>> 所示。
+
+++++
+<div id="ex1102" data-type="example">
+<h5>獲取節點的最新 IP 地址</h5>
+
+<pre data-type="programlisting">$ dig ln1qfkxfad87fxx7lcwr4hvsalj8vhkwta539nuy4zlyf7hqcmrjh40xx5frs7.test.nodes.lightning.directory A
+
+; &lt;&lt;&gt;&gt; DiG 9.10.6 &lt;&lt;&gt;&gt; ln1qfkxfad87fxx7lcwr4hvsalj8vhkwta539nuy4zlyf7hqcmrjh40xx5frs7.test.nodes.lightning.directory A
+;; global options: +cmd
+;; Got answer:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 41934
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;ln1qfkxfad87fxx7lcwr4hvsalj8vhkwta539nuy4zlyf7hqcmrjh40xx5frs7.test.nodes.lightning.directory. IN A
+
+;; ANSWER SECTION:
+ln1qfkxfad87fxx7lcwr4hvsalj8vhkwta539nuy4zlyf7hqcmrjh40xx5frs7.test.nodes.lightning.directory. 60 IN A <em>X.X.X.X</em> <a class="co" id="comarker1" href="#c01"><img src="callouts/1.png" alt="1"/></a>
+
+;; Query time: 83 msec
+;; SERVER: 2600:1700:6971:6dd0::1#53(2600:1700:6971:6dd0::1)
+;; WHEN: Thu Dec 31 16:59:22 PST 2020
+;; MSG SIZE  rcvd: 138</pre>
+
+<dl class="calloutlist">
+<dt><a class="co" id="c01" href="#comarker1"><img src="callouts/1.png" alt="1"/></a></dt>
+<dd><p>DNS 伺服器返回 IP 地址 <code><em>X.X.X.X</em></code>。我們在此處將其替換為 X 以避免呈現真實的 IP 地址。</p></dd>
+</dl></div>
+++++
+
+在前面的命令中，我們查詢了伺服器以便獲取目標節點的 IPv4 pass:[<span class="keep-together">（<code>A</code> 記錄）</span>] 地址（在前面的範例中替換為 ++__X.X.X.X__++）。現在我們有了原始公鑰、IP 地址和 TCP 連接埠，我們可以通過以下方式連接到節點傳輸協定：
+
+----
+026c64f5a7f24c6f7f0e1d6ec877f23b2f672fb48967c2545f227d70636395eaf3@X.X.X.X:9735
+----
+
+查詢給定節點的當前 DNS +A+ 記錄也可用於查找 _最新_ 的地址集。與等待八卦網路上的地址更新相比，此類查詢可用於更快地同步節點的最新地址資訊（見 <<node_announcement>>）。
+
+在我們旅程的這個時刻，我們的新閃電節點已經找到了它的第一個對等節點並建立了它的第一個連接！現在我們可以開始新對等節點引導的第二階段：通道圖同步和驗證。
+
+首先，我們將更深入地探索 BOLT #10 本身的複雜性，以更深入地了解底層的工作原理。(((range=「endofrange」, startref=「ix_11_gossip_channel_graph-asciidoc6」)))(((range=「endofrange」, startref=「ix_11_gossip_channel_graph-asciidoc5」)))(((range=「endofrange」, startref=「ix_11_gossip_channel_graph-asciidoc4」)))
+
+==== SRV 查詢選項
+
+https://github.com/lightningnetwork/lightning-rfc/blob/master/10-dns-bootstrap.md[BOLT #10] 標準由於使用巢狀子域作為附加查詢選項的通訊層而具有高度可擴展性。引導協定允許客戶端進一步指定它們嘗試查詢的節點 _類型_，而不是預設接收查詢回應中的隨機節點子集。
+
+查詢選項子域方案使用一系列鍵值對，其中鍵本身是 _單個字母_，其餘文本集是值本身。以下查詢類型存在於當前版本的 https://github.com/lightningnetwork/lightning-rfc/blob/master/10-dns-bootstrap.md[BOLT #10] 標準文件中：
+
++r+:: _領域_ 位元組，用於確定應該為哪個鏈或領域返回查詢。目前，這個鍵的唯一值是 +0+，表示「比特幣」。
+
++a+:: 允許客戶端根據它們宣告的地址 _類型_ 過濾返回的節點。例如，這可用於僅獲取宣告有效 IPv6 地址的節點。此類型後面的值基於一個位元欄位，該欄位 _索引_ 到 https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md[BOLT #7] 中定義的指定地址 _類型_ 集合中。此欄位的預設值為 +6+，表示 IPv4 和 IPv6（設置了位元 1 和 2）。
+
++l+:: 以壓縮格式序列化的有效節點公鑰。這允許客戶端查詢指定的節點而不是接收一組隨機節點。
+
++n+:: 要返回的記錄數。此欄位的預設值為 +25+。
+
+帶有附加查詢選項的範例查詢看起來像這樣：
+
+----
+r0.a2.n10.nodes.lightning.directory
+----
+
+逐個鍵值對分解查詢，我們獲得以下見解：
+
++r0+:: 查詢針對比特幣領域
++a2+:: 查詢只想要返回 IPv4 地址
++n10+:: 查詢請求 10 條記錄
+
+使用 +dig+ DNS 命令列工具自己嘗試各種標誌的組合(((range=「endofrange」, startref=「ix_11_gossip_channel_graph-asciidoc3」)))(((range=「endofrange」, startref=「ix_11_gossip_channel_graph-asciidoc2」)))：
+
+----
+dig @8.8.8.8 r0.a6.nodes.lightning.directory SRV
+----
+
+=== 通道圖
+
+(((「通道圖」,「結構」)))現在我們的新節點能夠使用 DNS 引導協定連接到它的第一個對等節點，它可以開始同步通道圖了！然而，在我們同步通道圖之前，我們需要確切地了解我們所說的通道圖是什麼意思。在本節中，我們將探索通道圖的精確 _結構_，並檢查通道圖與電腦科學領域中眾所周知/使用的典型抽象「圖」資料結構相比的獨特方面。
+
+==== 有向圖
+
+(((「通道圖」,「有向圖」)))(((「有向圖」)))電腦科學中的 _圖_ 是由頂點（通常稱為節點）和邊（也稱為連結）組成的特殊資料結構。兩個節點可以由一條或多條邊連接。通道圖也是 _有向的_，因為付款能夠在給定邊（通道）的任一方向流動。有向圖的範例如 <<directed_graph>> 所示。
+
+[[directed_graph]]
+.有向圖
+image::images/mtln_1102.png["有向圖"]
+
+在閃電網路的上下文中，我們的頂點是閃電節點本身，我們的邊是連接這些節點的支付通道。因為我們關心的是 _路由付款_，在我們的模型中，沒有邊（沒有支付通道）的節點不被認為是圖的一部分，因為它沒有用處。
+
+因為通道本身是 UTXO（資金充足的 2-of-2 多重簽名地址），我們可以將通道圖視為比特幣 UTXO 集的特殊子集，在其上我們可以添加一些額外資訊（節點等）以得到最終的覆蓋結構，即通道圖。通道圖的基本組件錨定在基礎比特幣區塊鏈中，這意味著不可能 _偽造_ 一個有效的通道圖，這在防止垃圾郵件方面具有有用的屬性，正如我們稍後將看到的。
+
+=== 八卦協定訊息
+
+(((「通道圖」,「八卦協定訊息」, id=「ix_11_gossip_channel_graph-asciidoc7」, range=「startofrange」)))(((「八卦協定」,「訊息」, id=「ix_11_gossip_channel_graph-asciidoc8」, range=「startofrange」)))通道圖資訊通過三種訊息在閃電 P2P 網路上傳播，這些訊息在 https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md[BOLT #7] 中描述：
+
++node_announcement+:: 我們圖中的頂點，傳達節點的公鑰，以及如何通過網際網路連接到該節點和一些額外的元資料，描述該節點支援的 _功能_ 集。
+
++channel_announcement+:: 區塊鏈錨定的兩個獨立節點之間通道存在的證明。任何第三方都可以驗證此證明以確保正在宣告 _真實_ 的通道。與 +node_announcement+ 類似，此訊息還包含描述通道 _能力_ 的資訊，這在嘗試路由付款時很有用。
+
++channel_update+:: 一 _對_ 結構，描述給定通道的路由策略集。+channel_update+ 訊息成對出現，因為通道是有向邊，所以通道的每一側都可以指定自己的自訂路由策略。
+
+重要的是要注意，通道圖的每個組件都是 _經過認證的_，允許第三方確保通道/更新/節點的所有者實際上是發送更新的人。這有效地使通道圖成為一種獨特類型的 _認證資料結構_，不能被偽造。對於認證，我們使用對訊息本身序列化摘要的 +secp256k1+ ECDSA 數位簽名（或一系列簽名）。在本章中我們不會深入討論閃電網路中使用的訊息框架/序列化的具體細節，因為我們將在 <<wire_protocol>> 中涵蓋這些資訊。
+
+在佈局了通道圖的高層結構之後，我們現在將深入探討用於八卦傳播通道圖的三種訊息中每一種的精確結構。我們還將解釋如何驗證通道圖的每條訊息和組件。
+
+[[node_announcement]]
+==== node_announcement 訊息
+
+(((「八卦協定」,「node_announcement 訊息」, id=「ix_11_gossip_channel_graph-asciidoc9」, range=「startofrange」)))(((「node_announcement 訊息」, id=「ix_11_gossip_channel_graph-asciidoc10」, range=「startofrange」)))首先，我們有 +node_announcement+ 訊息，它有兩個主要目的：
+
+ 1. 宣告連接資訊，以便其他節點可以連接到該節點，無論是引導到網路還是嘗試與該節點建立新的支付通道。
+
+ 2. 傳達節點理解/支援的協定級功能集。節點之間的功能協商允許開發人員獨立添加新功能，並在選擇加入的基礎上與網路上的任何其他節點支援它們。
+
+與通道公告不同，節點公告不錨定在基礎區塊鏈中。因此，只有當節點公告與相應的通道公告一起傳播時，才被認為是有效的。換句話說，我們總是拒絕沒有支付通道的節點，以確保惡意對等節點不能用不屬於通道圖的虛假節點淹沒網路。
+
+===== node_announcement 訊息結構
+
+(((「node_announcement 訊息」,「結構」)))+node_announcement+ 由以下欄位組成：
+
+ +signature+:: 一個有效的 ECDSA 簽名，覆蓋下面列出的所有欄位的序列化摘要。此簽名必須對應於宣告節點的公鑰。
+
+ +features+:: 一個位元向量，描述此節點理解的協定功能集。我們將在 <<feature_bits>> 關於閃電協定可擴展性的部分更詳細地介紹此欄位。在高層次上，此欄位攜帶一組表示節點理解的功能的位元。例如，節點可以發出信號表示它理解最新的通道類型。
+
++timestamp+:: Unix 紀元編碼的時間戳。這允許客戶端對節點公告的更新強制執行部分排序。
+
++node_id+:: 此節點公告所屬的 +secp256k1+ 公鑰。在任何給定時間，通道圖中給定節點只能有一個 +node_announcement+。因此，如果 +node_announcement+ 攜帶更高（較晚）的時間戳，則可以取代同一節點的先前 +node_announcement+。
+
++rgb_color+:: 允許節點指定與其關聯的 RGB 顏色的欄位，通常用於通道圖視覺化和節點目錄。
+
++alias+:: 一個 UTF-8 字串，作為給定節點的暱稱。請注意，這些別名不需要全域唯一，也不會以任何方式進行驗證。因此，它們不應被依賴為一種身份形式——它們可以很容易地被偽造。
+
++addresses+:: 一組與給定節點關聯的公共網際網路可達地址。在協定的當前版本中，支援四種地址類型：IPv4（類型：1）、IPv6（類型：2）、Tor v2（類型：3）和 Tor v3（類型：4）。在 +node_announcement+ 訊息中，這些地址類型中的每一種都由一個整數類型表示，該類型包含在地址類型後面的括號中。
+
+===== 驗證節點公告
+
+(((「node_announcement 訊息」,「驗證」)))驗證傳入的 +node_announcement+ 很簡單。在檢查節點公告時，應該堅持以下斷言：
+
+  * 如果該節點已經存在一個 +node_announcement+，則新傳入的 +node_announcement+ 的 +timestamp+ 欄位必須大於之前的。
+
+    * 通過這個約束，我們強制執行一定程度的「新鮮度」。
+
+  * 如果給定節點不存在 +node_announcement+，則引用給定節點的現有 +channel_announcement+（稍後會詳細介紹）必須已經存在於本地通道圖中。
+
+  * 包含的 +signature+ 必須是一個有效的 ECDSA 簽名，使用包含的 +node_id+ 公鑰和原始訊息編碼（減去簽名和幀頭）的雙 SHA-256 摘要作為訊息進行驗證。
+
+  * 所有包含的 +addresses+ 必須根據其地址標識符按升序排序。
+
+  * 包含的 +alias+ 位元組必須是有效的 UTF-8 字串。(((range=「endofrange」, startref=「ix_11_gossip_channel_graph-asciidoc10」)))(((range=「endofrange」, startref=「ix_11_gossip_channel_graph-asciidoc9」)))
+
+==== channel_announcement 訊息
+
+(((「channel_announcement 訊息」, id=「ix_11_gossip_channel_graph-asciidoc11」, range=「startofrange」)))(((「八卦協定」,「channel_announcement 訊息」, id=「ix_11_gossip_channel_graph-asciidoc12」, range=「startofrange」)))接下來，我們有 +channel_announcement+ 訊息，用於向更廣泛的網路 _宣告_ 新的 _公開_ 通道。請注意，宣告通道是 _可選的_。只有當通道打算被閃電網路用於路由時，才需要宣告通道。活躍的路由節點可能希望宣告他們所有的通道。然而，某些節點如行動節點可能沒有正常運行時間或成為活躍路由節點的意願。因此，這些行動節點（通常使用輕客戶端連接到比特幣 P2P 網路）可能只有純粹 _未宣告_（私有）的通道。
+
+===== 未宣告（私有）通道
+
+(((「channel_announcement 訊息」,「未宣告（私有）通道」)))(((「未宣告通道」)))未宣告的通道不是已知公開通道圖的一部分，但仍然可以用於發送/接收付款。精明的讀者現在可能想知道不屬於公開通道圖的通道如何能夠接收付款。這個問題的解決方案是一組我們稱為路由提示的「路徑尋找輔助工具」。正如我們將在 <<invoices>> 中看到的，由具有未宣告通道的節點創建的發票將包含資訊以幫助發送者路由到它們，假設該節點至少有一個與現有公開路由節點的通道。
+
+由於未宣告通道的存在，通道圖的 _真實_ 大小（包括公開和私有組件）是未知的。
+
+===== 在比特幣區塊鏈上定位通道
+
+(((「區塊鏈」,「在比特幣區塊鏈上定位通道」)))(((「channel_announcement 訊息」,「在比特幣區塊鏈上定位通道」)))如前所述，由於使用公鑰密碼學以及比特幣區塊鏈作為垃圾郵件防範系統，通道圖是經過認證的。為了讓節點接受新的 +channel_announcement+，廣告必須 _證明_ 通道確實存在於比特幣區塊鏈中。這個證明系統為向通道圖添加新條目增加了前期成本（創建通道 UTXO 必須支付的鏈上費用）。因此，我們減輕了垃圾郵件，並確保網路上的不誠實節點無法以零成本用虛假通道填滿誠實節點的記憶體。
+
+鑑於我們需要構建一個通道存在的證明，一個自然產生的問題是：我們如何「指向」或引用驗證者的給定通道？鑑於支付通道錨定在未花費的交易輸出中（見 <<utxo>>），最初的想法可能是首先嘗試宣告通道的完整出點（+txid:index+）。鑑於出點是全域唯一的並在鏈上確認，這聽起來像是個好主意；然而，它有一個缺點：驗證者必須維護 UTXO 集的完整副本才能驗證通道。這對比特幣全節點來說工作正常，但依賴輕量級驗證的客戶端通常不維護完整的 UTXO 集。因為我們想確保我們可以在閃電網路中支援行動節點，我們被迫尋找另一個解決方案。
+
+如果我們不是通過其 UTXO 引用通道，而是根據其在鏈中的「位置」引用它呢？為此，我們需要一個方案，允許我們引用給定的區塊，然後是該區塊內的交易，最後是該交易創建的特定輸出。這樣的標識符在 https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md[BOLT #7] 中描述，被稱為 _短通道 ID_，或 +scid+。+scid+ 用於 +channel_announcement+（和 +channel_update+）以及我們在 <<onion_routing>> 中了解到的包含在 HTLC 中的洋蔥加密路由封包中。
+
+[[short_channel_id]]
+[[scid]]
+===== 短通道 ID
+
+(((「區塊鏈」,「短通道 ID」)))基於前面的資訊，我們有三條需要編碼的資訊來唯一引用給定的通道。因為我們想要一個緊湊的表示，我們將嘗試將資訊編碼為 _單個_ 整數。我們選擇的整數格式是無符號 64 位整數，由 8 個位元組組成。
+
+首先，區塊高度。使用 3 個位元組（24 位），我們可以編碼 16,777,216 個區塊。這留下 5 個位元組供我們分別編碼交易索引和輸出索引。我們將使用接下來的 3 個位元組來編碼區塊 _內_ 的交易索引。鑑於在當前區塊大小下一個區塊中只能容納數萬筆交易，這已經足夠了。這留下 2 個位元組供我們編碼交易內通道的輸出索引。
+
+我們最終的 +scid+ 格式類似於：
+----
+block_height (3 bytes) || transaction_index (3 bytes) || output_index (2 bytes)
+----
+
+使用位元打包技術，我們首先將最高有效的 3 個位元組編碼為區塊高度，接下來的 3 個位元組編碼為交易索引，最低有效的 2 個位元組編碼為創建通道 UTXO 的輸出索引。
+
+短通道 ID 可以表示為單個整數（+695313561322258433+）或更人性化的字串：+632384x1568x1+。在這裡我們看到通道是在區塊 +632384+ 中開採的，是區塊中的第 ++1568++ 筆交易，通道輸出是交易產生的第二個（UTXO 是零索引的）輸出。
+
+現在我們能夠簡潔地指向鏈中給定的通道資金輸出，我們可以檢查 +channel_announcement+ 訊息的完整結構，以及了解如何驗證訊息中包含的存在證明。
+
+===== channel_announcement 訊息結構
+
+(((「channel_announcement 訊息」,「訊息結構」)))+channel_announcement+ 主要傳達兩件事：
+
+ 1. 節點 A 和節點 B 之間存在通道的證明，兩個節點都控制該通道輸出中的多重簽名密鑰。
+
+ 2. 通道的能力集（它可以路由什麼類型的 HTLC 等）。
+
+在描述證明時，我們通常會提到節點 +1+ 和節點 +2+。在通道連接的兩個節點中，當我們以壓縮格式十六進位編碼按字典順序比較兩個節點的公鑰時，具有「較低」公鑰編碼的節點是「第一個」節點。相應地，除了網路上的節點公鑰外，每個節點還應該在比特幣區塊鏈中控制一個公鑰。
+
+與 +node_announcement+ 訊息類似，+channel_announcement+ 訊息的所有包含簽名應該針對最終簽名 _之後_ 的訊息原始編碼（減去頭部）進行簽名/驗證（因為數位簽名不可能簽署自己）。
+
+話雖如此，+channel_announcement+ 訊息具有以下欄位：
+
++node_signature_1+:: 第一個節點對訊息摘要的簽名。
+
++node_signature_2+:: 第二個節點對訊息摘要的簽名。
+
++bitcoin_signature_1+:: 第一個節點的多重簽名密鑰（在資金輸出中）對訊息摘要的簽名。
+
++bitcoin_signature_2+:: 第二個節點的多重簽名密鑰（在資金輸出中）對訊息摘要的簽名。
+
++features+:: 描述此通道支援的協定級功能集的功能位元向量。
+
++chain_hash+:: 32 位元組雜湊，通常是開啟通道的區塊鏈（例如比特幣主網）的創世區塊雜湊。
+
++short_channel_id+:: 在區塊鏈中唯一定位給定通道資金輸出的 +scid+。
+
++node_id_1+:: 網路中第一個節點的公鑰。
+
++node_id_2+:: 網路中第二個節點的公鑰。
+
++bitcoin_key_1+:: 網路中第一個節點的通道資金輸出的原始多重簽名密鑰。
+
++bitcoin_key_2+:: 網路中第二個節點的通道資金輸出的原始多重簽名密鑰。
+
+===== 通道公告驗證
+
+(((「channel_announcement 訊息」,「驗證」)))現在我們知道 +channel_announcement+ 包含什麼，我們可以看看如何驗證通道在鏈上的存在。
+
+有了 +channel_announcement+ 中的資訊，任何閃電節點（即使沒有比特幣區塊鏈的完整副本）都可以驗證支付通道的存在和真實性。
+
+首先，驗證者將使用短通道 ID 來找出哪個比特幣區塊包含通道資金輸出。有了區塊高度資訊，驗證者可以只從比特幣節點請求那個特定的區塊。然後可以通過向後跟隨區塊頭鏈（驗證工作量證明）將該區塊連結回創世區塊，確認這確實是屬於比特幣區塊鏈的區塊。
+
+接下來，驗證者使用交易索引號來識別包含支付通道的交易的交易 ID。大多數現代比特幣庫將允許根據交易在較大區塊中的索引來索引區塊的交易。
+
+接下來，驗證者使用比特幣庫（以驗證者的語言）根據其在區塊內的索引提取相關交易。驗證者將驗證交易（檢查它是否正確簽名並在雜湊時產生相同的交易 ID）。
+
+接下來，驗證者將提取由短通道 ID 的輸出索引號引用的見證腳本雜湊支付（P2WSH）輸出。這是通道資金輸出的地址。此外，驗證者將確保所宣稱通道的大小與指定輸出索引處產生的輸出值相匹配。
+
+最後，驗證者將從 +bitcoin_key_1+ 和 +bitcoin_key_2+ 重建多重簽名腳本，並確認它產生與輸出中相同的地址。
+
+驗證者現在已經獨立驗證了公告中的支付通道已在比特幣區塊鏈上獲得資金並確認！(((range=「endofrange」, startref=「ix_11_gossip_channel_graph-asciidoc12」)))(((range=「endofrange」, startref=「ix_11_gossip_channel_graph-asciidoc11」)))
+
+==== channel_update 訊息
+
+(((「channel_update 訊息」)))(((「八卦協定」,「channel_update 訊息」)))八卦協定中使用的第三個也是最後一個訊息是 +channel_update+ 訊息。每個支付通道會生成兩個這樣的訊息（每個通道合作夥伴一個），宣告它們的路由費用、時間鎖期望和能力。
+
++channel_update+ 訊息還包含一個時間戳，允許節點通過發送具有更高（較晚）時間戳的新 +channel_update+ 訊息來更新其路由費用和其他期望和能力，該訊息取代任何舊的更新。
+
++channel_update+ 訊息包含以下欄位：
+
+
++signature+:: 匹配節點公鑰的數位簽名，用於認證通道更新的來源和完整性
+
++chain_hash+:: 包含通道的鏈的創世區塊雜湊
+
++short_channel_id+:: 用於識別通道的短通道 ID
+
++timestamp+:: 此更新的時間戳，允許接收者對更新進行排序並替換舊的更新
+
++message_flags+:: 指示 +channel_update+ 訊息中額外欄位存在的位元欄位
+
++channel_flags+:: 顯示通道方向和其他通道選項的位元欄位
+
++cltv_expiry_delta+:: 此節點用於路由的時間鎖增量期望（見 <<onion_routing>>）
+
++htlc_minimum_msat+:: 將被路由的最小 HTLC 金額
+
++fee_base_msat+:: 將為路由收取的基本費用
+
++fee_proportional_millionths+:: 將為路由收取的比例費率
+
++htlc_maximum_msat+ (+option_channel_htlc_max+):: 將被路由的最大金額
+
+接收 +channel_update+ 訊息的節點可以將此元資料附加到通道圖邊以啟用路徑尋找，正如我們將在 <<path_finding>> 中看到的。(((range=「endofrange」, startref=「ix_11_gossip_channel_graph-asciidoc8」)))(((range=「endofrange」, startref=「ix_11_gossip_channel_graph-asciidoc7」)))
+
+=== 持續的通道圖維護
+
+(((「通道圖」,「持續維護」)))通道圖的構建不是一次性事件，而是一項持續的活動。當節點引導進入網路時，它將開始以三種更新訊息的形式接收「八卦」。它將使用這些訊息立即開始構建經過驗證的通道圖。
+
+節點接收的資訊越多，它對閃電網路的「地圖」就越好，它在路徑尋找和付款傳遞方面就越有效。
+
+節點不僅會向通道圖添加資訊。它還會追蹤通道上次更新的時間，並刪除超過兩週未更新的「陳舊」通道。最後，如果它看到某個節點不再有任何通道，它也會移除該節點。
+
+從八卦協定收集的資訊不是唯一可以存儲在通道圖中的資訊。不同的閃電節點實現可能會將其他元資料附加到節點和通道上。例如，一些節點實現會計算一個「分數」來評估節點作為路由對等節點的「品質」。這個分數用作路徑尋找的一部分，以優先或降低路徑的優先級。
+
+=== 結論
+在本章中，我們了解了閃電節點如何發現彼此、發現和更新其節點狀態，以及如何相互通訊。我們了解了通道圖是如何創建和維護的，並探索了閃電網路阻止惡意行為者或不誠實節點向網路發送垃圾郵件的幾種方式。

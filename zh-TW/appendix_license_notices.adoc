@@ -1,0 +1,53 @@
+[appendix]
+[[sources_licenses]]
+== 來源與授權聲明
+
+本附錄包含通過開放授權許可使用的材料的署名和授權聲明。
+
+=== 來源
+
+材料來自各種公共和開放授權來源：
+
+* https://wiki.ion.radar.tech[ION Lightning Network Wiki]
+* https://medium.com/suredbits/lightning-101-what-is-a-lightning-invoice-d527db1a77e6["Lightning 101: What Is a Lightning Invoice?" by Suredbits]
+* https://github.com/lightningnetwork/lightning-rfc[Lightning Network In-Progress Specifications GitHub]; Creative Commons Attribution (CC-BY 4.0)
+* https://w.wiki/4QCL[Wikipedia page, "Elliptic-curve Diffie–Hellman"]
+* https://w.wiki/4QCX[Wikipedia page, "Digital signature"]
+* https://w.wiki/4QCb[Wikipedia page, "Cryptographic hash function"]
+* https://w.wiki/4QCc[Wikipedia page, "Onion routing"]
+* https://w.wiki/4QCd[Wikimedia Commons, "Lightning Network Protocol Suite"]
+* https://w.wiki/4QCf[Wikimedia Commons, "Introduction to the Lightning Network Protocol and the Basics of Lightning Technology"]
+
+[role="pagebreak-before less_space"]
+=== BTCPay Server
+
+BTCPay Server https://github.com/btcpayserver/btcpayserver-media[logo, screenshots, and other images] 經 https://github.com/btcpayserver/btcpayserver-media/blob/master/LICENSE[MIT 授權]許可使用：
+
+[quote]
+____
+MIT License
+
+Copyright (c) 2018 BTCPay Server
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS," WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+____
+
+=== Lamassu Industries AG
+
+<<bitcoin-atm>> 中看到的 https://lamassu.is/product/gaia[_Gaia_ 比特幣 ATM] 圖片經 Lamassu Industries AG 許可使用。使用這些圖片並非對該產品或公司的背書，而是作為比特幣 ATM 的視覺範例提供。

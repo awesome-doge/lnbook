@@ -1,0 +1,111 @@
+[appendix]
+[[appendix_docker]]
+== Docker 基本安裝和使用
+
+(((「Docker」,「基本安裝和使用」, id="ix_appendix_docker_basics-asciidoc0", range="startofrange")))本書包含許多在 Docker 容器中運行的範例，以便在不同作業系統之間實現標準化。
+
+本節將幫助你安裝 Docker 並熟悉一些最常用的 Docker 命令，以便你可以運行本書的範例容器。
+
+
+=== 安裝 Docker
+
+(((「Docker」,「安裝」)))在我們開始之前，你應該在電腦上安裝 Docker 容器系統。Docker 是一個開放系統，作為_社群版_免費分發給許多不同的作業系統，包括 Windows、macOS 和 Linux。Windows 和 Macintosh 版本稱為 _Docker Desktop_，由 GUI 桌面應用程式和命令列工具組成。Linux 版本稱為 _Docker Engine_，由伺服器守護程式和命令列工具組成。我們將使用命令列工具，這些工具在所有平台上都是相同的。
+
+請按照 https://docs.docker.com/get-docker[Docker 網站]的「Get Docker」說明為你的作業系統安裝 Docker。
+
+從列表中選擇你的作業系統並按照安裝說明進行操作。
+
+[TIP]
+====
+如果你在 Linux 上安裝，請遵循安裝後的說明，以確保你可以以普通使用者而非 root 使用者身分運行 Docker。否則，你需要在所有 +docker+ 命令前加上 +sudo+，以 root 身分運行它們，例如：+sudo docker+。
+====
+
+安裝 Docker 後，你可以通過運行演示容器 +hello-world+ 來測試你的安裝，如下所示：
+
+[[docker-hello-world]]
+----
+$ docker run hello-world
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+[...]
+----
+
+=== 基本 Docker 命令
+
+(((「Docker」,「基本命令」)))在本附錄中，我們會經常使用 Docker。我們將使用以下 Docker 命令和參數。
+
+==== 構建容器
+
+++++
+<pre data-type="programlisting">docker build [-t <em>tag</em>] [<em>directory</em>]</pre>
+++++
+
+(((「Docker」,「構建容器」)))(((「Docker 容器」,「構建容器」)))++__tag__++ 是我們如何識別我們正在構建的容器，++__directory__++ 是容器的上下文（資料夾和檔案）和定義檔案（+Dockerfile+）所在的位置。
+
+==== 運行容器
+
+++++
+<pre data-type="programlisting">docker run -it [--network <em>netname</em>] [--name <em>cname</em>] <em>tag</em></pre>
+++++
+
+(((「Docker 容器」,「運行容器」)))++__netname__++ 是 Docker 網路的名稱，++__cname__++ 是我們為這個容器實例選擇的名稱，++__tag__++ 是我們構建容器時給它的名稱標籤。
+
+==== 在容器中執行命令
+
+++++
+<pre data-type="programlisting">docker exec <em>cname command</em></pre>
+++++
+
+(((「Docker 容器」,「在容器中執行命令」)))++__cname__++ 是我們在 +run+ 命令中給容器的名稱，++__command__++ 是我們想要在容器內運行的可執行檔案或腳本。
+
+==== 停止和啟動容器
+
+(((「Docker 容器」,「停止/啟動容器」)))在大多數情況下，如果我們在_互動式_和_終端機_模式下運行容器，即設定了 +i+ 和 +t+ 標誌（組合為 +-it+），可以通過按 Ctrl-C 或使用 +exit+ 或 Ctrl-D 退出 shell 來停止容器。如果容器沒有終止，你可以從另一個終端機這樣停止它：
+
+++++
+<pre data-type="programlisting">docker stop <em>cname</em></pre>
+++++
+
+要恢復一個已經存在的容器，使用 `start` 命令如下：
+
+++++
+<pre data-type="programlisting">docker start <em>cname</em></pre>
+++++
+
+==== 按名稱刪除容器
+
+(((「Docker 容器」,「按名稱刪除容器」)))如果你給容器命名而不是讓 Docker 隨機命名，你不能重複使用該名稱，直到容器被刪除。Docker 會返回這樣的錯誤：
+
+----
+docker: Error response from daemon: Conflict. The container name "/bitcoind" is already in use...
+----
+
+要解決這個問題，刪除容器的現有實例：
+
+++++
+<pre data-type="programlisting">docker rm <em>cname</em></pre>
+++++
+
+++__cname__++ 是分配給容器的名稱（錯誤訊息範例中的 +bitcoind+）。
+
+==== 列出運行中的容器
+
+----
+docker ps
+----
+
+(((「Docker 容器」,「列出運行中的容器」)))此命令顯示當前運行的容器及其名稱。
+
+==== 列出 Docker 映像
+
+----
+docker image ls
+----
+
+(((「Docker 容器」,「列出 Docker 映像」)))此命令顯示已在你的電腦上構建或下載的 Docker 映像。
+
+=== 結論
+
+這些基本的 Docker 命令將足以讓你入門，並允許你運行本書中的所有範例。(((range="endofrange", startref="ix_appendix_docker_basics-asciidoc0")))

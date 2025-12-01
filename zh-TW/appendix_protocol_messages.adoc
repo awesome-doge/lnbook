@@ -1,0 +1,558 @@
+[appendix]
+[[wire_protocol_enumeration]]
+[[protocol_messages]]
+[[messages]]
+== 線路協定訊息
+
+(((「線路協定訊息」, id="ix_appendix_protocol_messages-asciidoc0", range="startofrange")))本附錄列出了閃電 P2P 協定中所有目前定義的訊息類型。此外，我們展示了每個訊息的結構，根據協定流程將訊息分組為邏輯分類。
+
+[NOTE]
+====
+閃電協定訊息是可擴展的，其結構可能在全網升級期間發生變化。有關權威資訊，請參閱 https://github.com/lightningnetwork/lightning-rfc[GitHub Lightning-RFC 儲存庫]中的最新版 BOLT。
+====
+
+=== 訊息類型
+
+(((「線路協定訊息」,「訊息類型」, id="ix_appendix_protocol_messages-asciidoc1", range="startofrange")))目前定義的訊息類型列在 <<apdx_message_types>> 中。
+
+[[apdx_message_types]]
+.訊息類型
+[options="header"]
+|===
+| 類型整數 | 訊息名稱 | 類別
+| 16  | `init`             |  連線建立
+| 17  | `error`             | 錯誤通訊
+| 18  | `ping`             | 連線活躍性
+| 19  | `pong`             | 連線活躍性
+| 32  | `open_channel`             |          通道資金
+| 33  | `accept_channel`             |          通道資金
+| 34  | `funding_created`             |          通道資金
+| 35  | `funding_signed`             |          通道資金
+| 36  | `funding_locked`             |          通道資金 + 通道操作
+| 38  | `shutdown`             | 通道關閉
+| 39  | `closing_signed`             |         通道關閉
+| 128 | `update_add_htlc`             |          通道操作
+| 130 | `update_fulfill_hltc`             |          通道操作
+| 131 | `update_fail_htlc`             |          通道操作
+| 132 | `commit_sig`             |          通道操作
+| 133 | `revoke_and_ack`             |          通道操作
+| 134 | `update_fee`             |          通道操作
+| 135 | `update_fail_malformed_htlc`             |          通道操作
+| 136 | `channel_reestablish`             |         通道操作
+| 256 | `channel_announcement`             |          通道公告
+| 257 | `node_announcement`             |          通道公告
+| 258 | `channel_update`             |          通道公告
+| 259 | `announce_signatures`             |          通道公告
+| 261 | `query_short_chan_ids`             |          通道圖同步
+| 262 | `reply_short_chan_ids_end`             |          通道圖同步
+| 263 | `query_channel_range`             |          通道圖同步
+| 264 | `reply_channel_range`             |          通道圖同步
+| 265 | `gossip_timestamp_range`             |          通道圖同步
+|===
+
+在 <<message_types>> 中，`Category`（類別）欄位允許我們根據訊息在協定本身中的功能快速對訊息進行分類。在高層次上，我們將訊息放入八個（非窮盡的）類別之一，包括：
+
+連線建立:: 在點對點連線首次建立時發送。也用於協商新連線支援的功能集。
+
+錯誤通訊:: 由節點用於相互通訊協定層級錯誤的發生。
+
+連線活躍性:: 由節點用於檢查給定的傳輸連線是否仍然活躍。
+
+通道資金:: 由節點用於創建新的支付通道。此過程也稱為通道資金過程。
+
+通道操作:: 鏈下更新給定通道的行為。這包括發送和接收付款，以及在網路內轉發付款。
+
+通道公告:: 向更廣泛的網路公告新的公開通道的過程，以便它可以用於路由目的。
+
+通道圖同步:: 下載和驗證通道圖的過程。
+
+
+請注意，屬於同一類別的訊息通常也共享相鄰的_訊息類型_。這是故意這樣做的，以便在規範本身中將語義相似的訊息分組在一起。(((range="endofrange", startref="ix_appendix_protocol_messages-asciidoc1")))
+
+=== 訊息結構
+
+(((「線路協定訊息」,「訊息結構」, id="ix_appendix_protocol_messages-asciidoc2", range="startofrange")))我們現在詳細說明每個訊息類別，以定義閃電網路協定中所有已定義訊息的精確結構和語義。
+
+==== 連線建立訊息
+
+(((「線路協定訊息」,「連線建立訊息」)))此類別中的訊息是節點在建立傳輸連線後發送的第一個訊息。在撰寫本章時，此類別中只存在一個訊息，即 `init` 訊息。`init` 訊息由連線的_兩端_在首次建立後發送。在兩方都發送 `init` 訊息之前，不應發送其他訊息。
+
+
+[[apdx_init_message]]
+===== init 訊息
+
+(((「線路協定訊息」,「init 訊息」)))`init` 訊息的結構定義如下：
+
+ * 類型: 16
+ * 欄位:
+    ** `uint16`: `global_features_len`
+    ** `global_features_len*byte`: `global_features`
+    ** `uint16`: `features_len`
+    ** `features_len*byte`: `features`
+    ** `tlv_stream_tlvs`
+
+從結構上看，`init` 訊息由兩個可變大小的位元組切片組成，每個切片儲存一組_功能位元_。(((「功能位元」,「定義」)))正如我們在 <<feature_bits>> 中看到的，功能位元是協定中用於廣告節點理解（可選功能）或要求（必需功能）的協定功能集的原語。
+
+請注意，現代節點實作只會使用 `features` 欄位，`global_features` 向量中的項目主要是出於_歷史_目的（向後相容）。
+
+核心訊息之後是一系列類型-長度-值（TLV）記錄，可用於以向前和向後相容的方式在未來擴展訊息。我們將在本附錄稍後介紹什麼是 TLV 記錄以及它們是如何使用的。
+
+`init` 訊息然後由節點檢查，以確定連線是否根據雙方廣告的可選和必需功能位元集定義良好。
+
+可選功能意味著節點知道某個功能，但他們不認為它對新連線的操作至關重要。一個例子是理解現有訊息新添加欄位語義的能力。
+
+另一方面，必需功能表示如果對方不知道該功能，則連線定義不明確。這種功能的一個例子是協定中理論上的新通道類型：如果你的對等節點不知道這個功能，那麼你不想保持連線，因為他們無法開啟你新的首選通道類型。
+
+==== 錯誤通訊訊息
+
+(((「線路協定訊息」,「錯誤通訊訊息」)))此類別中的訊息用於在兩個節點之間發送連線層級的錯誤。協定中存在另一種類型的錯誤：HTLC 轉發層級錯誤。連線層級錯誤可能表示功能位元不相容或意圖_強制關閉_（單方面廣播最新簽署的承諾）等情況。
+
+[[apdx_error_message]]
+===== error 訊息
+
+(((「線路協定訊息」,「error 訊息」)))此類別中唯一的訊息是 `error` 訊息。
+
+ * 類型: 17
+ * 欄位:
+  ** `channel_id` : `chan_id`
+  ** `uint16` : `data_len`
+  ** `data_len*byte` : `data`
+
+`error` 訊息可以在特定通道的範圍內發送，方法是將 `channel_id` 設定為正在經歷此新錯誤狀態的通道的 `channel_id`。或者，如果錯誤適用於整個連線，則 `channel_id` 欄位應設定為全零。這個全零的 `channel_id` 也稱為錯誤的連線層級識別碼。
+
+根據錯誤的性質，向你有通道的節點發送 `error` 訊息可能表示通道無法在沒有人工干預的情況下繼續，因此此時唯一的選項是通過廣播通道的最新承諾狀態來強制關閉通道。
+
+==== 連線活躍性
+
+(((「線路協定訊息」,「連線活躍性訊息」)))本節中的訊息用於探測以確定連線是否仍然活躍。因為閃電網路協定在某種程度上抽象了用於傳輸訊息的底層傳輸，所以定義了一組協定層級的 (((「線路協定訊息」,「ping 訊息」)))(((「線路協定訊息」,「pong 訊息」)))`ping` 和 `pong` 訊息。
+
+[[apdx_ping_message]]
+===== ping 訊息
+
+`ping` 訊息用於檢查連線中的另一方是否「活著」。它包含以下欄位：
+
+ * 類型: 18
+ * 欄位:
+  ** `uint16` : `num_pong_bytes`
+  ** `uint16` : `ping_body_len`
+  ** `ping_body_len*bytes` : `ping_body`
+
+接下來是它的伴侶，`pong` 訊息。
+
+[[apdx_pong_message]]
+===== pong 訊息
+
++pong+ 訊息作為對 +ping+ 訊息的回應發送，包含以下欄位：
+
+ * 類型: 19
+ * 欄位:
+  ** `uint16` : `pong_body_len`
+  ** `ping_body_len*bytes` : `pong_body`
+
+`ping` 訊息可以由任何一方在任何時候發送。
+
+`ping` 訊息包含一個 `num_pong_bytes` 欄位，用於指示接收節點在其 `pong` 訊息中發送的有效載荷應該有多大。`ping` 訊息還包含一個 `ping_body` 不透明位元組集，可以安全地忽略。它只是允許發送者填充他們發送的 `ping` 訊息，這在嘗試基於線上封包大小阻止某些去匿名化技術時可能很有用。
+
+`pong` 訊息應該作為對收到的 `ping` 訊息的回應發送。接收者應該讀取一組 `num_pong_bytes` 隨機位元組作為 `pong_body` 欄位發送回去。巧妙使用這些欄位/訊息可能允許注重隱私的路由節點嘗試阻止某些類別的網路去匿名化嘗試，因為他們可以創建一個基於跨線發送的封包大小類似於其他訊息的「假」轉錄。請記住，閃電網路預設使用_加密_傳輸，因此被動網路監視器無法讀取明文位元組，因此只能依賴計時和封包大小。
+
+==== 通道資金
+
+(((「線路協定訊息」,「通道資金」, id="ix_appendix_protocol_messages-asciidoc3", range="startofrange")))隨著我們繼續，我們進入了管理閃電協定功能和語義的核心訊息領域。在本節中，我們探討在創建新通道過程中發送的訊息。我們只會描述使用的欄位，因為我們將對資金過程的深入分析留給 <<payment_channels>>。
+
+在通道資金流程中發送的訊息屬於以下五個訊息的集合：`open_channel`、`accept_channel`、`funding_created`、`funding_signed` 和 `funding_locked`。
+
+使用這些訊息的詳細協定流程在 <<payment_channels>> 中描述。
+
+[[apdx_open_channel_message]]
+===== open_channel 訊息
+
++open_channel+ 訊息開始通道資金過程，包含以下欄位：
+
+ * 類型: 32
+ * 欄位:
+  ** `chain_hash` : `chain_hash`
+  ** `32*byte` : `temp_chan_id`
+  ** `uint64` : `funding_satoshis`
+  ** `uint64` : `push_msat`
+  ** `uint64` : `dust_limit_satoshis`
+  ** `uint64` : `max_htlc_value_in_flight_msat`
+  ** `uint64` : `channel_reserve_satoshis`
+  ** `uint64` : `htlc_minimum_msat`
+  ** `uint32` : `feerate_per_kw`
+  ** `uint16` : `to_self_delay`
+  ** `uint16` : `max_accepted_htlcs`
+  ** `pubkey` : `funding_pubkey`
+  ** `pubkey` : `revocation_basepoint`
+  ** `pubkey` : `payment_basepoint`
+  ** `pubkey` : `delayed_payment_basepoint`
+  ** `pubkey` : `htlc_basepoint`
+  ** `pubkey` : `first_per_commitment_point`
+  ** `byte` : `channel_flags`
+  ** `tlv_stream` : `tlvs`
+
+(((「open_channel 訊息」)))(((「線路協定訊息」,「open_channel 訊息」)))這是節點希望與另一個節點執行新資金流程時發送的第一個訊息。此訊息包含雙方構建資金交易和承諾交易所需的所有必要資訊。
+
+在撰寫本章時，在可以附加到已定義訊息末尾的可選 TLV 記錄集中定義了一個 TLV 記錄：
+
+ * 類型: 0
+ * 資料:  `upfront_shutdown_script`
+
+`upfront_shutdown_script` 是一個可變大小的位元組切片，必須是比特幣網路共識演算法接受的有效公鑰腳本。通過提供這樣的地址，發送方能夠有效地為他們的通道創建一個「封閉迴路」，因為雙方都不會簽署支付到任何其他地址的協作關閉交易。在實踐中，這個地址通常是從冷儲存錢包衍生的。
+
+`channel_flags` 欄位是一個位元欄位，在撰寫本文時，只有_第一_位具有任何意義。如果設定了此位元，則此通道將作為可路由通道向公共網路廣告。否則，該通道被認為是未廣告的，通常也稱為私有通道。
+
+[[apdx_accept_channel_message]]
+===== accept_channel 訊息
+
+(((「accept_channel 訊息」)))(((「線路協定訊息」,「accept_channel 訊息」)))`accept_channel` 訊息是對 `open_channel` 訊息的回應。
+
+[role="pagebreak-before"]
+ * 類型: 33
+ * 欄位:
+  ** `32*byte` : `temp_chan_id`
+  ** `uint64` : `dust_limit_satoshis`
+  ** `uint64` : `max_htlc_value_in_flight_msat`
+  ** `uint64` : `channel_reserve_satoshis`
+  ** `uint64` : `htlc_minimum_msat`
+  ** `uint32` : `minimum_depth`
+  ** `uint16` : `to_self_delay`
+  ** `uint16` : `max_accepted_htlcs`
+  ** `pubkey` : `funding_pubkey`
+  ** `pubkey` : `revocation_basepoint`
+  ** `pubkey` : `payment_basepoint`
+  ** `pubkey` : `delayed_payment_basepoint`
+  ** `pubkey` : `htlc_basepoint`
+  ** `pubkey` : `first_per_commitment_point`
+  ** `tlv_stream` : `tlvs`
+
+`accept_channel` 訊息是資金流程中發送的第二個訊息。它用於確認與新遠端節點開啟通道的意圖。該訊息主要回應回應者希望應用於其版本承諾交易的參數集。在 <<payment_channels>> 中，當我們詳細介紹資金過程時，我們會探討在開啟新通道時可以設定的各種參數的含義。
+
+[[apdx_funding_created_message]]
+===== funding_created 訊息
+
+(((「funding_created 訊息」)))(((「線路協定訊息」,「funding_created 訊息」)))作為回應，發起者將發送 `funding_created` 訊息。
+
+ * 類型: 34
+ * 欄位:
+  ** `32*byte` : `temp_chan_id`
+  ** `32*byte` : `funding_txid`
+  ** `uint16` : `funding_output_index`
+  ** `sig` : `commit_sig`
+
+一旦通道的發起者從回應者那裡收到 `accept_channel` 訊息，他們就擁有構建承諾交易和資金交易所需的所有材料。由於通道預設是單一出資者（只有一方提交資金），只有發起者需要構建資金交易。因此，為了讓回應者為發起者簽署承諾交易版本，發起者只需要發送通道的資金輸出點。
+
+[[apdx_funding_signed_message]]
+===== funding_signed 訊息
+
+(((「funding_signed 訊息」)))(((「線路協定訊息」,「funding_signed 訊息」)))最後，回應者發送 `funding_signed` 訊息。
+
+ * 類型: 34
+ * 欄位:
+  ** `channel_id` : `channel_id`
+  ** `sig` : `signature`
+
+回應者收到 `funding_created` 訊息後，他們現在擁有發起者對承諾交易的有效簽章。有了這個簽章，他們可以隨時通過簽署多重簽章資金輸出的他們那一半並廣播交易來退出通道。這被稱為強制關閉。相反，為了讓發起者能夠關閉通道，回應者也簽署發起者的承諾交易。
+
+一旦發起者收到此訊息，他們可以安全地廣播資金交易，因為他們現在能夠單方面退出通道協議。
+
+[[apdx_funding_locked_message]]
+===== funding_locked 訊息
+
+(((「funding_locked 訊息」)))(((「線路協定訊息」,「funding_locked 訊息」)))一旦資金交易收到足夠的確認，就會發送 `funding_locked` 訊息。
+
+ * 類型: 36
+ * 欄位:
+  ** `channel_id` : `channel_id`
+  ** `pubkey` : `next_per_commitment_point`
+
+一旦資金交易獲得 `minimum_depth` 數量的確認，雙方都應該發送 `funding_locked` 訊息。只有在發送和收到此訊息後，通道才能開始使用。(((range="endofrange", startref="ix_appendix_protocol_messages-asciidoc3")))
+
+==== 通道關閉
+
+(((「線路協定訊息」,「通道關閉」)))通道關閉是一個多步驟過程。(((「線路協定訊息」,「shutdown 訊息」)))一個節點通過發送 `shutdown` 訊息來發起。然後兩個通道夥伴交換一系列 `closing_signed` 訊息來協商關閉交易的雙方都可接受的費用。(((「closing_signed 訊息」)))(((「線路協定訊息」,「closing_signed 訊息」)))通道出資者發送第一個 `closing_signed` 訊息，另一方可以通過發送具有相同費用值的 `closing_signed` 訊息來接受。
+
+[[apdx_shutdown_message]]
+===== shutdown 訊息
+
++shutdown+ 訊息發起關閉通道的過程，包含以下欄位：
+
+ * 類型: 38
+ * 欄位:
+  ** `channel_id` : `channel_id`
+  ** `u16` : `len`
+  ** `len*byte` : `scriptpubkey`
+
+[[apdx_closing_signed_message]]
+===== closing_signed 訊息
+
++closing_signed+ 訊息由每個通道夥伴發送，直到他們就費用達成一致。它包含以下欄位：
+
+ * 類型: 39
+ * 欄位:
+  ** `channel_id` : `channel_id`
+  ** `u64` : `fee_satoshis`
+  ** `signature` : `signature`
+
+==== 通道操作
+
+(((「線路協定訊息」,「通道操作」, id="ix_appendix_protocol_messages-asciidoc4", range="startofrange")))在本節中，我們簡要描述用於允許節點操作通道的訊息集。通過操作，我們指的是能夠為給定通道發送、接收和轉發付款。
+
+要通過通道發送、接收或轉發付款，必須首先將 HTLC 添加到構成通道連結的兩個承諾交易中。
+
+[role="pagebreak-before less_space"]
+[[apdx_update_add_htlc_message]]
+===== update_add_htlc 訊息
+
+(((「通道操作」,「update_add_htlc 訊息」)))(((「update_add_htlc 訊息」)))(((「線路協定訊息」,「update_add_htlc 訊息」)))`update_add_htlc` 訊息允許任何一方向對方的承諾交易添加新的 HTLC。
+
+ * 類型: 128
+ * 欄位:
+  ** `channel_id` : `channel_id`
+  ** `uint64` : `id`
+  ** `uint64` : `amount_msat`
+  ** `sha256` : `payment_hash`
+  ** `uint32` : `cltv_expiry`
+  ** `1366*byte` : `onion_routing_packet`
+
+發送此訊息允許一方發起發送新付款或轉發通過傳入通道到達的現有付款。該訊息指定金額（`amount_msat`）以及解鎖付款本身的付款雜湊。下一跳的轉發指令集在 `onion_routing_packet` 欄位中進行洋蔥加密。在 <<onion_routing>> 中，關於多跳 HTLC 轉發，我們詳細介紹了閃電網路中使用的洋蔥路由協定。
+
+請注意，發送的每個 HTLC 使用自動遞增的 ID，任何修改 HTLC（結算或取消）的訊息都使用該 ID 以在通道範圍內唯一引用 HTLC。
+
+[[apdx_update_fulfill_hltc_message]]
+===== update_fulfill_hltc 訊息
+
+(((「通道操作」,「update_fulfill_hltc 訊息」)))(((「update_fulfill_hltc 訊息」)))`update_fulfill_hltc` 訊息允許贖回（接收）活動的 HTLC。
+
+ * 類型: 130
+ * 欄位:
+  ** `channel_id` : `channel_id`
+  ** `uint64` : `id`
+  ** `32*byte` : `payment_preimage`
+
+此訊息由 HTLC 接收者發送給提議者以贖回活動的 HTLC。該訊息引用所討論 HTLC 的 `id`，並提供解鎖 HTLC 的原像。
+
+[[apdx_update_fail_htlc_message]]
+===== update_fail_htlc 訊息
+
+(((「通道操作」,「update_fail_htlc 訊息」)))(((「update_fail_htlc 訊息」)))`update_fail_htlc` 訊息用於從承諾交易中移除 HTLC。
+
+ * 類型: 131
+ * 欄位:
+  ** `channel_id` : `channel_id`
+  ** `uint64` : `id`
+  ** `uint16` : `len`
+  ** `len*byte` : `reason`
+
+`update_fail_htlc` 訊息是 `update_fulfill_hltc` 訊息的相反，因為它允許 HTLC 的接收者移除同一個 HTLC。當 HTLC 無法正確向上游路由並需要發送回發送者以解開 HTLC 鏈時，通常會發送此訊息。正如我們在 <<failure_messages>> 中探討的，該訊息包含一個_加密_的失敗原因（`reason`），可能允許發送者調整其付款路由或在失敗本身是終端性的情況下終止。
+
+[[apdx_commitment_signed_message]]
+===== commitment_signed 訊息
+
+(((「通道操作」,「commitment_signed 訊息」)))(((「commitment_signed 訊息」)))`commitment_signed` 訊息用於標記新承諾交易的創建。
+
+ * 類型: 132
+ * 欄位:
+  ** `channel_id` : `channel_id`
+  ** `sig` : `signature`
+  ** `uint16` : `num_htlcs`
+  ** `num_htlcs*sig` : `htlc_signature`
+
+除了發送下一個承諾交易的簽章外，此訊息的發送者還需要為承諾交易上存在的每個 HTLC 發送簽章。
+
+[role="pagebreak-before less_space"]
+[[apdx_revoke_and_ack_message]]
+===== revoke_and_ack 訊息
+
+(((「通道操作」,「revoke_and_ack 訊息」)))(((「revoke_and_ack 訊息」)))`revoke_and_ack` 訊息用於撤銷過時的承諾。
+
+ * 類型: 133
+ * 欄位:
+  ** `channel_id` : `channel_id`
+  ** `32*byte` : `per_commitment_secret`
+  ** `pubkey` : `next_per_commitment_point`
+
+因為閃電網路使用替換-撤銷承諾交易，在通過 `commit_sig` 訊息收到新的承諾交易後，一方必須撤銷其過去的承諾，然後才能收到另一個。在撤銷承諾交易時，撤銷者還提供下一個承諾點，這是允許另一方向他們發送新承諾狀態所必需的。
+
+[[apdx_update_fee_message]]
+===== update_fee 訊息
+
+(((「通道操作」,「update_fee 訊息」)))(((「update_fee 訊息」)))`update_fee` 訊息用於更新當前承諾交易的費用。
+
+ * 類型: 134
+ * 欄位:
+  ** `channel_id` : `channel_id`
+  ** `uint32` : `feerate_per_kw`
+
+此訊息只能由通道的發起者發送；只要通道開啟，他們就是支付通道承諾費用的人。
+
+[[apdx_update_fail_malformed_htlc_message]]
+===== update_fail_malformed_htlc 訊息
+
+(((「通道操作」,「update_fail_malformed_htlc 訊息」)))(((「update_fail_malformed_htlc 訊息」)))`update_fail_malformed_htlc` 訊息用於移除損壞的 HTLC。
+
+ * 類型: 135
+ * 欄位:
+  ** `channel_id` : `channel_id`
+  ** `uint64` : `id`
+  ** `sha256` : `sha256_of_onion`
+  ** `uint16` : `failure_code`
+
+此訊息類似於 `update_fail_htlc` 訊息，但在實踐中很少使用。如前所述，每個 HTLC 攜帶一個洋蔥加密路由封包，該封包還涵蓋 HTLC 本身部分的完整性。如果一方收到沿途以某種方式損壞的洋蔥封包，那麼它將無法解密該封包。因此，它也無法正確轉發 HTLC；因此，它將發送此訊息以表示 HTLC 在沿路由返回發送者的某處已損壞。(((range="endofrange", startref="ix_appendix_protocol_messages-asciidoc4")))
+
+==== 通道公告
+
+(((「channel_announcement 訊息」, id="ix_appendix_protocol_messages-asciidoc5", range="startofrange")))(((「線路協定訊息」,「通道公告」, id="ix_appendix_protocol_messages-asciidoc6", range="startofrange")))此類別中的訊息用於向更廣泛的網路公告通道圖經過身份驗證的資料結構的組件。通道圖有一系列獨特的屬性，因為添加到通道圖的所有資料也必須錨定在比特幣基礎區塊鏈中。因此，要向通道圖添加新條目，代理必須支付鏈上交易費用。這作為閃電網路的自然垃圾訊息威懾。
+
+
+[[apdx_channel_announcement_message]]
+===== channel_announcement 訊息
+
+`channel_announcement` 訊息用於向更廣泛的網路公告新通道。
+
+ * 類型: 256
+ * 欄位:
+  ** `sig` : `node_signature_1`
+  ** `sig` : `node_signature_2`
+  ** `sig` : `bitcoin_signature_1`
+  ** `sig` : `bitcoin_signature_2`
+  ** `uint16` : `len`
+  ** `len*byte` : `features`
+  ** `chain_hash` : `chain_hash`
+  ** `short_channel_id` : `short_channel_id`
+  ** `pubkey` : `node_id_1`
+  ** `pubkey` : `node_id_2`
+  ** `pubkey` : `bitcoin_key_1`
+  ** `pubkey` : `bitcoin_key_2`
+
+訊息中的一系列簽章和公鑰用於創建一個_證明_，證明通道確實存在於比特幣基礎區塊鏈中。正如我們在 <<scid>> 中詳細說明的，每個通道都由一個編碼其在區塊鏈中_位置_的定位器唯一識別。這個定位器稱為 `short_channel_id`，可以放入一個 64 位元整數中。
+
+[[apdx_node_announcement_message]]
+===== node_announcement 訊息
+
+(((「channel_announcement 訊息」,「node_announcement 訊息」)))(((「node_announcement 訊息」)))`node_announcement` 訊息允許節點在更大的通道圖中公告/更新其頂點。
+
+ * 類型: 257
+ * 欄位:
+  ** `sig` : `signature`
+  ** `uint64` : `flen`
+  ** `flen*byte` : `features`
+  ** `uint32` : `timestamp`
+  ** `pubkey` : `node_id`
+  ** `3*byte` : `rgb_color`
+  ** `32*byte` : `alias`
+  ** `uint16` : `addrlen`
+  ** `addrlen*byte` : `addresses`
+
+請注意，如果節點在通道圖中沒有任何已廣告的通道，則此訊息將被忽略，以確保向通道圖添加項目會產生鏈上成本。在這種情況下，鏈上成本將是創建此節點連接的通道的成本。
+
+除了廣告其功能集外，此訊息還允許節點公告/更新可以到達它的網路 `addresses` 集。
+
+[[apdx_channel_update_message]]
+===== channel_update 訊息
+
+(((「channel_announcement 訊息」,「channel_update 訊息」)))(((「channel_update 訊息」)))`channel_update` 訊息用於更新通道圖中活動通道邊緣的屬性和策略。
+
+ * 類型: 258
+ * 欄位:
+  ** `signature` : `signature`
+  ** `chain_hash` : `chain_hash`
+  ** `short_channel_id` : `short_channel_id`
+  ** `uint32` : `timestamp`
+  ** `byte` : `message_flags`
+  ** `byte` : `channel_flags`
+  ** `uint16` : `cltv_expiry_delta`
+  ** `uint64` : `htlc_minimum_msat`
+  ** `uint32` : `fee_base_msat`
+  ** `uint32` : `fee_proportional_millionths`
+  ** `uint16` : `htlc_maximum_msat`
+
+除了能夠啟用/停用通道外，此訊息還允許節點更新其路由費用以及其他塑造允許通過此通道流動的付款類型的欄位。
+
+[[apdx_announce_signatures_message]]
+===== announce_signatures 訊息
+
+(((「announce_signatures 訊息」)))(((「channel_announcement 訊息」,「announce_signatures 訊息」)))`announce_signatures` 訊息由通道對等方交換，以組裝產生 `channel_announcement` 訊息所需的簽章集。
+
+ * 類型: 259
+ * 欄位:
+  ** `channel_id` : `channel_id`
+  ** `short_channel_id` : `short_channel_id`
+  ** `sig` : `node_signature`
+  ** `sig` : `bitcoin_signature`
+
+在發送 `funding_locked` 訊息後，如果雙方都希望向網路廣告其通道，那麼他們將各自發送 `announce_signatures` 訊息，這允許雙方放置生成 `announce_signatures` 訊息所需的四個簽章。(((range="endofrange", startref="ix_appendix_protocol_messages-asciidoc6")))(((range="endofrange", startref="ix_appendix_protocol_messages-asciidoc5")))
+
+==== 通道圖同步
+
+節點使用五個訊息來創建通道圖的本地視角：+query_short_chan_ids+、+reply_short_chan_ids_end+、+query_channel_range+、+reply_channel_range+ 和 +gossip_timestamp_range+。
+
+[[apdx_query_short_chan_ids_message]]
+===== query_short_chan_ids 訊息
+
+(((「通道圖同步訊息」, id="ix_appendix_protocol_messages-asciidoc7", range="startofrange")))(((「線路協定訊息」,「通道圖同步」, id="ix_appendix_protocol_messages-asciidoc8", range="startofrange")))(((「通道圖同步訊息」,「query_short_chan_ids 訊息」)))(((「query_short_chan_ids 訊息」)))`query_short_chan_ids` 訊息允許節點獲取與一系列短通道 ID 相關的通道資訊。
+
+ * 類型: 261
+ * 欄位:
+  ** `chain_hash` : `chain_hash`
+  ** `u16` : `len`
+  ** `len*byte` : `encoded_short_ids`
+  ** `query_short_channel_ids_tlvs` : `tlvs`
+
+正如我們在 <<gossip>> 中學到的，這些通道 ID 可能是對發送者來說是新的或過時的一系列通道，這允許發送者獲取一組通道的最新資訊集。
+
+[[apdx_reply_short_chan_ids_end_message]]
+===== reply_short_chan_ids_end 訊息
+
+(((「通道圖同步訊息」,「reply_short_chan_ids_end 訊息」)))(((「reply_short_chan_ids_end 訊息」)))`reply_short_chan_ids_end` 訊息在節點完成回應先前的 `query_short_chan_ids` 訊息後發送。
+
+ * 類型: 262
+ * 欄位:
+  ** `chain_hash` : `chain_hash`
+  ** `byte` : `full_information`
+
+此訊息向接收方發出信號，表示如果他們希望發送另一個查詢訊息，現在可以這樣做。
+
+[[apdx_query_channel_range_message]]
+===== query_channel_range 訊息
+
+(((「通道圖同步訊息」,「query_channel_range 訊息」)))(((「query_channel_range 訊息」)))`query_channel_range` 訊息允許節點查詢在區塊範圍內開啟的通道集。
+
+ * 類型: 263
+ * 欄位:
+  ** `chain_hash` : `chain_hash`
+  ** `u32` : `first_blocknum`
+  ** `u32` : `number_of_blocks`
+  ** `query_channel_range_tlvs` : `tlvs`
+
+
+由於通道使用編碼通道在鏈中位置的短通道 ID 表示，網路上的節點可以使用區塊高度作為一種_游標_來遍歷鏈，以發現一組新開啟的通道。
+
+[[apdx_reply_channel_range_message]]
+===== reply_channel_range 訊息
+
+(((「通道圖同步訊息」,「reply_channel_range 訊息」)))(((「reply_channel_range 訊息」)))`reply_channel_range` 訊息是對 `query_channel_range` 訊息的回應，包括該範圍內已知通道的短通道 ID 集。
+
+ * 類型: 264
+ * 欄位:
+  ** `chain_hash` : `chain_hash`
+  ** `u32` : `first_blocknum`
+  ** `u32` : `number_of_blocks`
+  ** `byte` : `sync_complete`
+  ** `u16` : `len`
+  ** `len*byte` : `encoded_short_ids`
+  ** `reply_channel_range_tlvs` : `tlvs`
+
+作為對 `query_channel_range` 的回應，此訊息發送回在該範圍內開啟的通道集。此過程可以重複，請求者將其游標進一步向下移動以繼續同步通道圖。
+
+[[apdx_gossip_timestamp_range_message]]
+===== gossip_timestamp_range 訊息
+
+(((「通道圖同步訊息」,「gossip_timestamp_range 訊息」)))(((「gossip_timestamp_range 訊息」)))`gossip_timestamp_range` 訊息允許節點開始接收網路上新的傳入八卦訊息。
+
+ * 類型: 265
+ * 欄位:
+  ** `chain_hash` : `chain_hash`
+  ** `u32` : `first_timestamp`
+  ** `u32` : `timestamp_range`
+
+一旦節點同步了通道圖，如果他們希望接收通道圖變化的即時更新，可以發送此訊息。如果他們希望接收在離線期間可能錯過的更新積壓，他們還可以設定 `first_timestamp` 和 `timestamp_range` 欄位。(((range="endofrange", startref="ix_appendix_protocol_messages-asciidoc8")))(((range="endofrange", startref="ix_appendix_protocol_messages-asciidoc7")))(((range="endofrange", startref="ix_appendix_protocol_messages-asciidoc2")))(((range="endofrange", startref="ix_appendix_protocol_messages-asciidoc0")))

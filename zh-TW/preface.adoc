@@ -1,0 +1,208 @@
+[preface]
+[[preface]]
+== 前言
+
+閃電網路（Lightning Network，簡稱 LN）是一個運行在比特幣及其他區塊鏈之上的第二層點對點網路，它讓我們能夠進行「鏈下」的比特幣支付，也就是說不需要將每筆交易記錄到比特幣區塊鏈上。
+
+閃電網路為我們帶來安全、低成本、快速且更具隱私性的比特幣支付，即使是非常小額的支付也能實現。
+
+閃電網路建立在支付通道的概念之上，這個想法最早由比特幣發明者中本聰提出。閃電網路是一個由支付通道組成的路由網路，支付透過一連串的支付通道從發送者「跳轉」到接收者。
+
+閃電網路的初始構想於 2015 年在一篇開創性的論文《The Bitcoin Lightning Network: Scalable Off-Chain Instant Payments》中被提出，作者是 Joseph Poon 和 Thaddeus Dryja。到了 2017 年，一個「測試版」的閃電網路已經在網路上運行，不同的團隊建立了相容的實作並協調制定了一些互通性標準。2018 年，閃電網路正式「上線」，支付開始在網路中流動。
+
+2019 年，Andreas M. Antonopoulos、Olaoluwa Osuntokun 和 René Pickhardt 同意合作撰寫本書。看來我們成功了！
+
+[[intended_audience_sec]]
+=== 目標讀者
+
+本書主要針對具有比特幣和其他開放區塊鏈基礎知識的技術讀者。
+
+[role="pagebreak-before less_space"]
+[[conventinons_used_sec]]
+=== 本書使用的慣例
+
+本書使用以下排版慣例：
+
+_斜體_:: 表示新術語、網址、電子郵件地址、檔案名稱和副檔名。
+
++等寬字體+:: 用於程式列表，以及在段落中引用程式元素，如變數或函數名稱、資料庫、資料類型、環境變數、陳述式和關鍵字。
+
+**`等寬粗體`**:: 顯示應由使用者逐字輸入的命令或其他文字。
+
+_++等寬斜體++_:: 顯示應由使用者提供的值或由上下文決定的值來替換的文字。
+
+[TIP]
+====
+此元素表示提示或建議。
+====
+
+[NOTE]
+====
+此元素表示一般注意事項。
+====
+
+[WARNING]
+====
+此元素表示警告或注意。
+====
+
+[[code_examples_sec]]
+=== 程式碼範例
+
+範例以 Go、C++、Python 以及類 Unix 作業系統的命令列來呈現。所有程式碼片段都可以在 GitHub 儲存庫的 _code_ 子目錄中找到。您可以 fork 本書程式碼、嘗試執行範例，或透過 https://github.com/lnbook/lnbook[GitHub] 提交修正。
+
+所有程式碼片段都可以在大多數作業系統上複製執行，只需安裝對應語言的編譯器、直譯器和函式庫。必要時，我們會提供基本的安裝說明和這些說明輸出的逐步範例。
+
+某些程式碼片段和程式碼輸出已針對印刷進行重新格式化。在所有這種情況下，行已被反斜線（+\+）字元分割，後面跟著換行字元。當轉錄範例時，移除這兩個字元並將行重新連接，您應該會看到與範例中相同的結果。
+
+所有程式碼片段盡可能使用真實的值和計算，因此您可以從一個範例建構到另一個範例，並在您編寫的任何程式碼中看到相同的結果來計算相同的值。例如，私鑰和對應的公鑰及地址都是真實的。
+
+[[using_code_examples_sec]]
+=== 使用程式碼範例
+
+如果您有技術問題或使用程式碼範例時遇到問題，請發送電子郵件至 pass:[<a class="email" href="mailto:bookquestions@oreilly.com"><em>bookquestions@oreilly.com</em></a>]。
+
+本書旨在幫助您完成工作。一般而言，如果本書提供了範例程式碼，您可以在您的程式和文件中使用它。除非您複製了大部分程式碼，否則無需聯繫我們獲得許可。例如，編寫一個使用本書多個程式碼片段的程式不需要許可。銷售或分發 O'Reilly 書籍中的範例則需要許可。引用本書並引用範例程式碼來回答問題不需要許可。將本書大量範例程式碼納入您產品的文件中則需要許可。
+
+我們感謝但不要求署名。署名通常包括書名、作者、出版商、ISBN 和版權。例如：「__Mastering the Lightning Network__ by Andreas M. Antonopoulos, Olaoluwa Osuntokun, and René Pickhardt (O'Reilly). Copyright 2022 aantonop Books LLC, René Pickhardt, and uuddlrlrbas LLC, ISBN 978-1-492-05486-3.」
+
+__Mastering the Lightning Network__ 採用創用 CC 姓名標示-非商業性-禁止改作 4.0 國際授權條款（CC BY-NC-ND 4.0）授權。
+
+如果您認為您對程式碼範例的使用超出了合理使用範圍或上述許可，請隨時透過 pass:[<a href="mailto:permissions@oreilly.com">permissions@oreilly.com</a>] 與我們聯繫。
+
+=== 公司和產品參考
+
+所有對公司和產品的參考僅用於教育、示範和參考目的。作者不為所提及的任何公司或產品背書。我們沒有測試本書中展示的任何產品、專案或程式碼片段的運作或安全性。使用它們需自行承擔風險！
+
+[[addresses_and_transactions_sec]]
+=== 本書中的地址和交易
+
+本書中使用的比特幣地址、交易、金鑰、QR 碼和區塊鏈資料大多數是真實的。這意味著您可以瀏覽區塊鏈、查看作為範例提供的交易、使用您自己的腳本或程式檢索它們等。
+
+然而，請注意，用於建構本書中印刷地址的私鑰已被「銷毀」。這意味著如果您向這些地址中的任何一個發送資金，這些資金要麼永遠遺失，要麼（更可能）被他人取走，因為任何閱讀本書的人都可以使用本書中印刷的私鑰來取走它。
+
+[WARNING]
+====
+請勿向本書中的任何地址發送資金。您的資金將被其他讀者取走，或永遠遺失。
+====
+
+=== O'Reilly 線上學習
+
+[role = "ormenabled"]
+[NOTE]
+====
+40 多年來，pass:[<a href="http://oreilly.com" class="orm:hideurl"><em class="hyperlink">O'Reilly Media</em></a>] 提供技術和商業培訓、知識和見解，幫助企業取得成功。
+====
+
+我們獨特的專家和創新者網路透過書籍、文章和我們的線上學習平台分享他們的知識和專業技能。O'Reilly 的線上學習平台讓您可以隨時存取即時培訓課程、深度學習路徑、互動式程式設計環境，以及來自 O'Reilly 和 200 多家出版商的大量文字和影片內容。更多資訊請造訪 pass:[<a href="http://oreilly.com" class="orm:hideurl"><em>http://oreilly.com</em></a>]。
+
+[[how_to_contact_us_sec]]
+=== 如何聯繫我們
+
+關於 _Mastering the Lightning Network_ 的資訊以及開放版本和翻譯版本可在 link:$$https://lnbook.info$$[] 取得。
+
+請將關於本書的評論和問題寄給出版商：
+
+++++
+<ul class="simplelist">
+  <li>O'Reilly Media, Inc.</li>
+  <li>1005 Gravenstein Highway North</li>
+  <li>Sebastopol, CA 95472</li>
+  <li>800-998-9938（美國或加拿大）</li>
+  <li>707-829-0515（國際或當地）</li>
+  <li>707-829-0104（傳真）</li>
+</ul>
+++++
+
+請發送電子郵件至 pass:[<a class="email" href="mailto:bookquestions@oreilly.com"><em>bookquestions@oreilly.com</em></a>] 評論或詢問關於本書的技術問題。
+
+有關我們的書籍和課程的新聞和資訊，請造訪 link:$$http://oreilly.com$$[]。
+
+在 Facebook 上找到我們：link:$$http://facebook.com/oreilly$$[]
+
+在 Twitter 上關注我們：link:$$http://twitter.com/oreillymedia$$[]
+
+在 YouTube 上觀看我們：link:$$http://www.youtube.com/oreillymedia$$[]
+
+==== 聯繫 Andreas
+
+您可以在 Andreas M. Antonopoulos 的個人網站聯繫他：
+link:$$https://aantonop.com$$[]
+
+訂閱 Andreas 的 YouTube 頻道：
+link:$$https://www.youtube.com/aantonop$$[]
+
+在 Facebook 上按讚 Andreas 的頁面：
+link:$$https://www.facebook.com/AndreasMAntonopoulos$$[]
+
+在 Twitter 上關注 Andreas：
+link:$$https://twitter.com/aantonop$$[]
+
+在 LinkedIn 上與 Andreas 連結：
+link:$$https://linkedin.com/company/aantonop$$[]
+
+Andreas 也想感謝透過每月捐款支持他工作的贊助者。您可以在 Patreon 上支持 Andreas：link:$$https://patreon.com/aantonop$$[]。
+
+==== 聯繫 René
+
+您可以在 René Pickhardt 的個人網站聯繫他：
+link:$$https://ln.rene-pickhardt.de$$[]
+
+訂閱 René 的 YouTube 頻道：
+link:$$https://www.youtube.com/user/RenePickhardt$$[]
+
+在 Twitter 上關注 René：
+link:$$https://twitter.com/renepickhardt$$[]
+
+在 LinkedIn 上與 René 連結：
+link:$$https://www.linkedin.com/in/rene-pickhardt-80313744$$[]
+
+René 也想感謝所有透過每月捐款支持他工作的贊助者。您可以在 Patreon 上支持 René：link:$$https://patreon.com/renepickhardt$$[]。
+
+或者您可以直接使用比特幣（也可以透過閃電網路）在 link:$$https://donate.ln.rene-pickhardt.de$$[] 支持他的工作，René 對此同樣感謝。
+
+==== 聯繫 Olaoluwa Osuntokun
+
+您可以透過 Olaoluwa Osuntokun 的專業電子郵件地址聯繫他：
+__laolu@lightning.engineering__
+
+在 Twitter 上關注 Olaoluwa：
+link:$$https://twitter.com/roasbeef$$[]
+
+[[acknowledgments_sec]]
+=== Andreas 的致謝
+
+我對文字和書籍的熱愛要歸功於我的母親 Theresa，她在一個書籍排滿每面牆的家中撫養我長大。我的母親還在 1982 年為我買了第一台電腦，儘管她自稱是技術恐懼者。我的父親 Menelaos 是一位土木工程師，在 80 歲時出版了他的第一本書，他教會了我邏輯和分析思維以及對科學和工程的熱愛。
+
+感謝你們在這段旅程中一直支持我。
+
+=== René 的致謝
+
+我要感謝德國教育系統，透過它我獲得了我工作所依賴的知識。這是我獲得的最偉大的禮物之一。
+同樣，我要感謝德國公共醫療保健系統以及每一位在該行業工作的人。你們的努力和堅持使你們成為我個人的英雄，我永遠不會忘記我在需要時獲得的幫助、耐心和支持。
+感謝我被允許教導的所有學生，他們參與了有趣的討論和問題。從你們那裡我學到了最多。
+我也感謝熱情歡迎我的比特幣和閃電網路社群，以及在經濟上支持並繼續支持我工作的愛好者和個人。
+特別感謝所有開源開發者（不僅僅是比特幣和閃電網路）以及資助他們使這項技術成為可能的人們。
+特別感謝我的共同作者與我一起經歷這場風暴。
+最後但同樣重要的是，我感謝我的親人。
+
+=== Olaoluwa Osuntokun 的致謝
+
+我要感謝 Lightning Labs 的優秀團隊，沒有你們，就不會有 LND。我還要感謝 BOLT 規範的原始作者群：Rusty Russell、Fabrice Drouin、Conner Fromnkchet、Pierre-Marie Padiou、Lisa Neigut 和 Christian Decker。最後但同樣重要的是，我要感謝原始閃電網路論文的作者 Joseph Poon 和 Tadge Dryja，沒有他們，就沒有閃電網路可以寫這本書。
+
+[[github_contrib]]
+=== 貢獻
+
+許多貢獻者在本書於 GitHub 上協作撰寫時提供了評論、修正和補充。
+
+以下是按字母順序排列的所有 GitHub 貢獻者名單，括號中包含他們的 GitHub ID：
+
+include::github_contributors.adoc[]
+
+沒有這裡列出的每個人的幫助，這本書不可能完成。你們的貢獻展示了開源和開放文化的力量，我們永遠感謝你們的幫助。
+
+謝謝。
+
+=== 來源
+
+本書中的部分材料來自各種公有領域來源、開放授權來源，或經過許可使用。有關來源、授權和署名詳情，請參閱 <<sources_licenses>>。

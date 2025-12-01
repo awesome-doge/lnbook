@@ -1,0 +1,968 @@
+[[operating_ln_node]]
+[[node_operations]]
+== 操作閃電網路節點
+
+((("Lightning node operation", id="ix_05_node_operations-asciidoc0", range="startofrange")))讀到這裡，你可能已經設定了一個閃電網路錢包。在本章中，我們將更進一步，設定一個完整的閃電網路節點。除了設定之外，我們還將學習如何操作和維護它。
+
+你可能想要設定自己的閃電網路節點的原因有很多，包括：
+
+* 成為閃電網路的完整、積極參與者，而不僅僅是終端使用者
+* 經營電子商務商店或透過閃電網路支付接收收入
+* 透過閃電網路路由費用或出租通道流動性來賺取收入
+* 為閃電網路開發新服務、應用程式或外掛程式
+* 在使用閃電網路時增加你的財務隱私
+* 使用建立在閃電網路之上的一些應用程式，例如閃電網路驅動的即時通訊應用程式
+* 實現財務自由、獨立和主權
+
+運行閃電網路節點有相關成本。你需要一台電腦、永久的網路連線、大量的磁碟空間和大量的時間！
+營運成本還包括電費。
+
+但你從這次經歷中學到的技能是有價值的，也可以應用於各種其他任務。
+
+讓我們開始吧！
+
+[NOTE]
+====
+重要的是，你要根據準確的事實正確設定自己的期望。
+如果你計劃_僅僅_為了透過賺取路由費用來獲得收入而運行閃電網路節點，
+請先認真做好功課。透過運行閃電網路節點來經營盈利業務
+絕對_不_容易。在試算表中計算所有初始和持續成本。仔細研究閃電網路統計資料。
+目前的支付量是多少？每個節點的交易量是多少？目前的平均路由費用是多少？諮詢論壇並詢問
+已經獲得實際經驗的其他社群成員的建議或回饋。只有在
+完成這項盡職調查之_後_，才形成你自己有依據的意見。大多數人會發現他們運行節點的動機不在於經濟收益，
+而在於其他地方。
+====
+
+=== 選擇你的平台
+
+((("Lightning node operation","choosing a platform", id="ix_05_node_operations-asciidoc1", range="startofrange")))你可以透過多種方式運行閃電網路節點，從托管在家中的小型迷你電腦或專用伺服器，到雲端的托管伺服器。你選擇的方法將取決於你擁有的資源以及你想花多少錢。
+
+[[continuous_operation]]
+==== 為什麼可靠性對運行閃電網路節點很重要？
+
+((("Lightning node operation","reliability issues")))((("reliability, Lightning node and")))在比特幣中，除非專門運行挖礦節點，否則硬體並不特別重要。
+Bitcoin Core 節點軟體可以在任何滿足其最低要求的機器上運行，而且不需要在線才能接收付款——只有發送付款時才需要。
+如果比特幣節點長時間離線，使用者只需重新啟動節點，一旦它連接到網路的其餘部分，它就會重新同步區塊鏈。
+
+然而，在閃電網路中，使用者需要同時在線才能發送_和_接收付款。如果閃電網路節點離線，它就無法從任何人那裡接收任何付款，因此其開立的發票無法履行。
+此外，離線節點的開放通道不能用於路由付款。你的通道合作夥伴會注意到你離線且無法聯繫你來路由付款。如果你太常離線，他們可能會認為與你通道中鎖定的比特幣是未充分利用的容量，並可能關閉這些通道。我們已經討論過協定攻擊的情況，即你的通道合作夥伴試圖透過提交較早的承諾交易來欺騙你。如果你離線且你的通道沒有被監控，那麼企圖的盜竊可能會成功，一旦時間鎖到期，你將沒有追索權。
+因此，節點可靠性對閃電網路節點極為重要。
+
+((("hardware failure")))還有硬體故障和資料遺失的問題。在比特幣中，如果使用者備份了助記詞或私鑰，硬體故障可能是一個微不足道的問題。比特幣錢包和錢包中的比特幣可以很容易地從私鑰在新電腦上恢復。大多數資訊可以從區塊鏈重新下載。
+
+相比之下，在閃電網路中，關於使用者通道的資訊，包括承諾交易和撤銷秘密，不是公開的，只儲存在個別使用者的硬體上。
+因此，閃電網路中的軟體和硬體故障很容易導致資金損失。
+
+==== 硬體閃電網路節點的類型
+
+((("Lightning node operation","types of hardware Lightning nodes")))硬體閃電網路節點主要有三種類型：
+
+通用電腦:: 閃電網路節點可以在運行 Windows、macOS 或 Linux 的家用電腦或筆記型電腦上運行。通常這是與比特幣節點一起運行的。
+專用硬體:: 閃電網路節點也可以在專用硬體上運行，如 Raspberry Pi、Rock64 或迷你電腦。這種設定通常會運行軟體堆疊，包括比特幣節點和其他應用程式。這種設定很受歡迎，因為硬體專門用於運行和維護閃電網路節點，通常使用安裝「助手」進行設定。
+預配置硬體:: 閃電網路節點也可以在專門為其選擇和配置的專用硬體上運行。這包括可以作為套件或交鑰匙系統購買的「開箱即用」閃電網路節點解決方案。
+
+==== 在「雲端」運行
+
+((("cloud, Lightning node operation in")))((("Lightning node operation","running in the cloud")))((("virtual private server (VPS)")))_虛擬私人伺服器_（VPS）和雲端運算服務，如 Microsoft Azure、Google Cloud、Amazon Web Services（AWS）或 DigitalOcean，價格相當實惠，可以非常快速地設定。閃電網路節點可以在這樣的服務上以每月 20 到 40 美元的價格托管。
+
+然而，俗話說，「『雲端』只是別人的電腦。」使用這些服務意味著在別人的電腦上運行你的節點。這帶來了相應的優缺點。主要優點是便利性、效率、正常運行時間，甚至可能是成本。雲端運營商在很大程度上管理和運行節點，自動為你提供便利性和效率。他們提供出色的正常運行時間和可用性，通常比個人在家中可以達到的要好得多。如果你考慮到在許多西方國家僅運行伺服器的電費就約為每月 10 美元，然後加上網路頻寬的成本和硬體本身，VPS 產品在經濟上具有競爭力。最後，使用 VPS，你不需要在家裡為電腦騰出空間，也沒有電腦噪音或熱量的問題。
+另一方面，有幾個顯著的缺點。在「雲端」運行的閃電網路節點總是比在你自己的電腦上運行的節點安全性和隱私性更低。此外，這些雲端運算服務非常集中化。在這些服務上運行的絕大多數比特幣和閃電網路節點位於維吉尼亞州、桑尼維爾、西雅圖、倫敦和法蘭克福的少數資料中心。當這些提供商的網路或資料中心出現服務問題時，它會影響所謂「去中心化」網路上的數千個節點。
+
+如果你有可能和能力在家裡或辦公室的自己電腦上運行節點，那麼這可能比在雲端運行更可取。儘管如此，如果運行自己的伺服器不是一個選項，請務必考慮在 VPS 上運行一個。
+
+==== 在家運行節點
+
+((("Lightning node operation","running a node at home")))如果你在家裡或辦公室有合理容量的網路連線，你當然可以在那裡運行閃電網路節點。任何「寬頻」連線都足以運行輕量級節點，快速連線也可以讓你運行比特幣完整節點。
+
+雖然你可以在筆記型電腦上運行閃電網路節點（甚至比特幣節點），但很快就會變得煩人。這些程式會消耗你電腦的資源，需要 24/7 全天候運行。你的使用者應用程式，如瀏覽器或試算表，將與閃電網路背景服務競爭你電腦的資源。換句話說，你的瀏覽器和其他桌面工作負載會變慢。
+當你的文書處理應用程式使你的筆記型電腦當機時，你的閃電網路節點也會當機，使你無法接收交易，並可能容易受到攻擊。此外，你永遠不應該關閉你的筆記型電腦。
+所有這些加在一起導致的設定不是很理想。同樣的情況也適用於你日常使用的個人桌上型電腦。
+
+相反，大多數使用者會選擇在專用電腦上運行節點。
+幸運的是，你不需要一台「伺服器」級的電腦來做到這一點。
+你可以在單板電腦上運行閃電網路節點，例如 Raspberry Pi 或迷你電腦（通常作為家庭影院電腦銷售）。
+這些是通常用作家庭自動化中心或媒體伺服器的簡單電腦。
+與電腦或筆記型電腦相比，它們相對便宜。
+專用設備作為閃電網路和比特幣節點平台的優勢在於，它可以在你的家庭網路上持續、靜默且不引人注目地運行，藏在路由器或電視後面。
+沒有人會知道這個小盒子實際上是全球銀行系統的一部分！
+
+[WARNING]
+====
+不建議在 32 位元作業系統和/或 32 位元 CPU 上操作節點，因為節點軟體可能會遇到資源問題，導致當機並可能造成資金損失。
+====
+
+==== 運行閃電網路節點需要什麼硬體？
+
+((("hardware, Lightning node")))((("Lightning node operation","hardware requirements")))運行閃電網路節點至少需要以下條件：
+
+CPU:: 需要足夠的處理能力來運行比特幣節點，它會持續下載和驗證新區塊。使用者還需要在設定新比特幣節點時考慮初始區塊下載（IBD），這可能需要幾個小時到幾天的時間。建議使用 2 核心或 4 核心 CPU。
+
+RAM:: 具有 2 GB RAM 的系統_勉強_可以運行比特幣和閃電網路節點。如果至少有 4 GB RAM，效能會好得多。如果 RAM 少於 4 GB，IBD 將特別具有挑戰性。超過 8 GB 的 RAM 是不必要的，因為對於這些類型的服務，CPU 是更大的瓶頸，這是由於簽名驗證等密碼學操作。
+
+儲存驅動器:: 這可以是硬碟驅動器（HDD）或固態驅動器（SSD）。
+SSD 運行節點會明顯更快（但更貴）。
+大部分儲存空間用於比特幣區塊鏈，大小為數百 GB。
+一個合理的權衡（成本與複雜性）是購買一個小型 SSD 來啟動作業系統，一個較大的 HDD 來儲存大型資料物件（主要是資料庫）。
+
+[NOTE]
+====
+由於成本和零件可用性，Raspberry Pi 是運行節點軟體的常見選擇。
+在設備上運行的作業系統通常從安全數位（SD）卡啟動。
+對於大多數使用情況，這不是問題，但 Bitcoin Core 以 I/O 密集著稱。
+你應該確保將比特幣區塊鏈和閃電網路資料目錄放在不同的驅動器上，因為長期密集的 I/O 可能會導致 SD 卡故障。
+====
+
+網路連線:: 需要可靠的網路連線來下載新的比特幣區塊，以及與其他閃電網路對等節點通訊。在運行期間，估計的資料使用量範圍從每月 10 到 100 GB，取決於配置。在啟動時，比特幣完整節點會下載完整的區塊鏈。
+
+電源供應:: 需要可靠的電源供應，因為閃電網路節點需要始終保持在線。電源故障將導致進行中的付款失敗。對於繁忙的路由節點，在停電時備用或不間斷電源（UPS）很有用。
+理想情況下，你也應該將網路路由器連接到這個 UPS。
+
+備份:: 備份至關重要，因為故障可能導致資料遺失，從而導致資金損失。
+你會想要考慮某種資料備份解決方案。這可以是基於雲端的自動備份到你控制的伺服器或網路服務。或者，它可以是自動本地硬體備份，例如第二個硬碟。為了獲得最佳結果，可以結合本地和遠端備份。
+
+==== 在雲端切換伺服器配置
+
+((("Lightning node operation","switching server configuration in the cloud")))當租用雲端伺服器時，在兩個運行階段之間更改配置通常很划算。在 IBD 期間（例如第一天）需要更快的 CPU 和更快的儲存。區塊鏈同步後，CPU 和儲存速度要求就低得多，因此可以將效能降級到更具成本效益的水平。
+
+例如，在 Amazon 的雲端上，我們會在 IBD 期間使用 8-16 GB RAM、8 核心 CPU（例如 t3-large 或 m3.large）和更快的 400 GB SSD（1000+ 配置的每秒輸入/輸出操作數 [IOPS]），將其時間縮短到僅 6-8 小時。完成後，我們會將伺服器實例切換為 2 GB RAM、2 核心 CPU（例如 t3.small）和儲存改為通用 1 TB HDD。這大約與你在較慢的伺服器上運行整個時間的成本相同，但它會讓你在不到一天內啟動並運行，而不是必須等待將近一週的 IBD。
+
+===== 永久資料儲存（驅動器）
+
+((("data storage")))((("Lightning node operation","permanent data storage")))如果你使用迷你電腦或租用伺服器，儲存可能是最昂貴的部分，成本可能與電腦和連線（資料）加在一起一樣多。
+
+讓我們看看可用的不同選項。首先，有兩種主要類型的驅動器，HDD 和 SSD。HDD 更便宜，SSD 更快，但兩者都能完成工作。
+
+((("Non-Volatile Memory Express (NVMe)")))((("solid state drives (SSDs)")))((("SSDs (solid state drives)")))目前最快的 SSD 使用非揮發性記憶體快速通道（NVMe）介面。NVMe SSD 在高端機器中更快，但也更貴。
+傳統的基於 SATA 的 SSD 更便宜，但沒有那麼快。SATA SSD 對於你的節點設定來說效能已經足夠好了。
+較小的電腦可能無法利用 NVMe SSD 的優勢。
+例如，Raspberry Pi 4 由於其 USB 埠的頻寬有限而無法從中受益。
+
+要選擇大小，讓我們看看比特幣區塊鏈。截至 2021 年 8 月，其大小為 360 GB，包括交易索引，每年大約增長 60 GB。如果你想為未來的增長留有一些餘地或在你的節點上安裝其他資料，請至少購買 512 GB 的驅動器，或者更好的是 1 TB 的驅動器。(((range="endofrange", startref="ix_05_node_operations-asciidoc1")))
+
+[[helpers]]
+=== 使用安裝程式或助手
+
+((("helpers (installation/configuration software)", id="ix_05_node_operations-asciidoc2", range="startofrange")))((("Lightning node operation","using an installer or helper", id="ix_05_node_operations-asciidoc3", range="startofrange")))如果你不熟悉命令列環境，安裝閃電網路節點或比特幣節點可能會令人望而生畏。幸運的是，有許多專案製作「助手」，即為你安裝和配置各種元件的軟體。你仍然需要學習一些命令列咒語來與你的節點互動，但大部分初始工作已經為你完成。
+
+==== RaspiBlitz
+
+((("helpers (installation/configuration software)","RaspiBlitz")))((("RaspiBlitz")))最受歡迎和完整的「助手」之一是 _RaspiBlitz_（<<RaspiBlitz>>），這是由 Christian Rotzoll 建立的專案。它旨在安裝在 Raspberry Pi 4 上。RaspiBlitz 附帶推薦的硬體套件，你可以在幾個小時或最多一個週末內組裝完成。如果你參加你所在城市的閃電網路「黑客松」，你很可能會看到很多人在他們的 RaspiBlitz 設定上工作，交換技巧並互相幫助。你可以在 https://github.com/rootzoll/raspiblitz[GitHub] 上找到 RaspiBlitz 專案。
+
+除了比特幣和閃電網路節點之外，RaspiBlitz 還可以安裝許多額外的服務，例如：
+
+* Tor（作為隱藏服務運行）
+* ElectRS（Rust 中的 Electrum 伺服器）
+* BTCPay Server（加密貨幣支付處理器）
+* BTC RPC Explorer（比特幣區塊鏈瀏覽器）
+* Ride The Lightning（閃電網路節點管理圖形介面）
+* LNbits（閃電網路錢包/帳戶系統）
+* Specter Desktop（多重簽名 Trezor、Ledger、Coldcard 錢包和 Specter-DIY）
+* lndmanage（用於進階通道管理的命令列介面）
+* Loop（潛水艇交換服務）
+* JoinMarket（CoinJoin 服務）
+
+[[RaspiBlitz]]
+.RaspiBlitz 節點
+image::images/mtln_0501.png[]
+
+==== Mynode
+
+((("helpers (installation/configuration software)","myNode")))((("myNode")))https://mynodebtc.com[_myNode_] 是另一個流行的開源「助手」專案，包含許多與比特幣相關的軟體。它易於安裝：你將安裝程式「刷入」SD 卡，然後從 SD 卡啟動你的迷你電腦。你不需要任何顯示器來使用 myNode，因為管理工具可以從瀏覽器遠端存取。如果你的迷你電腦沒有顯示器、滑鼠或鍵盤，你可以從另一台電腦甚至從你的智慧型手機管理它。安裝後，前往 http://mynode.local 並點擊兩下建立閃電網路錢包和節點。
+
+除了比特幣和閃電網路節點之外，myNode 還可以選擇性地安裝各種額外的服務，例如：
+
+* Ride The Lightning（閃電網路節點管理圖形介面）
+* OpenVPN（用於遠端管理或錢包的虛擬私人網路 [VPN] 支援）
+* lndmanage（用於進階通道管理的命令列介面）
+* BTC RPC Explorer（比特幣區塊鏈瀏覽器）
+
+==== Umbrel
+
+((("helpers (installation/configuration software)","Umbrel", id="ix_05_node_operations-asciidoc4", range="startofrange")))((("Umbrel", id="ix_05_node_operations-asciidoc5", range="startofrange")))以其 UX/UI 聞名（如 <<umbrel>> 所示），_Umbrel_ 提供了一種非常簡單且易於使用的方式來快速啟動和運行你的比特幣和閃電網路節點，特別是對於初學者。一個非常獨特的功能是 Umbrel 在 IBD 期間使用 Neutrino/SPV，這樣你可以立即開始使用你的節點。一旦 Bitcoin Core 在背景完全同步，它會自動切換並停用 SPV 模式。Umbrel OS 支援 Raspberry Pi 4，也可以安裝在任何基於 Linux 的作業系統上，或者在 macOS 或 Windows 上的虛擬機器中。你還可以連接任何支援 Bitcoin Core P2P、Bitcoin Core RPC、Electrum 協定或 lndconnect 的錢包。
+
+不需要等待雨天&mdash;你可以直接前往 https://getumbrel.com[Umbrel] 了解更多資訊。
+
+[[umbrel]]
+.Umbrel 網頁介面
+image::images/mtln_0502.png["Umbrel 網頁介面"]
+
+除了比特幣和閃電網路節點之外，Umbrel 推出了 Umbrel App Store，你可以在其中輕鬆安裝額外的服務，例如：
+
+* Lightning Terminal（用於管理通道流動性、Loop In 和 Loop Out 的介面）
+* Ride The Lightning（閃電網路節點管理圖形介面）
+* Specter Desktop（用於多重簽名和單金鑰比特幣錢包的唯讀協調器）
+* BTCPay Server（加密貨幣支付處理器）
+* BTC RPC Explorer（比特幣區塊鏈瀏覽器）
+* ThunderHub（監控和管理你的節點）
+* Sphinx Relay（處理 Sphinx 聊天的連接和儲存）
+* mempool.space（記憶體池視覺化器和區塊瀏覽器）
+* LNbits（閃電網路錢包/帳戶系統）
+
+Umbrel 目前仍處於測試階段，不被認為是安全的。(((range="endofrange", startref="ix_05_node_operations-asciidoc5")))(((range="endofrange", startref="ix_05_node_operations-asciidoc4")))
+
+==== BTCPay Server
+
+((("BTCPay Server")))((("helpers (installation/configuration software)","BTCPay Server")))雖然最初不是作為安裝「助手」設計的，但電子商務和支付平台 _BTCPay Server_ 有一個非常簡單的安裝系統，使用 Docker 容器和 +docker-compose+ 來安裝比特幣節點、閃電網路節點和支付閘道，以及許多其他服務。它可以安裝在各種硬體平台上，從簡單的 Raspberry Pi 4（建議 4 GB）到迷你電腦或舊筆記型電腦、桌上型電腦或伺服器。
+
+https://btcpayserver.org[BTCPay Server] 是一個功能齊全的自托管、自保管電子商務平台，可以與許多電子商務平台整合，例如 WordPress WooCommerce 等。完整節點的安裝只是電子商務平台安裝的一個步驟。
+雖然最初是作為 _BitPay_ 商業支付服務和 API 的功能對功能替代品開發的，但它已經超越了這一點，成為與電子商務相關的 BTC 和閃電網路服務的完整平台。對於許多賣家或商店來說，這是一個電子商務的一站式交鑰匙解決方案。
+
+除了比特幣和閃電網路節點之外，BTCPay Server 還可以安裝各種服務，包括：
+
+* `c-lightning` 或 LND 閃電網路節點
+* Litecoin 支援
+* Monero 支援
+* Spark 伺服器（`c-lightning` 網頁錢包）
+* Charge 伺服器（`c-lightning` 電子商務 API）
+* Ride The Lightning（閃電網路節點管理網頁圖形介面）
+* 許多 BTC 分叉
+* BTCTransmuter（支援貨幣兌換的事件-動作自動化服務）
+
+額外服務和功能的數量正在快速增長，因此前面的列表只是 BTCPay Server 平台上可用內容的一小部分。
+
+==== 比特幣節點還是輕量級閃電網路
+
+((("Bitcoin node")))((("helpers (installation/configuration software)","Bitcoin node versus lightweight Lightning node")))你設定的一個關鍵選擇將是比特幣節點及其配置的選擇。_Bitcoin Core_，參考實作，是最常見的選擇，但不是唯一可用的選擇。一個替代選擇是 _btcd_，它是比特幣節點的 Go 語言實作。btcd 支援一些對運行 LND 閃電網路節點有用的功能，這些功能在 Bitcoin Core 中不可用。
+
+第二個考慮因素是你是否會運行一個帶有區塊鏈完整副本（2021 年中約 350 GB）的_存檔_比特幣節點，還是一個只保留最近區塊的_修剪_區塊鏈。修剪的區塊鏈可以為你節省一些磁碟空間，但你仍然需要至少下載一次完整的區塊鏈（在 IBD 期間）。因此，它不會為你節省任何網路流量。使用修剪節點運行閃電網路節點仍然是一個實驗性功能，可能不支援所有功能。然而，許多人正在成功運行這樣的節點。
+
+((("lightweight Lightning node")))最後，你也可以選擇根本不運行比特幣節點。相反，你可以使用 Neutrino 協定以「輕量級」模式操作 LND 閃電網路節點，從其他人操作的公共比特幣節點檢索區塊鏈資訊。這樣運行意味著你在沒有提供任何回報的情況下從比特幣網路獲取資源。相反，你是在提供你的資源並為閃電網路社群做出貢獻。對於較小的閃電網路節點，與運行完整比特幣節點相比，這通常會減少網路流量。
+
+請記住，操作比特幣節點允許你支援其他服務，除了閃電網路節點之外。這些其他服務可能需要存檔（非修剪）比特幣節點，通常無法在沒有比特幣節點的情況下運行。預先考慮你現在或將來可能想要運行的其他服務，以便對你選擇的比特幣節點類型做出明智的決定。
+
+這個決定的底線是：如果你能負擔得起大於 500 GB 的磁碟，請運行完整的存檔比特幣節點。你將為比特幣系統貢獻資源，並幫助那些負擔不起這樣做的人。如果你負擔不起這麼大的磁碟，運行修剪節點。如果你連修剪節點的磁碟或頻寬都負擔不起，運行一個使用 Neutrino 的輕量級 LND 節點。
+
+==== 作業系統選擇
+
+((("Lightning node operation","operating system choice")))((("operating system","for Lightning node")))下一步是為你的節點選擇一個作業系統。絕大多數網路伺服器運行某種 Linux 變體。Linux 是網路的首選平台，因為它是一個強大的開源作業系統。然而，Linux 有一個陡峭的學習曲線，需要熟悉命令列環境。對於新使用者來說，它通常令人望而生畏。
+
+最終，大多數服務可以在任何現代 POSIX 作業系統上運行，包括 macOS、Windows，當然還有 Linux。你的選擇應該更多地取決於你對作業系統的熟悉程度和舒適度以及你的學習目標。如果你想擴展你的知識並學習如何操作 Linux 系統，這是一個很好的機會，可以透過特定專案和明確目標來實現。如果你只想讓節點啟動並運行，就選擇你熟悉的。
+
+如今，許多服務也以容器的形式提供，通常基於 Docker 系統。這些容器可以部署在各種作業系統上，抽象化底層作業系統。儘管如此，你可能仍然需要學習一些 Linux CLI 命令，因為大多數容器內部運行某種 Linux 變體。(((range="endofrange", startref="ix_05_node_operations-asciidoc3")))(((range="endofrange", startref="ix_05_node_operations-asciidoc2")))
+
+=== 選擇你的閃電網路節點實作
+
+((("Lightning node operation","implementation choice")))與作業系統的選擇一樣，你對閃電網路節點實作的選擇應該主要取決於你對專案使用的程式語言和開發工具的熟悉程度。雖然各種節點實作之間在功能上有一些小差異，但這些差異相對較小，大多數實作都趨向於 BOLT 定義的共同標準。
+
+另一方面，對程式語言和建構系統的熟悉是選擇節點的良好基礎。這是因為安裝、配置、持續維護和故障排除都將涉及與建構系統使用的各種工具互動。這包括：
+
+* `c-lightning` 的 Make、Autotools 和 GNU 實用程式
+* LND 的 Go 實用程式
+* Eclair 的 Java/Maven
+
+程式語言不僅影響建構系統的選擇，還影響程式的許多其他方面。每種程式語言都帶有完整的設計理念，並影響許多其他方面，例如：
+
+* 配置檔案的格式和語法
+* 檔案位置（在檔案系統中）
+* 命令列參數及其語法
+* 錯誤訊息格式
+* 先決條件函式庫
+* 遠端程序呼叫介面
+
+當你選擇閃電網路節點時，你也在選擇所有上述特性。因此，你對這些工具和設計理念的熟悉程度將使運行節點變得更容易。或者更難，如果你落入一個不熟悉的領域。
+
+另一方面，如果這是你第一次進入命令列和伺服器/服務環境，你會發現自己對任何實作都不熟悉，並有機會學習全新的東西。在這種情況下，你可能想根據一些其他因素來決定，例如：
+
+* 支援論壇和聊天室的品質
+* 文件的品質
+* 與你想要運行的其他工具的整合程度
+
+作為最後的考慮，你可能想要檢查不同節點實作的效能和可靠性。如果你將在生產環境中使用此節點並期望高流量和高可靠性要求，這一點尤其重要。如果你計劃在其上運行商店的支付系統，情況可能就是這樣。
+
+=== 安裝比特幣或閃電網路節點
+
+((("Bitcoin node","installation/configuration", id="ix_05_node_operations-asciidoc6", range="startofrange")))((("Lightning node operation","installing Bitcoin node or Lightning node", id="ix_05_node_operations-asciidoc7", range="startofrange")))((("Linux, installing Bitcoin node or Lightning node", id="ix_05_node_operations-asciidoc8", range="startofrange")))你決定不使用安裝「助手」，而是深入 Linux 作業系統的命令列？這是一個勇敢的決定，我們會盡力幫助你成功。如果你不想嘗試手動執行此操作，請考慮使用幫助你安裝節點軟體的應用程式或基於容器的解決方案，如 <<helpers>> 中所述。
+
+[WARNING]
+====
+本節將深入探討從命令列進行系統管理的進階主題。Linux 管理是一項超出本書範圍的獨立技能集。這是一個複雜的主題，有許多陷阱。請謹慎進行！
+====
+
+在接下來的幾節中，我們將簡要描述如何在 Linux 作業系統上安裝和配置比特幣和閃電網路節點。你需要查看你決定使用的特定比特幣和閃電網路節點應用程式的安裝說明。你通常可以在名為 _INSTALL_ 的檔案或每個專案的 _docs_ 子目錄中找到這些說明。我們只會描述適用於所有此類服務的一些常見步驟，我們提供的說明必然是不完整的。
+
+==== 背景服務
+
+((("background services")))((("Lightning node operation","background services")))對於那些習慣在桌面或智慧型手機上運行應用程式的人來說，應用程式總是有圖形使用者介面，即使它有時可能在背景運行。然而，比特幣和閃電網路節點應用程式非常不同。這些應用程式沒有內建的圖形使用者介面。相反，它們作為_無頭_背景服務運行，這意味著它們始終在背景操作，不直接與使用者互動。
+
+這可能會給不習慣運行背景服務的使用者帶來一些困惑。你如何知道這樣的服務目前是否正在運行？你如何啟動和停止它？你如何與它互動？這些問題的答案取決於你使用的作業系統。現在我們假設你使用某種 Linux 變體，並在該環境下回答這些問題。
+
+==== 程序隔離
+
+((("Lightning node operation","process isolation")))背景服務通常在特定的使用者帳戶下運行，以將它們與作業系統和彼此隔離。例如，Bitcoin Core 被配置為以使用者 +bitcoin+ 運行。你需要使用命令列為你運行的每個服務建立一個使用者。
+
+此外，如果你連接了外部驅動器，你需要告訴作業系統將使用者的主目錄重新定位到該驅動器。這是因為像 Bitcoin Core 這樣的服務會在使用者的主目錄下建立檔案。如果你將其設定為下載完整的比特幣區塊鏈，這些檔案將佔用數百 GB。在這裡，我們假設你已經連接了外部驅動器，並且它位於作業系統的 _/external_drive/_ 路徑上。
+
+在大多數 Linux 系統上，你可以使用 +useradd+ 命令建立新使用者，如下所示：
+
+----
+$ sudo useradd -m -d /external_drive/bitcoin -s /dev/null bitcoin
+----
+
++m+ 和 +d+ 標誌建立使用者的主目錄，在本例中指定為 _/external_drive/bitcoin_。+s+ 標誌分配使用者的互動式 shell。在本例中，我們將其設定為 _/dev/null_ 以停用互動式 shell 使用。最後一個參數是新使用者的使用者名 +bitcoin+。
+
+==== 節點啟動
+
+((("Lightning node operation","node startup")))((("startup script")))對於比特幣和閃電網路節點服務，「安裝」還包括建立所謂的_啟動腳本_，以確保節點在電腦啟動時啟動。背景服務的啟動和關閉由作業系統程序處理，在 Linux 中稱為 +init+ 或 +systemd+。你通常可以在每個專案的 +contrib+ 子目錄中找到系統啟動腳本。例如，如果你在使用 +systemd+ 的現代 Linux 作業系統上，你會找到一個名為 _bitcoind.service_ 的腳本，它可以啟動和停止 Bitcoin Core 節點服務。
+
+以下是比特幣節點啟動腳本的範例，取自 Bitcoin Core 程式碼儲存庫：
+
+.來自 bitcoin/contrib/init/bitcoind.service
+----
+[Unit]
+Description=Bitcoin daemon
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/bitcoind -daemon \
+                            -pid=/run/bitcoind/bitcoind.pid \
+                            -conf=/etc/bitcoin/bitcoin.conf \
+                            -datadir=/var/lib/bitcoind
+
+# Make sure the config directory is readable by the service user
+PermissionsStartOnly=true
+ExecStartPre=/bin/chgrp bitcoin /etc/bitcoin
+
+# Process management
+####################
+
+Type=forking
+PIDFile=/run/bitcoind/bitcoind.pid
+Restart=on-failure
+TimeoutStopSec=600
+
+# Directory creation and permissions
+####################################
+
+# Run as bitcoin:bitcoin
+User=bitcoin
+Group=bitcoin
+
+# /run/bitcoind
+RuntimeDirectory=bitcoind
+RuntimeDirectoryMode=0710
+
+# /etc/bitcoin
+ConfigurationDirectory=bitcoin
+ConfigurationDirectoryMode=0710
+
+# /var/lib/bitcoind
+StateDirectory=bitcoind
+StateDirectoryMode=0710
+
+[...]
+
+[Install]
+WantedBy=multi-user.target
+----
+
+作為 root 使用者，透過將腳本複製到 +systemd+ 服務資料夾 _/lib/systemd/system/_ 來安裝腳本，然後重新載入 +systemd+：
+
+----
+$ sudo systemctl daemon-reload
+----
+
+[role="pagebreak-before"]
+接下來，啟用服務：
+
+----
+$ sudo systemctl enable bitcoind
+----
+
+你現在可以啟動和停止服務。先不要啟動它，因為我們還沒有配置比特幣節點。
+
+----
+$ sudo systemctl start bitcoind
+$ sudo systemctl stop bitcoind
+----
+
+==== 節點配置
+
+((("Lightning node operation","node configuration")))要配置你的節點，你需要建立並引用一個配置檔案。按照慣例，這個檔案通常在 _/etc_ 中建立，在一個以程式名稱命名的目錄下。例如，Bitcoin Core 和 LND 配置通常分別儲存在 _/etc/bitcoin/bitcoin.conf_ 和 _/etc/lnd/lnd.conf_ 中。
+
+這些配置檔案是文字檔案，每行表達一個配置選項及其值。配置檔案中未定義的任何內容都假定為預設值。你可以透過兩種方式查看配置中可以設定的選項。首先，使用 +help+ 參數運行節點應用程式將顯示可以在命令列上定義的選項。這些相同的選項可以在配置檔案中定義。其次，你通常可以在軟體的程式碼儲存庫中找到一個範例配置檔案，其中包含所有預設選項。
+
+你可以在我們在 <<set_up_a_lightning_node>> 中使用的每個 Docker 映像中找到一個配置檔案範例。例如，檔案 _code/docker/bitcoind/bitcoind/bitcoin.conf_：
+
+.docker bitcoind 的配置檔案 (code/docker/bitcoind/bitcoind/bitcoin.conf)
+----
+include::code/docker/bitcoind/bitcoind/bitcoin.conf[]
+----
+
+該特定配置檔案將 Bitcoin Core 配置為作為 +regtest+ 節點運行，並提供弱使用者名和密碼用於遠端存取，因此你不應該將其用於你的節點配置。然而，它用於說明配置檔案的語法，你可以在 Docker 容器中對其進行調整以試驗不同的選項。看看你是否可以使用 +bitcoind -help+ 命令來理解每個選項在我們在 <<set_up_a_lightning_node>> 中建構的 Docker 網路的環境下做什麼。
+
+通常，預設值就足夠了，只需進行少量修改即可快速配置你的節點軟體。要使 Bitcoin Core 節點以最少的自訂運行，你只需要四行配置：
+
+[source, subs="quotes"]
+----
+server=1
+daemon=1
+txindex=1
+rpcuser=_USERNAME_
+rpcpassword=_PASSWORD_
+----
+
+甚至 +txindex+ 選項也不是嚴格必需的，儘管它將確保你的比特幣節點建立所有交易的索引，這是某些應用程式所必需的。運行閃電網路節點不需要 +txindex+ 選項。
+
+在同一伺服器上運行的 `c-lightning` 閃電網路節點也只需要在配置中添加幾行：
+
+[source, subs="quotes"]
+----
+network=mainnet
+bitcoin-rpcuser=_USERNAME_
+bitcoin-rpcpassword=_PASSWORD_
+----
+
+一般來說，最好盡量減少對這些系統的自訂。預設配置經過精心設計，以支援最常見的部署。如果你修改預設值，以後可能會導致問題或降低節點的效能。簡而言之，只在必要時修改！
+
+==== 網路配置
+
+((("Lightning node operation","network configuration", id="ix_05_node_operations-asciidoc9", range="startofrange")))((("network configuration","Lightning node", id="ix_05_node_operations-asciidoc10", range="startofrange")))在配置新應用程式時，網路配置通常不是問題。然而，像比特幣和閃電網路這樣的點對點網路對網路配置提出了一些獨特的挑戰。
+
+在集中式服務中，你的電腦連接到某些公司的「大型伺服器」，而不是相反。你的家庭網路連線實際上是假設你只是他人提供的服務的消費者來配置的。但在點對點系統中，每個對等節點既消費也提供服務給其他節點。如果你在家裡運行比特幣或閃電網路節點，你就是在為網路上的其他電腦提供服務。你的網路服務預設未配置為允許你運行伺服器，可能需要一些額外配置才能讓其他人連接到你的節點。
+
+如果你想運行比特幣或閃電網路節點，你需要讓網路上的其他節點能夠連接到你。這意味著需要啟用到比特幣埠（預設埠 8333）或閃電網路埠（預設埠 9735）的傳入 TCP 連線。雖然你可以在沒有傳入連線的情況下運行比特幣節點，但閃電網路節點不能這樣做。閃電網路節點必須從你的網路外部可被其他人存取。
+
+預設情況下，你的家庭網路路由器不期望來自外部的傳入連線，事實上傳入連線是被阻擋的。你的網路路由器 IP 位址是唯一外部可存取的 IP 位址，你家庭網路內運行的所有電腦都共享該單一 IP 位址。這是透過一種稱為_網路位址轉換_（_NAT_）的機制實現的，它允許你的網路路由器充當所有外出連線的中介。((("port forwarding","defined")))如果你想允許傳入連線，你必須設定_埠轉發_，它告訴你的網路路由器特定埠上的傳入連線應該轉發到網路內的特定電腦。你可以透過變更網路路由器配置手動完成此操作，或者如果你的路由器支援，透過稱為_通用隨插即用_（_UPnP_）的自動埠轉發機制完成。
+
+另一種替代埠轉發的機制是啟用洋蔥路由器（Tor），它提供一種虛擬私人網路覆蓋，允許傳入連線到_洋蔥位址_。如果你運行 Tor，你不需要進行埠轉發或啟用到比特幣或閃電網路埠的傳入連線。如果你使用 Tor 運行節點，所有流量都經過 Tor，不使用其他埠。
+
+讓我們看看可以讓其他人連接到你的節點的不同方式。我們將按從最簡單到最困難的順序來看這些替代方案。
+
+===== 開箱即用！
+
+有可能你的網路服務提供商或路由器預設配置為支援 UPnP，一切都會自動運作。讓我們先嘗試這種方法，以防我們幸運。
+
+假設你已經有比特幣或閃電網路節點正在運行，我們將嘗試看看它們是否可以從外部存取。
+
+[NOTE]
+====
+要使此測試有效，你必須在家庭網路上運行比特幣或閃電網路節點（或兩者都有）。如果你的路由器支援 UPnP，傳入流量將自動轉發到運行節點的電腦上的相應埠。
+====
+
+你可以使用一些非常流行和有用的網站來找出你的外部 IP 位址，以及它是否允許並轉發到已知埠的傳入連線。這裡有兩個可靠的網站：
+
+* https://canyouseeme.org[]
+* https://www.whatismyip.com/port-scanner[]
+
+預設情況下，這些服務只允許你檢查從你連接的 IP 位址的傳入連線。這樣做是為了防止你使用該服務掃描其他人的網路和電腦。你將看到你的路由器的外部 IP 位址和一個輸入埠號的欄位。如果你沒有在節點配置中變更預設埠，請嘗試埠 8333（比特幣）和/或 9735（閃電網路）。
+
+在 <<ln_port_check>> 中，你可以使用 _whatismyip.com_ 埠掃描工具看到在運行閃電網路的伺服器上檢查埠 9735 的結果。它顯示伺服器正在接受到閃電網路埠的傳入連線。如果你看到這樣的結果，你就設定好了！
+
+[[ln_port_check]]
+.檢查傳入埠 9735
+image::images/mtln_0503.png[]
+
+===== 使用 UPnP 自動埠轉發
+
+((("network configuration","automatic port forwarding using UPnP")))((("port forwarding","automatic")))((("Universal Plug and Play (UPnP)")))有時候，即使你的網路路由器支援 UPnP，它可能預設是關閉的。在這種情況下，你需要從其網頁管理介面變更網路路由器配置：
+
+. 連接到你的網路路由器的配置網站。通常可以透過使用網頁瀏覽器連接到家庭網路的_閘道位址_來完成。你可以透過查看家庭網路中任何電腦的 IP 配置來找到閘道位址。它通常是非路由網路中的第一個位址，如 192.168.0.1 或 10.0.0.1。也請檢查路由器上的所有貼紙以找到_閘道位址_。找到後，打開瀏覽器並在瀏覽器的網址/搜尋框中輸入 IP 位址，例如「192.168.0.1」或「http://192.168.0.1」。
+
+. 找到路由器網頁配置面板的管理員使用者名和密碼。這通常寫在路由器本身的貼紙上，可能簡單如「admin」和「password」。快速搜尋你的 ISP 和路由器型號也可以幫助你找到這些資訊。
+
+. 找到 UPnP 設定並打開它。
+
+重新啟動你的比特幣和/或閃電網路節點，並使用我們在上一節使用的網站之一重複開放埠測試。
+
+===== 使用 Tor 進行傳入連線
+
+((("network configuration","Tor for incoming connections")))((("The Onion Router (Tor)")))((("Tor (The Onion Router)")))_洋蔥路由器_（_Tor_）是一種 VPN，具有特殊屬性，它會加密躍點之間的通訊，使任何中間節點都無法確定封包的來源或目的地。比特幣和閃電網路節點都支援透過 Tor 運行，這使你能夠在不透露 IP 位址或位置的情況下操作節點。因此，它為你的網路流量提供了高度的隱私保護。運行 Tor 的額外好處是，因為它作為 VPN 運行，它解決了從網路路由器進行埠轉發的問題。傳入連線透過 Tor 隧道接收，你的節點可以透過臨時生成的_洋蔥位址_而不是 IP 位址被找到。
+
+啟用 Tor 需要兩個步驟。首先，你必須在電腦上安裝 Tor 路由器和代理。其次，你必須在比特幣或閃電網路配置中啟用 Tor 代理的使用。
+
+要在使用 +apt+ 套件管理器的 Ubuntu Linux 系統上安裝 Tor，請執行：
+
+----
+sudo apt install tor
+----
+
+接下來，我們配置閃電網路節點使用 Tor 進行其外部連線。這是 LND 的範例配置：
+
+----
+[Tor]
+tor.active=true
+tor.v3=true
+tor.streamisolation=true
+listen=localhost
+----
+
+這將啟用 Tor（+tor.active+）、建立 v3 洋蔥服務（+tor.v3=true+）、為每個連線使用不同的洋蔥串流（+tor.streamisolation+），並將監聽連線限制為僅本機，以避免洩露你的 IP 位址（pass:[<code>l&#x2060;i&#x2060;s&#x2060;t&#x2060;e&#x2060;n&#x200b;=&#x2060;l&#x2060;o&#x2060;c&#x2060;a&#x2060;l&#x2060;h&#x2060;o&#x2060;s&#x2060;t</code>]）。
+
+你可以透過運行一個簡單的單行命令來檢查 Tor 是否正確安裝並運行。此命令應該在大多數 Linux 版本上有效：
+
+----
+curl --socks5 localhost:9050 --socks5-hostname localhost:9050 -s https://check.torproject.org/ | cat | grep -m 1 Congratulations | xargs
+----
+
+如果一切正常運作，此命令的回應應該是 +"Congratulations. This browser is configured to use Tor."+
+
+由於 Tor 的性質，你無法輕鬆使用外部服務來檢查你的節點是否可以透過洋蔥位址存取。儘管如此，你應該在閃電網路節點的日誌中看到你的 Tor 洋蔥位址。它是一長串字母和數字，後面跟著 +.onion+ 後綴。你的節點現在應該可以從網路存取，還有額外的隱私保護！
+
+===== 手動埠轉發
+
+((("network configuration","manual port forwarding")))((("port forwarding","manual")))這是最複雜的過程，需要相當多的技術技能。具體細節取決於你擁有的網路路由器類型、你的服務提供商設定和政策，以及許多其他上下文。在嘗試這個更困難的機制之前，請先嘗試 UPnP 或 Tor。
+
+基本步驟如下：
+
+. 找到你的節點所在電腦的 IP 位址。這通常由動態主機配置協定（DHCP）動態分配，通常在 192.168.x.x 或 10.x.x.x 範圍內的某處。
+
+. 找到你的節點網路介面的媒體存取控制（MAC）位址。這可以在該電腦的網路設定中找到。
+
+. 為你的節點分配一個靜態 IP 位址，這樣它總是相同的。你可以使用它目前擁有的 IP 位址。在你的網路路由器上，在 DHCP 配置下查找「靜態租約」。將 MAC 位址映射到你選擇的 IP 位址。現在你的節點將始終分配到該 IP 位址。或者，你可以查看路由器的 DHCP 配置並找出其 DHCP 位址範圍是什麼。選擇 DHCP 位址範圍_之外_的未使用位址。然後，在伺服器上，配置網路停止使用 DHCP，並將選定的非 DHCP IP 位址硬編碼到作業系統網路配置中。
+
+. 最後，在你的網路路由器上設定「埠轉發」，將特定埠上的傳入流量路由到你的伺服器的選定 IP 位址。
+
+完成重新配置後，使用前面章節中的其中一個網站重複埠檢查(((range="endofrange", startref="ix_05_node_operations-asciidoc10")))(((range="endofrange", startref="ix_05_node_operations-asciidoc9")))。(((range="endofrange", startref="ix_05_node_operations-asciidoc8")))(((range="endofrange", startref="ix_05_node_operations-asciidoc7")))(((range="endofrange", startref="ix_05_node_operations-asciidoc6")))
+
+=== 節點安全
+
+((("Lightning node operation","security", id="ix_05_node_operations-asciidoc11", range="startofrange")))((("security and privacy","Lightning node", id="ix_05_node_operations-asciidoc12", range="startofrange")))按定義，閃電網路節點是一個_熱錢包_。這意味著由閃電網路節點控制的資金（包括鏈上和鏈下）直接由載入節點記憶體或儲存在節點硬碟上的金鑰控制。如果閃電網路節點被入侵，創建鏈上或鏈下交易來轉移其資金是輕而易舉的事。因此，保護它免受未經授權的存取至關重要。
+
+安全是一項整體工作，意味著你必須保護系統的每一層。俗話說：鏈條的強度取決於最薄弱的環節。這是資訊安全的重要概念，我們將把它應用到我們的節點上。
+
+儘管你將採取所有安全措施，請記住閃電網路是一項早期的實驗性技術，你使用的任何專案的程式碼中都可能存在可利用的漏洞。_不要在閃電網路上放置超過你願意承擔損失風險的資金。_
+
+
+==== 作業系統安全
+
+((("operating system","security")))((("security and privacy","operating system security")))保護作業系統是一個超出本書範圍的廣泛話題。然而，我們可以建立一些基本原則。
+
+為了保護你的作業系統，以下是一些需要考慮的首要事項：
+
+來源可靠性:: 首先確保你下載的是正確的作業系統映像，並在安裝前驗證任何簽名或校驗和。將此延伸到你安裝的任何軟體。仔細檢查你下載的任何來源或網址。透過簽名和校驗和驗證來驗證下載軟體的完整性和正確性。
+維護:: 確保你的作業系統保持最新。啟用自動每日或每週安裝安全更新。
+最小權限:: 為特定程序設定使用者並授予他們運行服務所需的最少存取權限。不要以管理員權限（例如 +root+）運行程序。
+程序隔離:: 使用作業系統功能將程序相互隔離。
+檔案系統權限:: 根據最小權限原則仔細配置檔案系統。不要讓檔案可被所有人讀取或寫入。
+強認證:: 使用強大的隨機生成密碼，或者在可能的情況下使用公鑰認證。例如，使用帶有加密金鑰對的安全外殼（SSH）比使用密碼更安全。
+雙因素認證（2FA）:: 盡可能使用雙因素認證，包括使用硬體安全金鑰的通用第二因素（U2F）。這適用於你可能使用的所有外部服務，例如你的雲端服務提供商。你也可以將此應用於你自己的設定，例如你自己的 SSH 配置。對間接服務也使用 2FA。例如，假設你使用雲端服務。你給了雲端服務提供商一個電子郵件地址，所以你也應該用 2FA 保護你的電子郵件地址。
+備份:: 對你的系統進行備份，並確保你也用加密保護備份。定期執行這些備份。至少測試一次，看看你是否可以恢復備份，以及你的備份是否完整和可存取。如果可能的話，將備份的一個副本保存在不同的磁碟上，以避免單一硬碟故障同時破壞你的活動節點_和_備份副本。
+漏洞和暴露管理:: 使用遠端掃描來確保你已將系統的攻擊面最小化。關閉任何不必要的服務或埠。只安裝你真正需要和使用的軟體和套件。解除安裝你不再使用的套件。建議你_不要_將節點電腦用於可以在其他電腦上執行的非節點活動。特別是，如果可以的話，_不要_使用節點電腦進行瀏覽、上網或閱讀電子郵件。
+
+這是最基本安全措施的列表。它絕不是詳盡無遺的。
+
+==== 節點存取
+
+((("Lightning node operation","node access")))((("remote procedure call (RPC) API")))((("RPC (remote procedure call) API")))你的閃電網路節點將公開一個遠端程序呼叫（RPC）API。這意味著你的節點可以透過發送到特定 TCP 埠的命令遠端控制。對該 RPC API 的存取控制是透過某種形式的使用者認證來實現的。根據你設定的閃電網路節點類型，這將透過 pass:[<span class="keep-together">使用者名/密碼</span>] 認證或稱為認證 _macaroon_ 的機制來完成。顧名思義，macaroon 是一種更複雜的 cookie 類型。與 cookie 不同，它經過加密簽名，可以表達一組存取 pass:[<span class="keep-together">功能</span>]。
+
+例如，LND 使用 macaroons 來授予對 RPC API 的存取權限。預設情況下，LND 軟體建立三個具有不同存取級別的 macaroons，稱為 +admin+、+invoice+ 和 +readonly+。根據你複製並在 RPC 客戶端中使用的 macaroon，你可以擁有_唯讀_存取權、_發票_存取權（包括唯讀功能）或_管理員_存取權，這給你完全控制權。LND 中還有一個 macaroon +bakery+ 功能，可以用非常精細的控制構建具有任意功能組合的 macaroons。
+
+如果你使用使用者名/密碼認證模型，請確保選擇一個長而隨機的密碼。你不需要經常輸入這個密碼，因為它將儲存在配置檔案中。因此，你應該選擇一個無法猜測的密碼。你看到的許多範例包含選擇不當的密碼，人們經常將這些複製到他們自己的系統中，為任何人提供輕鬆的存取。不要這樣做！使用密碼管理器生成一個長的隨機字母數字密碼。由於某些特殊字元如 +$?/!*\&%`"'+ 可能會干擾命令列，因此最好避免在 shell 環境中使用的密碼中使用這些字元。為避免問題，請堅持使用長的隨機字母數字密碼。
+
+超過 12 個字元且隨機生成的純字母數字序列通常就足夠了。如果你計劃在閃電網路節點上存放大量資金，並且擔心遠端暴力攻擊，請選擇超過 20 個字元的密碼長度，使此類攻擊實際上不可行。(((range="endofrange", startref="ix_05_node_operations-asciidoc12")))(((range="endofrange", startref="ix_05_node_operations-asciidoc11")))
+
+=== 節點和通道備份
+
+((("backups", id="ix_05_node_operations-asciidoc13", range="startofrange")))((("Lightning Network channels","backups", id="ix_05_node_operations-asciidoc14", range="startofrange")))((("Lightning node operation","node and channel backups", id="ix_05_node_operations-asciidoc15", range="startofrange")))運行閃電網路節點時一個非常重要的考慮因素是備份問題。與比特幣錢包不同，在比特幣中 BIP-39 助記詞可以恢復錢包的所有狀態，在閃電網路中情況_不是_這樣。
+
+閃電網路錢包確實使用 BIP-39 助記詞備份，但只用於鏈上錢包。然而，由於通道的構建方式，助記詞_不足以_恢復閃電網路節點。((("SCB (static channel backup)")))((("static channel backup (SCB)")))需要額外的備份層，稱為_靜態通道備份_（_SCB_）。沒有 SCB，如果閃電網路節點操作員失去閃電網路節點資料儲存，他們可能會失去通道中的_所有_資金。
+
+[WARNING]
+====
+在你建立持續備份通道狀態的系統之前，_不要_為通道注入資金。你的備份應該移動到「異地」，即與節點不同的系統和位置，以便它們可以在各種系統故障（電源中斷、資料損壞等）或自然災害（洪水、火災等）中存活。
+====
+
+SCB 不是萬靈丹。首先，每個通道的狀態需要在每次有新的承諾交易時備份。其次，從通道備份恢復是危險的。如果你沒有_最新_的承諾交易，並且意外廣播了舊的（已撤銷的）承諾，你的通道對等方將假設你試圖作弊，並用懲罰交易索取整個通道餘額。為了確保你正在關閉通道，你需要進行_協作關閉_。但惡意對等方可能會誤導你的節點在協作關閉期間廣播舊的、已撤銷的承諾，從而透過讓你的節點無意中嘗試作弊來欺騙你。
+
+此外，你的通道備份需要加密以維護你的隱私和通道安全。否則，任何找到備份的人不僅可以看到你所有的通道，還可以使用備份以將餘額交給你的通道對等方的方式關閉你所有的通道。換句話說，獲得你備份存取權的惡意人士可能導致你失去所有通道資金。
+
+你可以看到 SCB 不是萬無一失的保障。它們是一個薄弱的妥協，因為它們用一種類型的風險（資料損壞或遺失）交換另一種類型的風險（惡意對等方）。要從 SCB 恢復，你必須與你的通道對等方互動，並希望他們不會透過給你舊的承諾或欺騙你的節點廣播已撤銷的承諾讓他們可以懲罰你來試圖欺騙你。儘管 SCB 有弱點，SCB 確實有意義，你應該執行它們。如果你不執行 SCB 並且失去節點資料，你將永遠失去你的通道資金。保證！然而，如果你_確實_執行 SCB 並且失去節點資料，那麼你有合理的機會有些對等方是誠實的，你可以恢復一些通道資金。如果你幸運的話，你可能可以恢復所有資金。總之，最好對主節點硬碟以外的磁碟執行持續的 SCB。
+
+通道備份機制仍在開發中，是大多數閃電網路實作的弱點。
+
+((("Lightning Network Daemon (LND) node project","SCBs and")))在撰寫本書時，只有 LND 提供了 SCB 的內建機制。Eclair 對伺服器端部署有類似的機制，儘管 Eclair Mobile 確實提供可選的 Google Drive 備份。`c-lightning` 最近合併了外掛程式實作通道備份所需的介面。不幸的是，不同節點 pass:[<span class="keep-together">實作</span>] 之間沒有一致、公認的備份機制。
+
+閃電網路節點資料庫的基於檔案的備份充其量是部分解決方案，因為你有備份不一致資料庫狀態的風險。此外，你可能無法可靠地捕獲最新的狀態承諾。最好有一個在每次通道狀態變更時觸發的備份機制，從而確保資料一致性。
+
+要在 LND 中設定 SCB，請在命令列或配置檔案中設定 +backupfilepath+ 參數。然後 LND 將在該目錄路徑中儲存 SCB 檔案。當然，這只是解決方案的第一步。現在，你必須設定一個監控此檔案變更的機制。每次檔案變更時，pass:[<span class="keep-together">備份</span>] 機制必須將此檔案複製到另一個，最好是異地的磁碟。這種備份機制超出了本書的範圍。儘管如此，任何複雜的備份解決方案都應該能夠處理這種情況。請記住，備份檔案也應該加密。
+
+==== 熱錢包風險
+
+((("Lightning node operation","hot wallet risk")))如 ((("hot wallets","security issues", id="ix_05_node_operations-asciidoc16", range="startofrange")))((("security and privacy","hot wallet risk", id="ix_05_node_operations-asciidoc17", range="startofrange")))我們之前討論過的，閃電網路由一個_熱錢包_網路組成。你儲存在閃電網路錢包中的資金始終在線上。這使它們容易受到攻擊。因此，你不應該在閃電網路錢包中存放大量資金。大量資金應該保存在_不_在線上並且只能在鏈上交易的_冷_錢包中。
+
+即使你一開始存放少量資金，隨著時間的推移，你可能仍然會發現閃電網路錢包中有大量資金。這是商店老闆的典型場景。如果你將閃電網路節點用於電子商務操作，你的錢包可能會經常收到資金，但很少發送資金。因此，你最終會同時遇到兩個問題。首先，你的通道會不平衡，本地餘額大於遠端餘額。其次，你的錢包中會有太多資金。幸運的是，你也可以同時解決這兩個問題。
+
+讓我們看看一些可以用來減少熱錢包中暴露資金的解決方案。
+
+==== 清掃資金
+
+((("hot wallets","sweeping funds")))((("sweeping funds","hot wallets")))如果你的閃電網路錢包餘額對你的風險承受能力來說變得太大，你將需要從錢包中「清掃」資金。你可以透過三種方式做到這一點：鏈上、鏈下和 Loop Out。讓我們在接下來的幾節中看看這些選項。
+
+===== 鏈上清掃
+
+((("sweeping funds","on-chain sweep")))鏈上清掃資金是透過將資金從閃電網路錢包轉移到比特幣錢包來完成的。你透過關閉通道來做到這一點。當你關閉通道時，你本地餘額中的所有資金都被「清掃」到一個比特幣地址。用於鏈上資金的比特幣地址通常由你的閃電網路錢包生成，所以它仍然是一個熱錢包。你可能需要進行額外的鏈上交易，將資金轉移到更安全的地址，例如在你的硬體錢包上生成的地址。
+
+關閉通道會產生鏈上費用，並會降低你的閃電網路節點的容量和連接性。然而，如果你運行一個受歡迎的電子商務節點，你不會缺少入站容量，可以策略性地關閉本地餘額較大的通道，基本上「捆綁」你的資金以進行鏈上轉移。你可能需要在關閉通道之前使用一些通道再平衡技術（參見 <<channel_rebalancing>>）來最大化此策略的效益。
+
+===== 鏈下清掃
+
+((("sweeping funds","off-chain sweep")))你可以使用的另一種技術涉及運行第二個未在網路上公布的閃電網路節點。你可以從你的公共節點（例如運行你商店的那個）到你未公布的（隱藏）節點建立大容量通道。定期透過向你的隱藏節點進行閃電網路付款來「清掃」資金。
+
+這種技術的優勢在於接收你商店付款的閃電網路節點將是公開知名的。這使它成為駭客的目標，因為任何與商店相關聯的閃電網路節點都會被假設有大量餘額。一個不與你的商店相關聯的第二個節點不會輕易被識別為有價值的目標。
+
+作為額外的安全措施，你可以使你的第二個節點成為隱藏的 Tor 服務，這樣它的 IP 位址就不會被知道。這進一步減少了攻擊的機會並增加了你的隱私。
+
+你需要設定一個定期運行的腳本。此腳本的目的是在你的隱藏節點上建立發票，並從你商店的節點支付該發票，從而將資金轉移到你的隱藏節點。
+
+請記住，這種技術不會將資金轉移到冷儲存。兩個閃電網路節點都是熱錢包。此清掃的目的是將資金從非常知名的熱錢包轉移到不起眼的熱錢包。
+
+===== 潛水艇交換清掃
+
+((("submarine swaps")))((("sweeping funds","submarine swap sweep")))減少閃電網路熱錢包餘額的另一種方法是使用稱為_潛水艇交換_的技術。潛水艇交換由共同作者 Olaoluwa Osuntokun 和 Alex Bosworth 提出概念，允許將鏈上比特幣與閃電網路付款進行交換，反之亦然。本質上，潛水艇交換是閃電網路鏈下資金和比特幣鏈上資金之間的原子交換。
+
+節點操作員可以發起潛水艇交換，將所有可用的通道餘額發送給對方，對方將發送鏈上比特幣作為交換。
+
+在未來，這可能成為閃電網路上節點提供的付費服務，這些節點會公布匯率或收取固定費用進行轉換。
+
+潛水艇交換清掃資金的優勢是不需要關閉通道。這意味著我們保留了我們的通道，只是透過此操作重新平衡我們的通道。當我們發送閃電網路付款時，我們在一個或多個通道上將一些餘額從本地轉移到遠端。這不僅減少了節點熱錢包中暴露的餘額，還增加了未來接收付款的可用餘額。
+
+你可以透過信任中介充當閘道來做到這一點，但這會冒著你的資金被偷的風險。然而，在潛水艇交換的情況下，操作不需要信任。潛水艇交換是非託管的_原子_操作。這意味著你的潛水艇交換對手方無法竊取你的資金，因為鏈上付款取決於鏈下付款的完成，反之亦然。
+
+===== 使用 Loop 進行潛水艇交換
+
+((("Loop, submarine swaps with")))((("sweeping funds","submarine swaps with Loop")))潛水艇交換服務的一個例子是 Lightning Labs 的 _Loop_，這是開發 LND 的同一家公司。Loop 有兩種變體：Loop In 和 Loop Out。_Loop In_ 接受比特幣鏈上付款並將其轉換為閃電網路鏈下付款。_Loop Out_ 將閃電網路付款轉換為比特幣付款。
+
+[NOTE]
+====
+要使用 Loop 服務，你必須運行 LND 閃電網路節點。
+====
+
+為了減少閃電網路熱錢包的餘額，你將使用 Loop Out 服務。要使用 Loop 服務，你需要在節點上安裝一些額外的軟體。Loop 軟體與你的 LND 節點一起運行，並提供一些命令列工具來執行潛水艇交換。你可以在 https://github.com/lightninglabs/loop[GitHub] 上找到 Loop 軟體和安裝說明。
+
+安裝並運行軟體後，Loop Out 操作就像運行單個命令一樣簡單：
+
+----
+loop out --amt 501000 --conf_target 400
+Max swap fees for 501000 sat Loop Out: 25716 sat
+Regular swap speed requested, it might take up to 30m0s for the swap to be executed.
+CONTINUE SWAP? (y/n), expand fee detail (x): x
+
+Estimated on-chain sweep fee:        149 sat
+Max on-chain sweep fee:              14900 sat
+Max off-chain swap routing fee:      10030 sat
+Max no show penalty (prepay):        1337 sat
+Max off-chain prepay routing fee:    36 sat
+Max swap fee:                        750 sat
+CONTINUE SWAP? (y/n): y
+Swap initiated
+
+Run `loop monitor` to monitor progress.
+----
+
+請注意，你的最高費用（代表最壞情況）將取決於你選擇的確認目標(((range="endofrange", startref="ix_05_node_operations-asciidoc17")))(((range="endofrange", startref="ix_05_node_operations-asciidoc16")))。(((range="endofrange", startref="ix_05_node_operations-asciidoc15")))(((range="endofrange", startref="ix_05_node_operations-asciidoc14")))(((range="endofrange", startref="ix_05_node_operations-asciidoc13")))
+
+=== 閃電網路節點正常運行時間和可用性
+
+((("Lightning node operation","uptime and availability", id="ix_05_node_operations-asciidoc18", range="startofrange")))與比特幣不同，閃電網路節點需要幾乎持續在線。你的節點需要在線才能接收付款、開啟通道、關閉通道（協作方式）以及監控協定違規。節點可用性是閃電網路中如此重要的要求，以至於它被各種自動通道管理工具（例如 +autopilot+）用作決定與哪些節點開啟通道的指標。你也可以在流行的節點瀏覽器（參見 <<ln_explorer>>）上看到「可用性」作為節點指標，例如 https://1ml.com[1ML]。
+
+節點可用性對於減輕和解決潛在的協定違規（即已撤銷的承諾）尤其重要。雖然你可以承受從一小時到一兩天的短暫中斷，但你不能讓節點長時間離線而不冒資金損失的風險。
+
+持續保持節點在線並不容易，因為各種錯誤和資源限制會不時導致停機。特別是如果你運行一個繁忙且受歡迎的節點，你會遇到記憶體、交換空間、開啟檔案數量、磁碟空間等方面的限制。各種不同的問題會導致你的節點或伺服器當機。
+
+==== 容錯和自動化
+
+((("automation, Lightning node")))((("fault tolerance, Lightning node")))((("Lightning node operation","fault toleration and automation")))如果你有時間和技能，你應該在閃電網路測試網上測試一些基本的故障場景。在測試網上，你將學習到寶貴的經驗，而不會冒任何資金風險。你採取的任何自動化系統的步驟都將提高你的可用性：
+
+自動電腦伺服器重新啟動:: 當你的伺服器或作業系統當機時會發生什麼？電源中斷時會發生什麼？透過按下電腦上的「重設」按鈕或拔掉電源線來模擬此故障。在當機、重設或電源故障後，電腦應自動重新啟動。一些電腦在其 BIOS 中有一個設定來指定電腦在電源故障時應如何反應。測試它以確保電腦在電源故障時確實會自動重新啟動，而無需人工干預。
+
+自動節點重新啟動:: 當你的節點或其中一個節點當機時會發生什麼？透過終止相應的節點程序來模擬此故障。如果節點當機，它應該自動重新啟動。測試它以確保節點在故障時確實會自動重新啟動，而無需人工干預。如果情況並非如此，很可能你的節點沒有正確設定為作業系統服務。
+
+自動網路重新連線:: 你的網路斷線時會發生什麼？當你的 ISP 暫時中斷時會發生什麼？當你的 ISP 為你的路由器或電腦分配新的 IP 位址時會發生什麼？當網路恢復時，你運行的節點是否會自動重新連接到網路？透過拔掉然後重新插入托管你節點的設備的網路線來模擬此故障。節點應自動重新連接並繼續運行，而無需人工干預。
+
+配置你的日誌檔案:: 所有上述故障都應在相應的日誌檔案中留下文字條目。如果需要，請調高日誌詳細程度。在日誌檔案中找到這些錯誤條目，並使用它們進行監控。
+
+==== 監控節點可用性
+
+((("Lightning node operation","monitoring node availability")))((("monitoring","node availability")))監控你的節點是保持其運行的重要部分。你不僅需要監控電腦本身的可用性，還需要監控閃電網路節點軟體的可用性和正確運行。
+
+有多種方法可以做到這一點，但大多數需要一些自訂。你可以使用通用的基礎設施監控或應用程式監控工具，但你必須專門自訂它們來查詢閃電網路節點 API，以確保節點正在運行、已與區塊鏈同步並連接到通道對等方。
+
+https://lightning.watch[Lightning.watch] 提供一項專門的服務，提供閃電網路節點監控。它使用 Telegram 機器人來通知你任何服務中斷。這是一項免費服務，但你可以付費（當然是透過閃電網路）以獲得更快的警報。
+
+隨著時間的推移，我們期望更多第三方服務提供專門的閃電網路節點監控，並透過微支付付費。也許這些服務及其 API 將標準化，並有一天被閃電網路節點軟體直接支援。
+
+[[watchtowers]]
+==== 瞭望塔
+
+((("Lightning node operation","watchtowers")))((("monitoring","watchtowers")))((("protocol violations, watchtowers and")))((("watchtowers")))_瞭望塔_是一種將閃電網路協定違規的監控和懲罰解決外包的機制。
+
+正如我們在前幾章中提到的，閃電網路協定透過懲罰機制來維護安全性。如果你的通道合作夥伴之一廣播舊的承諾交易，你的節點將需要行使撤銷條款並廣播懲罰交易以避免資金損失。但如果你的節點在協定違規期間處於離線狀態，你可能會損失資金。
+
+為了解決這個問題，我們可以使用一個或多個瞭望塔來外包監控協定違規和發出懲罰交易的工作。瞭望塔設定有兩個部分：瞭望塔伺服器（或簡稱瞭望塔）監控區塊鏈，瞭望塔客戶端請求瞭望塔伺服器提供此監控服務。
+
+瞭望塔技術仍處於早期開發階段，並未得到廣泛支援。然而，在以下段落中，我們列出了一些你可以嘗試的實驗性實作。
+
+LND 軟體包含瞭望塔伺服器和瞭望塔客戶端。你可以透過添加以下配置選項來啟動瞭望塔伺服器：
+
+[source, subs="quotes"]
+----
+[watchtower]
+watchtower.active=1
+watchtower.towerdir=_/path_to_watchtower_data_directory_
+----
+
+你可以透過在配置中啟動 LND 的瞭望塔客戶端，然後使用命令列將其連接到瞭望塔伺服器來使用它。配置如下：
+
+----
+[wtclient]
+wtclient.active=1
+----
+
+LND 的命令列客戶端 +lncli+ 顯示以下用於管理瞭望塔客戶端的選項：
+
+----
+$ lncli wtclient
+
+NAME:
+   lncli wtclient - Interact with the watchtower client.
+
+USAGE:
+   lncli wtclient command [command options] [arguments...]
+
+COMMANDS:
+     add     Register a watchtower to use for future sessions/backups.
+     remove  Remove a watchtower to prevent its use for future sessions/backups.
+     towers  Display information about all registered watchtowers.
+     tower   Display information about a specific registered watchtower.
+     stats   Display the session stats of the watchtower client.
+     policy  Display the active watchtower client policy configuration.
+
+OPTIONS:
+   --help, -h  show help
+----
+
+`c-lightning` 具有瞭望塔客戶端外掛程式所需的 API 掛鉤，儘管目前尚未實作此類外掛程式。
+
+最後，一個流行的獨立瞭望塔伺服器是 _The Eye of Satoshi_（TEOS）。它可以在 https://github.com/talaia-labs/python-teos[GitHub] 上找到。(((range="endofrange", startref="ix_05_node_operations-asciidoc18")))
+
+=== 通道管理
+
+((("channel management", id="ix_05_node_operations-asciidoc19", range="startofrange")))((("Lightning node operation","channel management", id="ix_05_node_operations-asciidoc20", range="startofrange")))作為閃電網路節點操作員，你需要執行的經常性任務之一是管理你的通道。這意味著從你的節點向其他節點開啟出站通道，以及讓其他節點向你的節點開啟入站通道。在未來，可能會有協作通道建構，這樣你就可以開啟在建立時兩端都有資金承諾的對稱通道。然而，目前新通道只有一端有資金，在發起者那一側。因此，為了使你的節點_平衡_，同時具有入站和出站容量，你需要向其他人開啟通道，並吸引其他人向你的節點開啟通道。
+
+==== 開啟出站通道
+
+((("channel management","opening outbound channels", id="ix_05_node_operations-asciidoc21", range="startofrange")))一旦你的閃電網路節點啟動並運行，你就可以為其比特幣錢包注資，然後開始用這些資金開啟通道。
+
+你必須謹慎選擇通道合作夥伴，因為你的節點發送付款的能力取決於你的通道合作夥伴是誰，以及他們與閃電網路其餘部分的連接程度。你還希望擁有多個通道，以避免單點故障。由於閃電網路現在支援多部分付款，你可以將初始資金分成幾個通道，並透過組合它們的容量來路由更大的付款。同時，避免讓你的通道太小。由於你需要支付比特幣交易費用來開啟和關閉通道，通道餘額不應該小到鏈上費用消耗其中很大一部分。一切都是關於平衡！
+
+總結：
+
+* 連接到幾個連接良好的節點
+* 開啟多個通道
+* 不要開啟太多通道
+* 不要讓通道太小
+
+找到連接良好的節點的一種方法是向在閃電網路上銷售產品的熱門商家開啟通道。這些節點往往資金充足且連接良好。因此，當你準備好透過閃電網路在線上購買東西時，你可以直接向商家的節點開啟通道。商家的節點 ID 將在你嘗試購買東西時收到的發票中。這使得它很容易。
+
+找到連接良好的節點的另一種方法是使用閃電網路瀏覽器（參見 <<ln_explorer>>），如 https://1ml.com[1ML]，並瀏覽按通道容量和通道數量排序的節點列表。不要選擇最大的節點，因為那會鼓勵中心化。選擇列表中間的節點，這樣你可以幫助它們成長。另一個需要考慮的因素可能是節點運營的時間跨度。運營超過一年的節點可能比一週前開始運營的節點更有信譽且風險更低。
+
+[[autopilot]]
+===== 自動導航
+
+((("autopilot", id="ix_05_node_operations-asciidoc22", range="startofrange")))((("channel management","autopilot for", id="ix_05_node_operations-asciidoc23", range="startofrange")))開啟通道的任務可以透過使用_自動導航_來部分自動化，這是一種根據某些啟發式規則自動開啟通道的軟體。自動導航軟體仍然相對較新，它並不總是為你選擇最佳的通道合作夥伴。特別是在開始時，手動開啟通道可能更好。
+自動導航目前以三種形式存在：
+
+- +lnd+ 包含一個與 +lnd+ 完全整合的自動導航，並在開啟時在背景持續運行。
+- +lib_autopilot.py+ 可以根據八卦和通道資料為任何節點實作提供自動導航計算。
+- 基於 +lib_autopilot.py+ 的 +c-lightning+ 外掛程式存在，為 +c-lightning+ 使用者提供易於使用的介面。
+
+((("lnd autopilot", id="ix_05_node_operations-asciidoc24", range="startofrange")))請注意，一旦透過配置檔案開啟，+lnd+ 自動導航將開始在背景運行。因此，如果你的 +lnd+ 錢包中有鏈上輸出，它將立即開始開啟通道。
+如果你想完全控制你進行的比特幣交易和你開啟的通道，請確保在用比特幣資金載入你的 +lnd+ 錢包_之前_關閉自動導航。
+如果自動導航之前已經開啟，你可能需要在透過鏈上交易為錢包充值或關閉通道（這實際上會再次給你鏈上資金）之前重新啟動你的 +lnd+。
+如果你想運行自動導航，設定關鍵配置值至關重要。
+看看這個範例配置：
+
+
+----
+[lnd-autopilot]
+autopilot.active=1
+autopilot.maxchannels=40
+autopilot.allocation=0.70
+autopilot.minchansize=500000
+autopilot.maxchansize=5000000
+autopilot.heuristic=top_centrality:1.0
+----
+
+此配置檔案將啟動自動導航。
+只要滿足以下兩個條件，它就會開啟通道：
+
+1. 你的節點目前開啟的通道少於 40 個。
+2. 你的總資金中少於 70% 在支付通道中處於鏈下狀態。
+
+這裡選擇的數字 40 和 0.7 完全是任意的，因為我們無法對每個人都有效地建議你應該開啟多少通道以及你的資金應該有多少百分比在鏈下。
++lnd+ 中的自動導航不會考慮鏈上費用。換句話說，它不會延遲開啟通道到費用較低的時間段。
+為了降低費用，你可以在費用較低的時間段（例如週末）手動開啟通道。
+每當條件滿足時，自動導航就會提出通道建議，並立即嘗試使用適當的當前費用開啟通道。
+根據前面的配置檔案，通道大小將在 5 mBTC（`minchansize` = 500,000 satoshi）和 50 mBTC（`maxchansize` = 5,000,000 satoshi）之間。
+按照慣例，配置檔案中的金額以 satoshi 為單位。
+目前，低於 1 mBTC 的通道不是很有用，我們不建議你開啟低於此金額的過小通道。
+隨著多部分付款的更廣泛採用，較小的通道負擔會減少。但目前，這是我們的建議。
+
+((("c-lightning autopilot plugin")))由 René Pickhardt（本書的共同作者之一）最初撰寫的 +c-lightning+ 外掛程式與 +lnd+ 自動導航相比工作方式非常不同。
+首先，它在用於提出建議的演算法上有所不同。我們這裡不會涵蓋這些。其次，它在使用者介面上有所不同。
+你需要從 +c-lightning+ 外掛程式 https://github.com/lightningd/plugins/tree/master/autopilot[儲存庫] 下載 _autopilot plug-in_ 並啟動它。
+
+[NOTE]
+====
+要在 +c-lightning+ 中啟動外掛程式，請將其放入 _~/.lightning/plugins_ 目錄，確保它是可執行的（例如 `chmod +x ~/.lightning/plugins/autopilot.py`），然後重新啟動 +lightningd+。
+
+或者，如果你不希望外掛程式在啟動 +lightningd+ 時自動啟動，你可以將其放在不同的目錄中，並使用 +lightningd+ 的 +plugin+ 參數手動啟動它：
+
+----
+   lightningd --plugin=~/lightning-plugins/autopilot.py
+----
+
+====
+
++c-lightning+ 中的自動導航透過三個配置值控制，這些值可以在配置檔案中設定，或者在啟動 +lightningd+ 時作為命令列參數：
+
+----
+[c-lightning-autopilot]
+autopilot-percent=75
+autopilot-num-channels=10
+autopilot-min-channel-size-msat=100000000msat
+----
+
+這些值是實際的預設配置，你根本不需要設定它們。
+
+自動導航不會像 +lnd+ 那樣在背景自動運行。
+相反，如果你希望自動導航開啟建議的通道，你必須使用 `lightning-cli autopilot-run-once` 專門啟動一次運行。
+但如果你只想讓它為你提供建議，從中你可以手動挑選節點，你可以附加可選的 `dryrun` 參數。
+
++lnd+ 和 +c-lightning+ 自動導航之間的一個關鍵區別是 +c-lightning+ 自動導航還會為通道大小提出建議。
+例如，如果自動導航建議與只有小通道的小節點開啟通道，它不會建議開啟大通道。
+然而，如果它與一個連接良好且也有許多大通道的節點開啟通道，它可能會建議更大的通道大小。
+
+如你所見，+c-lightning+ 自動導航不像 +lnd+ 的那樣自動，但它給你多一點控制。
+這些差異反映了個人偏好，實際上可能是你選擇一個實作而不是另一個的決定性因素。
+
+請記住，目前的自動導航主要會使用來自八卦協定的關於閃電網路當前拓撲的公開資訊。
+很明顯，你對通道的個人需求只能在一定程度上反映出來。
+更進階的自動導航會使用你的節點過去運行時收集的歷史和使用資訊，包括路由成功的資訊、你過去支付給誰以及誰支付給你。
+在未來，這種改進的自動導航可能還會使用這些收集的資料來提出關閉通道和重新分配資金的建議。(((range="endofrange", startref="ix_05_node_operations-asciidoc24")))
+
+總體而言，在撰寫本書時，請謹慎不要過度依賴自動導航(((range="endofrange", startref="ix_05_node_operations-asciidoc23")))(((range="endofrange", startref="ix_05_node_operations-asciidoc22")))。(((range="endofrange", startref="ix_05_node_operations-asciidoc21")))
+
+==== 獲取入站流動性
+
+((("channel management","getting inbound liquidity")))在閃電網路的當前設計中，使用者更典型的是_先_獲取出站流動性，_然後_獲取入站流動性。
+他們會透過與另一個節點開啟通道來做到這一點，通常他們會在能夠接收比特幣之前先能夠花費比特幣。
+有三種典型的方式獲取入站流動性：
+
+* 開啟一個有出站流動性的通道，然後花掉其中一些資金。現在餘額在通道的另一端，這意味著你可以接收付款。
+
+* 請求某人向你的節點開啟通道。提供互惠，這樣你們雙方的節點都會變得更好連接和平衡。
+
+* 使用潛水艇交換（例如 Loop In）將鏈上 BTC 兌換為通往你節點的入站通道。
+
+* 付費給第三方服務讓他們與你開啟通道。存在幾個這樣的服務。有些收取費用來提供流動性，有些是免費的。
+
+[role="pagebreak-before"]
+以下是目前可用的流動性提供者列表，它們會收費向你的節點開啟通道：
+
+* https://www.bitrefill.com/thor-lightning-network-channels[Bitrefill 的 Thor 服務]
+
+* https://lightningto.me[Lightning To Me]
+
+* https://lnbig.com[LNBig]
+
+* https://lightningconductor.net/channels[Lightning Conductor]
+
+從實際和使用者體驗的角度來看，創建入站流動性是具有挑戰性的。入站流動性不會自動發生，所以你必須找到方法為你的節點建立它。支付通道的這種不對稱性也不直觀。在大多數其他支付系統中，你先收到付款（入站），然後才付款給其他人（出站）。
+
+如果你是商家或為閃電網路付款出售服務，創建入站流動性的挑戰最為明顯。在這種情況下，你需要保持警惕，確保你有足夠的入站流動性來繼續接收付款。如果你的商店有買家激增，但他們實際上因為沒有更多入站容量而無法付款給你怎麼辦？
+
+在未來，這些挑戰可以透過實作雙向資助通道來部分緩解，這種通道從雙方資助，提供平衡的入站和出站容量。這種負擔也可以透過更複雜的自動導航軟體來減輕，它可以根據需要請求並支付入站容量。
+
+最終，閃電網路使用者需要對通道管理有策略且主動，以確保有足夠的入站容量來滿足他們的需求。
+
+==== 關閉通道
+
+((("channel management","closing channels")))如本書前面所討論的，_協作關閉_是關閉通道的首選方式。((("force close")))然而，有些情況下需要_強制關閉_。
+
+一些例子：
+
+* 你的通道合作夥伴離線，無法聯繫以發起協作關閉。
+* 你的通道合作夥伴在線，但不回應發起協作關閉的請求。
+* 你的通道合作夥伴在線，你們的節點正在協商協作關閉，但它們卡住了，無法達成決議。
+
+[[channel_rebalancing]]
+==== 重新平衡通道
+
+((("channel management","rebalancing channels")))((("rebalancing channels")))在閃電網路上進行交易和路由付款的過程中，入站和出站容量的組合可能會變得不平衡。
+
+例如，如果你的通道合作夥伴之一頻繁透過你的節點路由付款，你將耗盡該通道的入站容量，同時也耗盡出站通道的出站容量。一旦發生這種情況，你就無法再透過該路由路由付款。
+
+有很多方法可以重新平衡通道，每種方法都有不同的優缺點。一種方法是使用潛水艇交換（例如 Loop Out），如本章前面所述。另一種重新平衡的方法是簡單地等待以相反方向流動的路由付款。如果你的節點連接良好，當特定路由在一個方向上耗盡時，相同的路由在相反方向上就變得可用。其他節點可能會「發現」相反方向的該路由並開始將其用作其付款路徑的一部分，從而再次重新平衡資金。
+
+((("circular route rebalancing")))重新平衡通道的第三種方法是故意創建一個_循環路由_，將付款從你的節點透過閃電網路發送回你的節點。透過在具有大量本地容量的通道上發送付款，並安排路徑使其在具有大量遠端容量的通道上返回你的節點，這兩個通道都將變得更加平衡。循環路由重新平衡策略的範例可以在 <<circular_rebalancing>> 中看到。
+
+[[circular_rebalancing]]
+.循環路由重新平衡
+image::images/mtln_0504.png[]
+
+大多數閃電網路節點實作都支援循環重新平衡，可以在命令列上或透過 Ride The Lightning（參見 <<rtl>>）等網頁管理介面完成。
+
+通道重新平衡是一個複雜的問題，是活躍研究的主題，在 <<channel_rebalancing>> 中有更詳細的介紹。(((range="endofrange", startref="ix_05_node_operations-asciidoc20")))(((range="endofrange", startref="ix_05_node_operations-asciidoc19")))
+
+=== 路由費用
+
+((("Lightning node operation","routing fees")))((("routing","fees")))運行閃電網路節點允許你透過跨通道路由付款來賺取費用。路由費用通常不是重要的收入來源，與運行節點的成本相比微不足道。例如，在一個相對繁忙的每天路由十幾筆付款的節點上，費用不超過 2,000 satoshi。
+
+節點透過在每個通道上設定其期望的費率來競爭路由費用。路由費用由每個通道上的兩個參數設定：對任何付款收取的固定_基本費用_和與付款金額成比例的額外可變_費率_。
+
+發送閃電網路付款時，節點將選擇一條路徑以最小化費用、最小化跳數，或兩者兼顧。因此，路由費用市場從這些互動中產生。目前有許多節點收取非常低或不收取路由費用，對路由費用市場造成下行壓力。
+
+如果你不做任何選擇，你的閃電網路節點將為每個新通道設定預設的基本費用和費率。預設值取決於你使用的節點實作。
+基本費用以_毫聰_（千分之一聰）為單位設定。比例費率以_百萬分之一_為單位設定，並應用於付款金額。
+百萬分之一的單位通常縮寫為 _ppm_（百萬分之幾）。
+例如，基本費用為 1,000（毫聰）和費率為 1,000 ppm（百萬分之一）將導致對 100,000 satoshi 付款收取以下費用：
+
+[latexmath]
+++++
+\begin{equation}
+\begin{aligned}
+P &= 100,000 \text{ satoshi} \\
+F_{base} &= 1,000 \text{ millisatoshi} = 1 \text{ satoshi} \\
+F_{rate} &= 1,000 \text{ ppm} = 1,000/1,000,000 = 1/1,000 = \text{0.001} = 0.1\% \\
+F_{total} &= F_{base} + ( P * F_{rate} ) \\
+ \Rightarrow  F_{total} &= 1 \text{ satoshi} + ( 100,000/1,000 ) \text{ satoshi} \\
+ \Rightarrow  F_{total} &= 1 \text{ satoshi} + 100 \text{ satoshi} = 101 \text{ satoshi} \\
+\end{aligned}
+\end{equation}
+++++
+
+廣義來說，你可以對路由費用採取兩種方法之一。你可以以低費用路由大量付款，透過高量彌補低費用。或者，你可以選擇收取更高的費用。如果你選擇設定更高的費用，只有當其他更便宜的路由不存在時，你的節點才會被選中。因此，你路由的頻率會降低，但每次成功路由賺取更多。
+
+對於大多數節點，通常最好使用預設的路由費用值。這樣，你的節點就會與其他使用預設值的節點在大致相同的競技場上競爭。
+
+你也可以使用路由費用設定來重新平衡通道。如果你的大多數通道都有預設費用，但你想重新平衡特定通道，只需將該特定通道的費用降低到零或非常低的費率。然後坐下來等待某人透過你的「便宜」路由路由付款，並作為副作用為你重新平衡通道。
+
+=== 節點管理
+
+((("Lightning node operation","node management")))((("node management")))在命令列上管理你的閃電網路節點顯然不容易。它為你提供了節點 API 的完整靈活性和編寫自己的自訂腳本來滿足你個人需求的能力。但如果你不想處理命令列的複雜性，只需要一些基本的節點管理功能，你應該考慮安裝基於網頁的使用者介面，使節點管理更容易。
+
+有許多競爭專案提供基於網頁的閃電網路節點管理。以下部分描述了一些最受歡迎的專案。
+
+[[rtl]]
+==== Ride The Lightning
+
+((("Lightning node operation","Ride The Lightning (RTL)")))((("node management","Ride The Lightning (RTL)")))((("Ride The Lightning (RTL)")))((("RTL (Ride The Lightning)")))Ride The Lightning（RTL）是一個圖形化網頁使用者介面，幫助使用者管理三個主要閃電網路節點實作（LND、`c-lightning` 和 Eclair）的閃電網路節點操作。RTL 是由 Shahana Farooqui 和許多其他貢獻者開發的開源專案。你可以在 https://github.com/Ride-The-Lightning/RTL[GitHub] 上找到 RTL 軟體。
+
+<<rtl-web-interface>> 顯示了 RTL 網頁介面的範例螢幕截圖，如專案儲存庫所提供。
+
+[[rtl-web-interface]]
+.RTL 網頁介面範例
+image::images/mtln_0505.png[]
+
+==== lndmon
+
+((("Lightning node operation","lndmon")))((("lndmon")))((("node management","lndmon")))Lightning Labs，LND 的製造商，提供了一個名為 +lndmon+ 的基於網頁的圖形使用者介面來監控 LND 閃電網路節點的各種指標。+lndmon+ 僅適用於 LND 節點。它是用於監控的唯讀介面，因此不允許你主動管理節點。它無法開啟通道或進行付款。在 https://github.com/lightninglabs/lndmon[GitHub] 上找到 +lndmon+。
+
+==== ThunderHub
+
+((("Lightning node operation","ThunderHub")))((("node management","ThunderHub")))((("ThunderHub")))https://thunderhub.io[ThunderHub] 是一個非常美觀的基於網頁的圖形使用者介面，類似於 RTL，但專屬於 LND。它可用於進行付款、重新平衡通道，並透過各種功能管理節點。
+
+=== 結論
+
+隨著你維護節點並獲得經驗，你將學到很多關於閃電網路的知識。成為節點操作員是一項具有挑戰性但有回報的任務。掌握這些技能將使你能夠為這項技術和閃電網路本身的成長和發展做出貢獻。此外，你將獲得以最大程度的控制和便利發送和接收閃電網路付款的能力。你將在網路基礎設施中扮演核心角色，而不僅僅是邊緣的參與者。(((range="endofrange", startref="ix_05_node_operations-asciidoc0")))

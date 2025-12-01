@@ -1,0 +1,75 @@
+= 精通閃電網路
+Andreas M. Antonopoulos; Olaoluwa Osuntokun; Rene Pickhardt
+:doctype: book
+:toc: left
+:toclevels: 3
+:sectnums:
+:sectnumlevels: 3
+:icons: font
+:source-highlighter: highlight.js
+:imagesdir: ../images
+:lang: zh-TW
+:encoding: utf-8
+
+[preface]
+== 關於本書
+
+本書是《Mastering the Lightning Network》的繁體中文翻譯版本。
+
+原書由 Andreas M. Antonopoulos、Olaoluwa Osuntokun 和 Rene Pickhardt 共同撰寫，於 2021 年 12 月由 O'Reilly Media 出版。
+
+**繁體中文翻譯**：Dr. Awesome Doge
+
+本翻譯遵循 CC-BY-SA 4.0 授權。
+
+'''
+
+= 第一部分：基礎篇
+
+include::01_introduction.adoc[]
+
+include::02_getting_started.adoc[]
+
+include::03_how_ln_works.adoc[]
+
+include::04_node_client.adoc[]
+
+include::05_node_operations.adoc[]
+
+= 第二部分：技術深入篇
+
+include::06_lightning_architecture.adoc[]
+
+include::07_payment_channels.adoc[]
+
+include::08_routing_htlcs.adoc[]
+
+include::09_channel_operation.adoc[]
+
+include::10_onion_routing.adoc[]
+
+include::11_gossip_channel_graph.adoc[]
+
+include::12_path_finding.adoc[]
+
+include::13_wire_protocol.adoc[]
+
+include::14_encrypted_transport.adoc[]
+
+include::15_payment_requests.adoc[]
+
+include::16_security_privacy_ln.adoc[]
+
+include::17_conclusion.adoc[]
+
+= 附錄
+
+include::glossary.adoc[]
+
+include::appendix_bitcoin_fundamentals_review.adoc[]
+
+include::appendix_docker_basics.adoc[]
+
+include::appendix_protocol_messages.adoc[]
+
+include::appendix_license_notices.adoc[]

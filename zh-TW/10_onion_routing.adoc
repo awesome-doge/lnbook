@@ -1,0 +1,895 @@
+[[onion_routing]]
+== 洋蔥路由
+
+((("onion routing", id="ix_10_onion_routing-asciidoc0", range="startofrange")))在本章中，我們將描述閃電網路的洋蔥路由機制。_洋蔥路由_的發明比閃電網路早了 25 年！洋蔥路由是由美國海軍研究人員作為通訊安全協定發明的。洋蔥路由最著名的用途是 Tor，這是洋蔥路由的網際網路覆蓋網路，允許研究人員、活動人士、情報人員和其他所有人私密且匿名地使用網際網路。
+
+在本章中，我們將重點介紹閃電網路協定架構中的「基於源的洋蔥路由（SPHINX）」部分，如 <<LN_protocol_onion_highlight>> 中心（路由層）的輪廓所突顯。
+
+[[LN_protocol_onion_highlight]]
+.閃電網路協定套件中的洋蔥路由
+image::images/mtln_1001.png["閃電網路協定套件中的洋蔥路由"]
+
+洋蔥路由描述了一種加密通訊方法，訊息發送者建構連續的_嵌套加密層_，由每個中間節點「剝離」，直到最內層被傳遞給預期的接收者。「洋蔥路由」這個名稱描述了這種分層加密的使用，它像洋蔥皮一樣一次剝離一層。
+
+每個中間節點只能「剝離」一層並查看誰是通訊路徑中的下一個。洋蔥路由確保除發送者外沒有人知道目的地或通訊路徑的長度。每個中間節點只知道前一跳和下一跳。
+
+閃電網路使用基於 pass:[<em>Sphinx</em>] 的洋蔥路由協定實作，footnote:[George Danezis and Ian Goldberg, "Sphinx: A Compact and Provably Secure Mix Format," in _IEEE Symposium on Security and Privacy_ (New York: IEEE, 2009), 269–282.] 由 George Danezis 和 Ian Goldberg 於 2009 年開發。
+
+閃電網路中洋蔥路由的實作定義在 https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md[BOLT #4: Onion Routing Protocol]。
+
+=== 說明洋蔥路由的物理範例
+
+((("onion routing","physical example", id="ix_10_onion_routing-asciidoc1", range="startofrange")))有很多方法可以描述洋蔥路由，但最簡單的方法之一是使用密封信封的物理等效物。信封代表一層加密，只允許指定的收件人打開它並閱讀內容。
+
+假設 Alice 想透過一些中間人間接向 Dina 發送一封秘密信件。
+
+==== 選擇路徑
+
+((("onion routing","selecting a path")))閃電網路使用_源路由_，這意味著付款路徑由發送者選擇和指定，而且只有發送者。在這個例子中，Alice 給 Dina 的秘密信件將等同於一筆付款。為了確保信件到達 Dina，Alice 將建立一條從她到 Dina 的路徑，使用 Bob 和 Chan 作為中間人。
+
+[TIP]
+====
+可能有許多路徑使 Alice 能夠到達 Dina。我們將在 <<path_finding>> 中解釋選擇_最佳_路徑的過程。現在，我們假設 Alice 選擇的路徑使用 Bob 和 Chan 作為到達 Dina 的中間人。
+====
+
+[role="pagebreak-before"]
+作為提醒，Alice 選擇的路徑如 <<alice_dina_path>> 所示。
+
+[[alice_dina_path]]
+.路徑：Alice 到 Bob 到 Chan 到 Dina
+image::images/mtln_1002.png["Alice 到 Bob 到 Chan 到 Dina"]
+
+讓我們看看 Alice 如何使用這條路徑而不向中間人 Bob 和 Chan 透露資訊。
+
+.基於源的路由
+****
+((("source-based routing")))基於源的路由不是當今網際網路上通常路由封包的方式，儘管在早期源路由是可能的。
+網際網路路由基於每個中間路由節點的_封包交換_。例如，IPv4 封包包括發送者和接收者的 IP 位址，每個其他 IP 路由節點決定如何將每個封包轉發到目的地。
+然而，這種路由機制缺乏隱私，每個中間節點都能看到發送者和接收者，這使得它不適合用於支付網路。
+****
+
+==== 建構層次
+
+((("onion routing","building the layers", id="ix_10_onion_routing-asciidoc2", range="startofrange")))Alice 首先給 Dina 寫一封秘密信件。然後她將信件密封在信封內並在外面寫上「給 Dina」（見 <<dina_envelope>>）。信封代表用 Dina 的公鑰加密，只有 Dina 可以打開信封並閱讀信件。
+
+[[dina_envelope]]
+.Dina 的秘密信件，密封在信封中
+image::images/mtln_1003.png["Dina 的秘密信件，密封在信封中"]
+
+Dina 的信件將由 Chan 交給 Dina，Chan 在「路徑」中緊鄰 Dina 之前。所以，Alice 把 Dina 的信封放進一個寫給 Chan 的信封裡（見 <<chan_envelope>>）。Chan 唯一能讀到的是目的地（路由指示）：「給 Dina」。將此密封在寫給 Chan 的信封中代表用 Chan 的公鑰加密，只有 Chan 可以讀取信封地址。Chan 仍然無法打開 Dina 的信封。他只能看到外面的指示（地址）。
+
+[[chan_envelope]]
+.Chan 的信封，包含 Dina 密封的信封
+image::images/mtln_1004.png["Chan 的信封，包含 Dina 密封的信封"]
+
+現在，這封信將由 Bob 交給 Chan。所以 Alice 把它放進一個寫給 Bob 的信封裡（見 <<bob_envelope>>）。和以前一樣，信封代表加密給 Bob 的訊息，只有 Bob 可以讀取。Bob 只能讀取 Chan 信封的外面（地址），所以他知道要把它送給 Chan。
+
+[[bob_envelope]]
+.Bob 的信封，包含 Chan 密封的信封
+image::images/mtln_1005.png["Bob 的信封，包含 Chan 密封的信封"]
+
+現在，如果我們可以透過信封（用 X 光！）我們會看到信封一個套一個嵌套，如 <<nested_envelopes>> 所示。(((range="endofrange", startref="ix_10_onion_routing-asciidoc2")))
+
+[[nested_envelopes]]
+.嵌套的信封
+image::images/mtln_1006.png[嵌套的信封]
+
+==== 剝離層次
+
+((("onion routing","peeling the layers")))Alice 現在有一個信封，外面寫著「給 Bob」。它代表一個只有 Bob 可以打開（解密）的加密訊息。Alice 現在透過把這個發送給 Bob 來開始這個過程。整個過程如 <<sending_nested_envelopes>> 所示。
+
+[[sending_nested_envelopes]]
+.發送信封
+image::images/mtln_1007.png[發送信封]
+
+如你所見，Bob 從 Alice 那裡收到信封。他知道它來自 Alice，但不知道 Alice 是原始發送者還是只是轉發信封的人。他打開它發現裡面有一個信封寫著「給 Chan」。由於這是寫給 Chan 的，Bob 無法打開它。他不知道裡面是什麼，不知道 Chan 是收到一封信還是另一個要轉發的信封。Bob 不知道 Chan 是否是最終收件人。Bob 將信封轉發給 Chan。
+
+Chan 從 Bob 那裡收到信封。他不知道它來自 Alice。他不知道 Bob 是中間人還是信件的發送者。Chan 打開信封發現裡面有另一個信封寫著「給 Dina」，他無法打開。Chan 將它轉發給 Dina，不知道 Dina 是否是最終收件人。
+
+Dina 從 Chan 那裡收到一個信封。打開它她發現裡面有一封信，所以現在她知道她是這條訊息的預期收件人。她閱讀這封信，知道沒有中間人知道它從哪裡來，也沒有其他人讀過她的秘密信件！
+
+這就是洋蔥路由的本質。發送者將訊息包裹在層次中，精確指定它將如何路由，並防止任何中間人獲得有關路徑或有效載荷的任何資訊。每個中間人剝離一層，只看到轉發地址，除了路徑中的前一跳和下一跳外什麼都不知道。
+
+現在，讓我們看看閃電網路中洋蔥路由實作的細節。(((range="endofrange", startref="ix_10_onion_routing-asciidoc1")))
+
+=== HTLC 洋蔥路由介紹
+
+((("hash time-locked contracts (HTLCs)","onion routing basics", id="ix_10_onion_routing-asciidoc3", range="startofrange")))((("onion routing","HTLCs", id="ix_10_onion_routing-asciidoc4", range="startofrange")))閃電網路中的洋蔥路由乍看之下似乎很複雜，但一旦你理解了基本概念，它實際上非常簡單。
+
+從實際角度來看，Alice 告訴每個中間節點要與路徑中的下一個節點設定什麼 HTLC。
+
+((("origin node")))第一個節點，即付款發送者或在我們例子中的 Alice，稱為_起源節點_。((("final node")))最後一個節點，即付款接收者或在我們例子中的 Dina，稱為_最終節點_。
+
+((("hop")))每個中間節點，或在我們例子中的 Bob 和 Chan，稱為_跳_。每一跳必須為下一跳設定一個_出站 HTLC_。Alice 傳達給每一跳的資訊稱為_跳有效載荷_或_跳資料_。從 Alice 路由到 Dina 的訊息稱為_洋蔥_，由加密的_跳有效載荷_或_跳資料_訊息組成，這些訊息為每一跳加密。
+
+現在我們知道了閃電網路洋蔥路由中使用的術語，讓我們重新陳述 Alice 的任務：Alice 必須用跳資料建構一個洋蔥，告訴每一跳如何建構出站 HTLC 以將付款發送到最終節點（Dina）。
+
+==== Alice 選擇路徑
+
+((("onion routing","selecting a path")))從 <<routing>> 我們知道 Alice 將透過 Bob 和 Chan 向 Dina 發送 50,000 聰的付款。此付款透過一系列 HTLC 傳輸，如 <<alice_dina_htlc_path>> 所示。
+
+[[alice_dina_htlc_path]]
+.從 Alice 到 Dina 的 HTLC 付款路徑
+image::images/mtln_1008.png[從 Alice 到 Dina 的 HTLC 付款路徑]
+
+正如我們將在 <<gossip>> 中看到的，Alice 能夠建構這條到 Dina 的路徑，因為閃電網路節點使用閃電網路八卦協定向整個閃電網路宣布它們的通道。在初始通道公告後，Bob 和 Chan 各自發送了額外的 `channel_update` 訊息，包含他們對付款路由的路由費和時間鎖預期。
+
+從公告和更新中，Alice 知道關於 Bob、Chan 和 Dina 之間通道的以下資訊：
+
+* 每個通道的 +short_channel_id+（短通道 ID），Alice 可以在建構路徑時使用它來參考通道
+
+* 一個 +cltv_expiry_delta+（時間鎖差值），Alice 可以將其添加到每個 HTLC 的到期時間
+
+* 一個 +fee_base_msat+ 和 +fee_proportional_millionths+，Alice 可以用來計算該節點在該通道上中繼預期的總路由費。
+
+在實踐中，還會交換其他資訊，例如通道將承載的最大（`htlc_maximum_msat`）和最小（`htlc_minimum_msat`）HTLC，但這些在洋蔥路由建構期間不像前面的欄位那樣直接使用。
+
+Alice 使用此資訊來識別以下詳細路徑的節點、通道、費用和時間鎖，如 <<alice_dina_path_detail>> 所示。
+
+[[alice_dina_path_detail]]
+.從八卦的通道和節點資訊建構的詳細路徑
+image::images/mtln_1009.png[從八卦的通道和節點資訊建構的路徑]
+
+Alice 已經知道她自己到 Bob 的通道，因此不需要此資訊來建構路徑。另請注意，Alice 不需要 Dina 的通道更新，因為她有 Chan 對該路徑中最後一個通道的更新。
+
+==== Alice 建構有效載荷
+
+((("onion routing","payload construction", id="ix_10_onion_routing-asciidoc5", range="startofrange")))Alice 可以使用兩種可能的格式來傳達給每一跳的資訊：((("hop data")))一種稱為_跳資料_的遺留固定長度格式和一種更靈活的基於類型-長度-值（TLV）的格式稱為_跳有效載荷_。TLV 訊息格式在 <<tlv>> 中有更詳細的解釋。它透過允許隨意向協定添加欄位來提供靈活性。
+
+[NOTE]
+====
+這兩種格式都在 https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md#packet-structure[BOLT #4: Onion Routing Protocol, Packet Structure] 中指定。
+====
+
+Alice 將從路徑的末端向後建構跳資料：Dina、Chan，然後是 Bob。
+
+===== Dina 的最終節點有效載荷
+
+((("final node")))Alice 首先建構將傳遞給 Dina 的有效載荷。Dina 不會建構「出站 HTLC」，因為 Dina 是最終節點和付款接收者。因此，Dina 的有效載荷與所有其他的不同（+short_channel_id+ 使用全零），但只有 Dina 會知道這一點，因為它將在洋蔥的最內層被加密。本質上，這就是我們在物理信封範例中看到的「給 Dina 的秘密信件」。
+
+Dina 的跳有效載荷必須匹配 Dina 為 Alice 生成的發票中的資訊，並將包含（至少）以下 TLV 格式的欄位：
+
++amt_to_forward+:: 此付款的金額，以毫聰為單位。如果這只是多部分付款的一部分，金額小於總額。否則，這是單筆完整付款，它等於發票金額和 +total_msat+ 值。
+
++outgoing_cltv_value+:: 付款到期時間鎖設定為發票中的值 +min_final_cltv_expiry+。
+
++payment_secret+:: 發票中的特殊 256 位元秘密值，允許 Dina 識別此傳入付款。這也防止了一類探測，這些探測以前使零值發票不安全。中間節點的探測被減輕，因為此值_只_對接收者加密，意味著他們無法重建一個看起來「合法」的最終封包。
+
++total_msat+:: 與發票匹配的總金額。如果只有一部分，這可以省略，在這種情況下假設它匹配 +amt_to_forward+ 並且必須等於發票金額。
+
+Alice 從 Dina 收到的發票指定金額為 50,000 聰，即 50,000,000 毫聰。Dina 指定付款的最低到期時間 +min_final_cltv_expiry+ 為 18 個區塊（3 小時，假設比特幣區塊平均 10 分鐘）。在 Alice 嘗試付款時，假設比特幣區塊鏈已記錄 700,000 個區塊。所以 Alice 必須將 +outgoing_cltv_value+ 設定為_最低_ 700,018 個區塊的區塊高度。
+
+((("hop payload", id="ix_10_onion_routing-asciidoc6", range="startofrange")))Alice 如下建構 Dina 的跳有效載荷：
+
+----
+amt_to_forward : 50,000,000
+outgoing_cltv_value: 700,018
+payment_secret: fb53d94b7b65580f75b98f10...03521bdab6d519143cd521d1b3826
+total_msat: 50,000,000
+----
+
+Alice 將其序列化為 TLV 格式，如（簡化的）<<dina_onion_payload>> 所示。
+
+[[dina_onion_payload]]
+.Dina 的有效載荷由 Alice 建構
+image::images/mtln_1010.png[Dina 的有效載荷由 Alice 建構]
+
+===== Chan 的跳有效載荷
+
+接下來，Alice 為 Chan 建構跳有效載荷。這將告訴 Chan 如何為 Dina 設定出站 HTLC。
+
+Chan 的跳有效載荷包含三個欄位：+short_channel_id+、+amt_to_forward+ 和 +outgoing_cltv_value+：
+
+----
+short_channel_id: 010002010a42be
+amt_to_forward: 50,000,000
+outgoing_cltv_value: 700,018
+----
+
+Alice 將此有效載荷序列化為 TLV 格式，如（簡化的）<<chan_onion_payload>> 所示。
+
+[[chan_onion_payload]]
+.Chan 的有效載荷由 Alice 建構
+image::images/mtln_1011.png[Chan 的有效載荷由 Alice 建構]
+
+===== Bob 的跳有效載荷
+
+最後，Alice 為 Bob 建構跳有效載荷，它也包含與 Chan 的跳有效載荷相同的三個欄位，但值不同：
+
+----
+short_channel_id: 000004040a61f0
+amt_to_forward: 50,100,000
+outgoing_cltv_value: 700,038
+----
+
+如你所見，+amt_to_forward+ 欄位是 50,100,000 毫聰，或 50,100 聰。這是因為 Chan 期望收取 100 聰的費用來將付款路由到 Dina。為了讓 Chan「賺取」該路由費，Chan 的入站 HTLC 必須比 Chan 的出站 HTLC 多 100 聰。由於 Chan 的入站 HTLC 是 Bob 的出站 HTLC，給 Bob 的指示反映了 Chan 賺取的費用。簡單來說，Bob 需要被告知向 Chan 發送 50,100 聰，這樣 Chan 可以發送 50,000 聰並保留 100 聰。
+
+同樣，Chan 期望 20 個區塊的時間鎖差值。所以 Chan 的入站 HTLC 必須比 Chan 的出站 HTLC 晚 20 個區塊到期。為了實現這一點，Alice 告訴 Bob 使他的出站 HTLC 給 Chan 在區塊高度 700,038 到期——比 Chan 給 Dina 的 HTLC 晚 20 個區塊。
+
+[TIP]
+====
+通道的費用和時間鎖差值預期由入站和出站 HTLC 之間的差異設定。由於入站 HTLC 由_前一個節點_建立，費用和時間鎖差值設定在給該前一個節點的洋蔥有效載荷中。Bob 被告知如何製作一個滿足 Chan 費用和時間鎖預期的 HTLC。
+====
+
+Alice 將此有效載荷序列化為 TLV 格式，如（簡化的）<<bob_onion_payload>> 所示。
+
+[[bob_onion_payload]]
+.Bob 的有效載荷由 Alice 建構
+image::images/mtln_1012.png[Bob 的有效載荷由 Alice 建構]
+
+===== 完成的跳有效載荷
+
+Alice 現在已經建構了將包裹在洋蔥中的三個跳有效載荷。有效載荷的簡化視圖如 <<onion_hop_payloads>> 所示。(((range="endofrange", startref="ix_10_onion_routing-asciidoc6"))) (((range="endofrange", startref="ix_10_onion_routing-asciidoc5")))
+
+[[onion_hop_payloads]]
+.所有跳的跳有效載荷
+image::images/mtln_1013.png[所有跳的跳有效載荷]
+
+[role="pagebreak-before less_space"]
+==== 金鑰生成
+
+((("keys","generating for onion routing", id="ix_10_onion_routing-asciidoc7", range="startofrange")))((("keys","onion routing and", id="ix_10_onion_routing-asciidoc8", range="startofrange")))((("onion routing","key generation", id="ix_10_onion_routing-asciidoc9", range="startofrange")))Alice 現在必須生成幾個金鑰，用於加密洋蔥中的各個層次。
+
+使用這些金鑰，Alice 可以實現高度的隱私和完整性：
+
+* Alice 可以加密洋蔥的每一層，使只有預期的接收者可以讀取它。
+* 每個中間人都可以檢查訊息是否被修改。
+* 路徑中沒有人會知道誰發送了這個洋蔥或它要去哪裡。Alice 不會透露她作為發送者的身份或 Dina 作為付款接收者的身份。
+* 每一跳只了解前一跳和下一跳。
+* 沒有人能知道路徑有多長，或者他們在路徑中的位置。
+
+[WARNING]
+====
+像切好的洋蔥一樣，以下技術細節可能會讓你流淚。如果你感到困惑，可以跳到下一節。如果你想了解更多，回來閱讀這部分和 https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md#packet-construction[BOLT #4: Onion Routing, Packet Construction]。
+====
+
+
+((("shared secret (ss)")))洋蔥中使用的所有金鑰的基礎是 Alice 和 Bob 都可以使用橢圓曲線 Diffie–Hellman（ECDH）演算法獨立生成的_共享秘密_。從共享秘密（ss）中，他們可以獨立生成四個名為 ++rho++、++mu++、++um++ 和 ++pad++ 的附加金鑰：
+
+++rho++:: 用於從串流加密器生成隨機位元組流（用作 CSPRNG）。這些位元組用於在 Sphinx 封包處理期間加密/解密訊息正文以及填充零位元組。
+
+++mu++:: 用於基於雜湊的訊息認證碼（HMAC）進行完整性/真實性驗證。
+
+++um++:: 用於錯誤報告。
+
+++pad++:: 用於生成填充洋蔥到固定長度的填充位元組。
+
+各種金鑰之間的關係以及它們如何生成如 <<onion_keygen>> 所示。
+
+[[onion_keygen]]
+.洋蔥金鑰生成
+image::images/mtln_1014.png[洋蔥金鑰生成]
+
+[[session_key]]
+===== Alice 的會話金鑰
+
+((("session key")))為了避免透露她的身份，Alice 不使用她自己節點的公鑰來建構洋蔥。相反，Alice 建立一個臨時的 32 位元組（256 位元）金鑰，稱為_會話私鑰_和對應的_會話公鑰_。這用作_僅用於此洋蔥_的臨時「身份」和金鑰。從這個會話金鑰，Alice 將建構此洋蔥中將使用的所有其他金鑰。
+
+[[keygen_details]]
+===== 金鑰生成細節
+金鑰生成、隨機位元組生成、臨時金鑰以及它們在封包建構中的使用方式在 BOLT #4 的三個部分中指定：
+
+* https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md#key-generation[Key Generation]
+* https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md#pseudo-random-byte-stream[Random Byte Stream]
+* https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md#packet-construction[Packet Construction]
+
+為了簡單起見，避免過於技術化，我們沒有在書中包含這些細節。如果你想了解內部運作，請參見前面的連結。
+
+[[shared_secret]]
+===== 共享秘密生成
+
+((("shared secret (ss)")))一個看起來幾乎神奇的重要細節是 Alice 只需知道另一個節點的公鑰就能與其建立_共享秘密_的能力。((("Diffie-Hellman Key Exchange (DHKE)", id="ix_10_onion_routing-asciidoc10", range="startofrange")))這基於 1970 年代發明的 Diffie–Hellman 金鑰交換（DH），它徹底改變了密碼學。閃電網路洋蔥路由在比特幣的 +secp256k1+ 曲線上使用橢圓曲線 Diffie–Hellman（ECDH）。這是一個很酷的技巧，我們嘗試在 <<ecdh_explained>> 中用簡單的術語解釋它。
+
+
+// To editor: Maybe put this in an appendix instead of a sidebar?
+
+[[ecdh]]
+[[ecdh_explained]]
+.橢圓曲線 Diffie–Hellman 解釋
+****
+((("ECDH (Elliptic Curve Diffie–Hellman)")))((("Elliptic Curve Diffie–Hellman (ECDH)")))假設 Alice 的私鑰是 _a_，Bob 的私鑰是 _b_。使用橢圓曲線，Alice 和 Bob 各自將他們的私鑰乘以生成點 _G_ 以產生他們各自的公鑰 _A_ 和 _B_：
+
+++++
+<ul class="simplelist">
+<li><em>A</em> = <em>aG</em></li>
+<li><em>B</em> = <em>bG</em></li>
+</ul>
+++++
+
+現在 Alice 和 Bob 可以使用_橢圓曲線 Diffie–Hellman 金鑰交換_來建立共享秘密 _ss_，這是一個他們都可以獨立計算而無需交換任何資訊的值。
+
+共享秘密 _ss_ 由每個人透過將他們自己的私鑰乘以_對方的_公鑰來計算，使得：
+
+++++
+<ul class="simplelist">
+<li><em>ss</em> = <em>aB</em> = <em>bA</em></li>
+</ul>
+++++
+
+但為什麼這兩個乘法會產生相同的值 _ss_？
+跟著我們，我們將證明這是可能的數學：
+
+++++
+<ul class="simplelist">
+<li><em>ss</em></li>
+<li>= <em>aB</em></li>
+</ul>
+++++
+
+由知道 _a_（她的私鑰）和 _B_（Bob 的公鑰）的 Alice 計算
+
+++++
+<ul class="simplelist">
+<li>= <em>a</em>(<em>bG</em>)</li>
+</ul>
+++++
+
+因為我們知道 _B_ = _bG_，我們代入
+
+++++
+<ul class="simplelist">
+<li> = (<em>ab</em>)<em>G</em></li>
+</ul>
+++++
+
+因為結合律，我們可以移動括號
+
+++++
+<ul class="simplelist">
+<li>= (<em>ba</em>)<em>G</em></li>
+</ul>
+++++
+
+因為 _xy_ = _yx_（曲線是阿貝爾群）
+
+++++
+<ul class="simplelist">
+<li>= <em>b</em>(<em>aG</em>)</li>
+</ul>
+++++
+
+因為結合律，我們可以移動括號
+
+++++
+<ul class="simplelist">
+<li>= <em>bA</em></li>
+</ul>
+++++
+
+我們可以用 _A_ 代替 _aG_。
+
+結果 _bA_ 可以由知道 _b_（他的私鑰）和 _A_（Alice 的公鑰）的 Bob 獨立計算。
+
+因此我們已經證明：
+
+++++
+<ul class="simplelist">
+<li><em>ss</em> = <em>aB</em>（Alice 可以計算這個）</li>
+<li><em>ss</em> = <em>bA</em>（Bob 可以計算這個）</li>
+</ul>
+++++
+
+因此，他們可以各自獨立計算 _ss_，然後將其用作共享金鑰來對稱加密他們之間的秘密，而無需通訊共享秘密。(((range="endofrange", startref="ix_10_onion_routing-asciidoc10")))
+
+****
+
+Sphinx 作為混合網路封包格式的一個獨特特性是，不是為路由中的每一跳包含一個獨特的會話金鑰，這會大大增加混合網路封包的大小，((("blinding scheme")))而是使用一種巧妙的_盲化_方案在每一跳確定性地隨機化會話金鑰。
+
+在實踐中，這個小技巧允許我們保持洋蔥封包盡可能緊湊，同時仍然保留所需的安全屬性。
+
+跳 `i` 的會話金鑰使用節點公鑰和跳 `i – 1` 的派生共享秘密來派生：
+```
+session_key_i = session_key_{i-1} * SHA-256(node_pubkey_{i-1} || shared_secret_{i-1})
+```
+
+換句話說，我們取前一跳的會話金鑰，並將其乘以從該跳的公鑰和派生共享秘密派生的值。
+
+由於橢圓曲線乘法可以在不知道私鑰的情況下對公鑰執行，每一跳都能夠以確定性的方式為下一跳重新隨機化會話金鑰。
+
+洋蔥封包的建立者知道所有的共享秘密（因為他們為每一跳唯一地加密了封包），因此能夠預先派生所有的盲化因子。
+
+這些知識允許他們在封包生成期間預先派生使用的所有會話金鑰。
+
+請注意，第一跳使用最初生成的原始會話金鑰，因為此金鑰用於啟動每個後續跳的會話金鑰盲化(((range="endofrange", startref="ix_10_onion_routing-asciidoc9")))(((range="endofrange", startref="ix_10_onion_routing-asciidoc8")))(((range="endofrange", startref="ix_10_onion_routing-asciidoc7")))。(((range="endofrange", startref="ix_10_onion_routing-asciidoc4")))(((range="endofrange", startref="ix_10_onion_routing-asciidoc3")))
+
+
+[[wrapping_the_onion]]
+=== 包裹洋蔥層
+
+((("onion routing","wrapping the onion layers", id="ix_10_onion_routing-asciidoc11", range="startofrange")))包裹洋蔥的過程詳見 https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md#packet-construction[BOLT #4: Onion Routing, Packet Construction]。
+
+在本節中，我們將在較高且有些簡化的層面描述此過程，省略某些細節。
+
+
+[[fixed_length_onions]]
+==== 固定長度洋蔥
+
+((("onion routing","fixed-length onions")))我們已經提到，「跳」節點都不知道路徑有多長，或者他們在路徑中的位置。這怎麼可能？
+
+如果你有一組方向，即使是加密的，難道不能透過查看你在方向列表中的_位置_來判斷你離開始或結束有多遠嗎？
+
+洋蔥路由中使用的技巧是始終為每個節點使路徑（方向列表）長度相同。這透過在每一步保持洋蔥封包相同的長度來實現。
+
+在每一跳，跳有效載荷出現在洋蔥有效載荷的開頭，後面跟著_看起來像是_ 19 個更多的跳有效載荷。每一跳都將自己視為 20 跳中的第一跳。
+
+[TIP]
+====
+洋蔥有效載荷是 1,300 位元組。每個跳有效載荷是 65 位元組或更少（如果更少則填充到 65 位元組）。所以總洋蔥有效載荷可以容納 20 個跳有效載荷（1300 = 20 × 65）。因此，最大洋蔥路由路徑是 20 跳。
+====
+
+當每一層被「剝離」時，會在洋蔥有效載荷的末尾添加更多填充資料（本質上是垃圾），這樣下一跳得到相同大小的洋蔥，並且再次成為洋蔥中的「第一跳」。
+
+洋蔥大小是 1,366 位元組，結構如 <<onion_packet>> 所示：
+
+1 位元組:: 版本位元組
+33 位元組:: 壓縮的公開會話金鑰（<<session_key>>），每一跳可以從中生成共享秘密（<<shared_secret>>）而不會透露 Alice 的身份
+1,300 位元組:: 實際的_洋蔥有效載荷_，包含每一跳的指示
+32 位元組:: HMAC 完整性校驗和
+
+[[onion_packet]]
+.洋蔥封包
+image::images/mtln_1015.png[]
+
+Sphinx 作為混合網路封包格式的一個獨特特性是，不是為路由中的每一跳包含一個獨特的會話金鑰，這會大大增加混合網路封包的大小，而是使用一種巧妙的_盲化_方案在每一跳確定性地隨機化會話金鑰。
+
+在實踐中，這個小技巧允許我們保持洋蔥封包盡可能緊湊，同時仍然保留所需的安全屬性。
+
+==== 包裹洋蔥（概述）
+
+((("onion routing","outline of wrapping process")))這是包裹洋蔥的過程，接下來概述。當我們用真實世界的例子探索每一步時，回到這個列表。
+
+對於每一跳，發送者（Alice）重複相同的過程：
+
+1. Alice 生成每跳共享秘密和 ++rho++、++mu++ 和 ++pad++ 金鑰。
+
+2. Alice 生成 1,300 位元組的填充並用此填充填滿 1,300 位元組的洋蔥有效載荷欄位。
+
+3. Alice 計算跳有效載荷的 HMAC（最終跳為零）。
+
+4. Alice 計算跳有效載荷 + HMAC + 儲存長度本身所需空間的長度。
+
+5. Alice 將洋蔥有效載荷_右移_計算出的容納跳有效載荷所需的空間。最右邊的「填充」資料被丟棄，在左邊為有效載荷騰出足夠的空間。
+
+6. Alice 在從移動填充騰出的空間的有效載荷欄位前面插入長度 + 跳有效載荷 + HMAC。
+
+7. Alice 使用 ++rho++ 金鑰生成 1,300 位元組的一次性填充。
+
+8. Alice 透過與從 ++rho++ 生成的位元組進行 XOR 來混淆整個洋蔥有效載荷。
+
+9. Alice 使用 ++mu++ 金鑰計算洋蔥有效載荷的 HMAC。
+
+10. Alice 添加會話公鑰（以便跳可以計算共享秘密）。
+
+11. Alice 添加版本號。
+
+12. Alice 使用透過雜湊共享秘密和前一跳公鑰派生的值確定性地重新盲化會話金鑰。
+
+接下來，Alice 重複這個過程。計算新金鑰，洋蔥有效載荷被移動（丟棄更多垃圾），新的跳有效載荷被添加到前面，整個洋蔥有效載荷用下一跳的 ++rho++ 位元組流加密。
+
+對於最終跳，步驟 #3 中包含的明文指示上的 HMAC 實際上_全為零_。
+最終跳使用此信號來確定它確實是路由中的最終跳。
+或者，有效載荷中包含的表示「下一跳」的 `short_chan_id` 全為零也可以使用。
+
+請注意，在每個階段，++mu++ 金鑰用於在_加密的_（從處理有效載荷的節點的角度）洋蔥封包上生成 HMAC，以及在移除單層加密的封包內容上生成 HMAC。
+這個外部 HMAC 允許處理封包的節點驗證洋蔥封包的完整性（沒有位元組被修改）。
+內部 HMAC 然後在前面描述的「移動和加密」例程的逆過程中被揭示，這作為下一跳的_外部_ HMAC。
+
+==== 包裹 Dina 的跳有效載荷
+
+((("onion routing","wrapping hop payloads", id="ix_10_onion_routing-asciidoc12", range="startofrange")))作為提醒，洋蔥是從路徑的末端開始包裹的，即 Dina，最終節點或接收者。然後路徑反向建構一直回到發送者 Alice。
+
+Alice 從一個空的 1,300 位元組欄位開始，即固定長度的_洋蔥有效載荷_。然後，她用從 ++pad++ 金鑰生成的偽隨機位元組流「填充」填充洋蔥有效載荷。
+
+這如 <<onion_payload_filler>> 所示。
+
+[NOTE]
+====
+隨機位元組流生成使用 ChaCha20 演算法，作為密碼學安全的偽隨機數產生器（CSPRNG）。這種演算法將從初始種子生成確定性的、長的、不重複的看似隨機的位元組流。細節在 https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md#pseudo-random-byte-stream[BOLT #4: Onion Routing, Pseudo Random Byte Stream] 中指定。
+====
+
+[[onion_payload_filler]]
+.用隨機位元組流填充洋蔥有效載荷
+image::images/mtln_1016.png[]
+
+Alice 現在將 Dina 的跳有效載荷插入 1,300 位元組陣列的左側，將填充向右移動並丟棄任何溢出的內容。這在 <<onion_add_dina>> 中視覺化。
+
+[[onion_add_dina]]
+.添加 Dina 的跳有效載荷
+image::images/mtln_1017.png[]
+
+另一種看法是 Alice 測量 Dina 跳有效載荷的長度，將填充向右移動以在洋蔥有效載荷的左側建立相等的空間，並將 Dina 的有效載荷插入該空間。
+
+向下一行我們看到結果：1,300 位元組的洋蔥有效載荷包含 Dina 的跳有效載荷，然後是填充位元組流填充其餘空間。
+
+接下來，Alice 混淆整個洋蔥有效載荷，使得_只有 Dina_可以讀取它。
+
+為此，Alice 使用 ++rho++ 金鑰生成一個位元組流（Dina 也知道這個）。Alice 在洋蔥有效載荷的位元和從 ++rho++ 建立的位元組流之間使用按位互斥或（XOR）。結果看起來像一個 1,300 位元組長度的隨機（或加密的）位元組流。這一步如 <<onion_obfuscate_dina>> 所示。
+
+[[onion_obfuscate_dina]]
+.混淆洋蔥有效載荷
+image::images/mtln_1018.png[]
+
+XOR 的一個屬性是，如果你做兩次，你會得到原始資料。正如我們將在 <<bobDeobfuscates>> 中看到的，如果 Dina 使用從 ++rho++ 生成的位元組流應用相同的 XOR 操作，它將揭示原始洋蔥有效載荷。
+
+[TIP]
+====
+XOR 是一個_對合_函數，意味著如果應用兩次，它會撤銷自身。具體來說 XOR(XOR(_a_, _b_), _b_) = _a_。此屬性在對稱金鑰密碼學中被廣泛使用。
+====
+
+因為只有 Alice 和 Dina 有 ++rho++ 金鑰（從 Alice 和 Dina 的共享秘密派生），只有他們可以做到這一點。實際上，這為 Dina 的眼睛加密了洋蔥有效載荷。
+
+最後，Alice 為 Dina 的有效載荷計算基於雜湊的訊息認證碼（HMAC），使用 ++mu++ 金鑰作為其初始化金鑰。這如 <<dina_hop_payload_hmac>> 所示。
+
+[[dina_hop_payload_hmac]]
+.為 Dina 的跳有效載荷添加 HMAC 完整性校驗和
+image::images/mtln_1019.png[]
+
+===== 洋蔥路由重播保護和檢測
+
+((("onion routing","replay protection/detection")))HMAC 作為安全校驗和，幫助 Dina 驗證跳有效載荷的完整性。32 位元組的 HMAC 附加到 Dina 的跳有效載荷。
+((("encrypt-then-mac")))請注意，我們是在_加密_資料上計算 HMAC，而不是在明文資料上。
+這稱為_先加密後 MAC_，是使用 MAC 的推薦方式，因為它提供明文_和_密文完整性。
+
+((("AD (associated data)")))((("associated data (AD)")))現代認證加密還允許使用一組可選的明文位元組進行認證，稱為_關聯資料_。
+在實踐中，這通常是像明文封包標頭或其他輔助資訊。
+透過在要認證（MAC）的有效載荷中包含此關聯資料，MAC 的驗證者確保此關聯資料沒有被篡改（例如，交換加密封包上的明文標頭）。
+
+在閃電網路的背景下，此關聯資料用於_加強_此方案的重播保護。
+正如我們將在下面了解的，重播保護確保攻擊者不能_重新傳輸_（重播）封包到網路並觀察其產生的路徑。
+相反，中間節點能夠使用定義的重播保護措施來檢測和拒絕重播的封包。
+基本 Sphinx 封包格式使用所有用過的臨時秘密金鑰的日誌來檢測重播。
+如果秘密金鑰再次使用，節點可以檢測到它並拒絕封包。
+
+閃電網路中 HTLC 的性質允許我們透過添加額外的_經濟_激勵來進一步加強重播保護。
+記住，HTLC 的付款雜湊只能安全地使用（用於完整付款）一次。
+如果付款雜湊再次使用並穿過已經看過該雜湊的付款秘密的節點，那麼他們可以簡單地提取資金並收取整個付款金額而不轉發！
+我們可以利用這一事實來加強重播保護，要求_付款雜湊_作為關聯資料包含在我們的 HMAC 計算中。
+有了這個添加的步驟，嘗試重播洋蔥封包還要求發送者承諾使用_相同的_付款雜湊。
+因此，除了正常的重播保護之外，攻擊者還可能失去重播的 HTLC 的全部金額。
+
+隨著為重播保護儲存的會話金鑰集不斷增加的一個考慮是：節點能夠回收這個空間嗎？
+在閃電網路的背景下，答案是：是的！
+再次，由於 HTLC 構造的獨特屬性，我們可以對基本 Sphinx 協定進行進一步改進。
+鑑於 HTLC 是基於絕對區塊高度的_時間鎖定_合約，一旦 HTLC 過期，合約就永久關閉。
+因此，節點可以使用此 CLTV（CHECKLOCKTIMEVERIFY 運算子）到期高度作為指標，以知道何時可以安全地垃圾收集反重播日誌中的條目。
+
+==== 包裹 Chan 的跳有效載荷
+
+在 <<chan_onion_wrapping>> 中，我們看到用於將 Chan 的跳有效載荷包裹在洋蔥中的步驟。這些是 Alice 用來包裹 Dina 跳有效載荷的相同步驟。
+
+[[chan_onion_wrapping]]
+.為 Chan 包裹洋蔥
+image::images/mtln_1020.png[]
+
+Alice 從為 Dina 建立的 1,300 洋蔥有效載荷開始。前 65（或更少）位元組是 Dina 的混淆有效載荷，其餘是填充。Alice 必須小心不要覆蓋 Dina 的有效載荷。
+
+接下來，Alice 需要找到將在此跳前置到路由封包的臨時公鑰（在最開始為每一跳生成）。
+
+記住，Sphinx 不是為每一跳包含一個唯一的臨時公鑰（發送者和中間節點在 ECDH 操作中使用它來生成共享秘密），而是使用單個臨時公鑰，在每一跳確定性地隨機化。
+
+在處理封包時，Dina 將使用她的共享秘密和公鑰來派生盲化因子（`b_dina`），並使用它來重新隨機化臨時公鑰，與 Alice 在初始封包建構期間執行的操作相同。
+
+Alice 為 Chan 的有效載荷添加內部 HMAC 校驗和，並將其插入洋蔥有效載荷的「前面」（左側），將現有有效載荷向右移動相同的量。
+記住，該方案中實際上使用了_兩個_ HMAC：外部 HMAC 和內部 HMAC。
+在這種情況下，Chan 的_內部_ HMAC 實際上是 Dina 的_外部_ HMAC。
+
+現在 Chan 的有效載荷在洋蔥的前面。當 Chan 看到這個時，他不知道之前或之後有多少有效載荷。它看起來總是像 20 跳中的第一跳！
+
+接下來，Alice 用從 Alice-Chan ++rho++ 金鑰生成的位元組流 XOR 混淆整個有效載荷。只有 Alice 和 Chan 有這個 ++rho++ 金鑰，只有他們可以產生位元組流來混淆和去混淆洋蔥。
+最後，正如我們在前面的步驟中所做的，我們計算 Chan 的外部 HMAC，這是她用來驗證加密洋蔥封包完整性的。
+
+==== 包裹 Bob 的跳有效載荷
+
+在 <<bob_onion_wrapping>> 中，我們看到用於將 Bob 的跳有效載荷包裹在洋蔥中的步驟。
+
+好了，現在這很容易了！
+
+從包含 Chan 和 Dina 跳有效載荷的洋蔥有效載荷（混淆的）開始。
+
+獲取從前一跳生成的盲化因子派生的此跳的會話金鑰。
+將前一跳的外部 HMAC 作為此跳的內部 HMAC 包含。
+在開頭插入 Bob 的跳有效載荷，並將其他所有內容向右移動，從末尾丟棄一個 Bob 跳有效載荷大小的塊（反正是填充）。
+
+用來自 Alice-Bob 共享秘密的 ++rho++ 金鑰 XOR 混淆整個內容，使得只有 Bob 可以解開這個。
+
+計算外部 HMAC 並將其貼在 Bob 跳有效載荷的末尾。(((range="endofrange", startref="ix_10_onion_routing-asciidoc12")))
+
+[[bob_onion_wrapping]]
+.為 Bob 包裹洋蔥
+image::images/mtln_1021.png[]
+
+
+==== 最終洋蔥封包
+
+((("onion routing","final onion packet")))最終洋蔥有效載荷準備好發送給 Bob 了。Alice 不需要再添加任何跳有效載荷。
+
+Alice 為洋蔥有效載荷計算 HMAC，用校驗和以密碼學方式保護它，Bob 可以驗證。
+
+Alice 添加一個 33 位元組的公開會話金鑰，每一跳將使用它來生成共享秘密和 ++rho++、++mu++ 和 ++pad++ 金鑰。
+
+最後 Alice 在前面放置洋蔥版本號（目前為 +0+）。這允許洋蔥封包格式的未來升級。
+
+結果可以在 <<onion_packet_2>> 中看到。(((range="endofrange", startref="ix_10_onion_routing-asciidoc11")))
+
+[[onion_packet_2]]
+.洋蔥封包
+image::images/mtln_1015.png[]
+
+=== 發送洋蔥
+
+((("onion routing","sending the onion", id="ix_10_onion_routing-asciidoc13", range="startofrange")))在本節中，我們將研究洋蔥封包如何轉發以及 HTLC 如何沿路徑部署。
+
+==== update_add_htlc 訊息
+
+((("onion routing","update_add_htlc message")))((("update_add_htlc message")))洋蔥封包作為 +update_add_htlc+ 訊息的一部分發送。如果你回憶一下 <<update_add_htlc>>，在 <<channel_operation>> 中，我們看到 +update_add_htlc+ 訊息的內容如下：
+
+----
+[channel_id:channel_id]
+[u64:id]
+[u64:amount_msat]
+[sha256:payment_hash]
+[u32:cltv_expiry]
+[1366*byte:onion_routing_packet]
+----
+
+你會記得這個訊息是由一個通道夥伴發送給另一個通道夥伴，要求他們添加 HTLC。這就是 Alice 將如何要求 Bob 添加 HTLC 來付款給 Dina。現在你理解了最後一個欄位 +onion_routing_packet+ 的目的，它是 1,366 位元組長。它是我們剛剛建構的完全包裹的洋蔥封包！
+
+==== Alice 向 Bob 發送洋蔥
+
+Alice 將向 Bob 發送 +update_add_htlc+ 訊息。讓我們看看這個訊息將包含什麼：
+
++channel_id+:: 此欄位包含 Alice-Bob 通道 ID，在我們的例子中是 +0000031e192ca1+（見 <<alice_dina_path_detail>>）。
+
++id+:: 此通道中此 HTLC 的 ID，從 +0+ 開始。
+
++amount_msat+:: HTLC 的金額：50,200,000 毫聰。
+
++payment_hash+:: RIPEMD160(SHA-256) 付款雜湊：
++
++9e017f6767971ed7cea17f98528d5f5c0ccb2c71+。
+
++cltv_expiry+:: HTLC 的到期時間鎖將是 700,058。Alice 根據 Bob 協商的 +cltv_expiry_delta+ 將 20 個區塊添加到 Bob 有效載荷中設定的到期時間。
+
++onion_routing_packet+:: Alice 建構的包含所有跳有效載荷的最終洋蔥封包！
+
+==== Bob 檢查洋蔥
+
+正如我們在 <<channel_operation>> 中看到的，Bob 將把 HTLC 添加到承諾交易中，並與 Alice 更新通道的狀態。
+
+Bob 將如下解開他從 Alice 收到的洋蔥：
+
+1. Bob 從洋蔥封包中取出會話金鑰並派生 Alice-Bob 共享秘密。
+
+2. Bob 從共享秘密生成 ++mu++ 金鑰，並使用它來驗證洋蔥封包 HMAC 校驗和。
+
+現在 Bob 已經生成了共享金鑰並驗證了 HMAC，他可以開始解開洋蔥封包內的 1,300 位元組洋蔥有效載荷。目標是讓 Bob 檢索自己的跳有效載荷，然後將剩餘的洋蔥轉發到下一跳。
+
+如果 Bob 提取並移除他的跳有效載荷，剩餘的洋蔥將不是 1,300 位元組，它會更短！所以下一跳會知道他們不是第一跳，並能夠檢測路徑有多長。為了防止這種情況，Bob 需要添加更多填充來重新填充洋蔥。
+
+==== Bob 生成填充
+
+Bob 以與 Alice 略有不同但遵循相同一般原則的方式生成填充。
+
+首先，Bob _擴展_洋蔥有效載荷 1,300 位元組，並用 +0+ 值填充它們。現在洋蔥封包是 2,600 位元組長，前半部分包含 Alice 發送的資料，後半部分包含零。這個操作如 <<bob_extends>> 所示。
+
+[[bob_extends]]
+.Bob 將洋蔥有效載荷擴展 1,300（零填充）位元組
+image::images/mtln_1023.png["Bob 將洋蔥有效載荷擴展 1,300（零填充）位元組"]
+
+這個空白空間將被混淆並透過 Bob 用來去混淆他自己跳有效載荷的相同過程變成「填充」。讓我們看看這是如何運作的。
+
+[[bobDeobfuscates]]
+==== Bob 去混淆他的跳有效載荷
+
+接下來，Bob 將從 Alice-Bob 共享金鑰生成 ++rho++ 金鑰。他將使用 ChaCha20 演算法用這個金鑰生成 2,600 位元組流。
+
+[TIP]
+====
+Bob 使用 ++rho++ 金鑰生成的位元組流的前 1,300 位元組與 Alice 使用 ++rho++ 金鑰生成的完全相同。
+====
+
+接下來，Bob 用按位 XOR 操作將 2,600 位元組的 ++rho++ 位元組流應用到 2,600 位元組的洋蔥有效載荷。
+
+前 1,300 位元組將透過此 XOR 操作被去混淆，因為它是 Alice 應用的相同操作，而 XOR 是對合的。所以 Bob 將_揭示_他的跳有效載荷，後面跟著一些看起來被打亂的資料。
+
+同時，將 ++rho++ 位元組流應用到添加到洋蔥有效載荷的 1,300 個零將把它們變成看似隨機的填充資料。這個操作如 <<bob_deobfuscates>> 所示。
+
+[[bob_deobfuscates]]
+.Bob 去混淆洋蔥，混淆填充
+image::images/mtln_1024.png["Bob 去混淆洋蔥，混淆填充"]
+
+==== Bob 提取下一跳的外部 HMAC
+
+記住，每一跳都包含一個內部 HMAC，然後它將成為_下一跳_的外部 HMAC。
+在這種情況下，Bob 提取內部 HMAC（他已經用外部 HMAC 驗證了加密封包的完整性），並將其放在一邊，因為他將把它附加到去混淆的封包上，以允許 Chan 驗證他加密封包的 HMAC。
+
+==== Bob 移除他的有效載荷並左移洋蔥
+
+現在 Bob 可以從洋蔥前面移除他的跳有效載荷，並左移剩餘的資料。來自後半 1,300 位元組填充的等於 Bob 跳有效載荷的資料量現在將移入洋蔥有效載荷空間。這如 <<bob_removes_shifts>> 所示。
+
+現在 Bob 可以保留前半 1,300 位元組，並丟棄擴展的（填充）1,300 位元組。
+
+Bob 現在有一個 1,300 位元組的洋蔥封包要發送到下一跳。它幾乎與 Alice 為 Chan 建立的洋蔥有效載荷相同，除了最後 65 位元組左右的填充是 Bob 放的，會有所不同。
+
+[[bob_removes_shifts]]
+.Bob 移除跳有效載荷並左移其餘部分，用新填充填補空白
+image::images/mtln_1025.png["Bob 移除跳有效載荷並左移其餘部分，用新填充填補空白"]
+
+[role="pagebreak-before"]
+沒有人能分辨 Alice 放的填充和 Bob 放的填充之間的區別。填充就是填充！反正都是隨機位元組。請注意，如果 Bob（或 Bob 的其他別名之一）在路由中出現在兩個不同的位置，那麼他們可以分辨區別，因為基本協定總是在整個路由中使用相同的付款雜湊。原子多路徑付款（AMP）和點時間鎖定合約（PTLC）透過在每個路由/跳上隨機化付款識別碼來消除關聯向量。
+
+==== Bob 建構新的洋蔥封包
+
+Bob 現在將洋蔥有效載荷複製到洋蔥封包中，附加 Chan 的外部 HMAC，使用橢圓曲線乘法操作重新隨機化會話金鑰（與發送者 Alice 做的方式相同），並附加一個新的版本位元組。
+
+要重新隨機化會話金鑰，Bob 首先使用他的節點公鑰和他派生的共享秘密計算他這一跳的盲化因子：
+```
+b_bob = SHA-256(P_bob || shared_secret_bob)
+```
+
+有了這個生成的，Bob 現在透過使用他的會話金鑰和盲化因子執行 EC 乘法來重新隨機化會話金鑰：
+```
+session_key_chan = session_key_bob * b_bob
+```
+
+`session_key_chan` 公鑰然後將被附加到洋蔥封包的前面，供 Chan 處理。
+
+==== Bob 驗證 HTLC 細節
+
+Bob 的跳有效載荷包含為 Chan 建立 HTLC 所需的指示。
+
+在跳有效載荷中，Bob 找到 +short_channel_id+、+amt_to_forward+ 和 +cltv_expiry+。
+
+首先，Bob 檢查他是否有具有該短 ID 的通道。他發現他與 Chan 有這樣的通道。
+
+接下來，Bob 確認出站金額（50,100 聰）小於入站金額（50,200 聰），因此 Bob 的費用預期得到滿足。
+
+同樣，Bob 檢查出站 +cltv_expiry+ 小於入站 +cltv_expiry+，給 Bob 足夠的時間在有違約時領取入站 HTLC。
+
+==== Bob 向 Chan 發送 update_add_htlc
+
+Bob 現在建構並發送給 Chan 的 HTLC，如下：
+
++channel_id+:: 此欄位包含 Bob-Chan 通道 ID，在我們的例子中是 +000004040a61f0+（見 <<alice_dina_path_detail>>）。
+
++id+:: 此通道中此 HTLC 的 ID，從 +0+ 開始。
+
++amount_msat+:: HTLC 的金額：50,100,000 毫聰。
+
++payment_hash+:: RIPEMD160(SHA-256) 付款雜湊：
++
++9e017f6767971ed7cea17f98528d5f5c0&#x200b;ccb2c71+。
++
+這與 Alice 的 HTLC 的付款雜湊相同。
+
++cltv_expiry+:: HTLC 的到期時間鎖將是 700,038。
+
++onion_routing_packet+:: Bob 在移除他的跳有效載荷後重建的洋蔥封包。
+
+==== Chan 轉發洋蔥
+
+Chan 重複與 Bob 完全相同的過程：
+
+1. Chan 收到 +update_add_htlc+ 並處理 HTLC 請求，將其添加到承諾交易中。
+
+2. Chan 生成 Alice-Chan 共享金鑰和 ++mu++ 子金鑰。
+
+3. Chan 驗證洋蔥封包 HMAC，然後提取 1,300 位元組的洋蔥 pass:[<span class="keep-together">有效載荷</span>]。
+
+4. Chan 將洋蔥有效載荷擴展 1,300 額外位元組，用零填充。
+
+5. Chan 使用 ++rho++ 金鑰產生 2,600 位元組。
+
+6. Chan 使用生成的位元組流 XOR 去混淆洋蔥有效載荷。同時，XOR 操作混淆額外的 1,300 個零，將它們變成填充。
+
+7. Chan 提取有效載荷中的內部 HMAC，這將成為 Dina 的外部 HMAC。
+
+8. Chan 移除他的跳有效載荷並將洋蔥有效載荷左移相同的量。在 1,300 擴展位元組中生成的一些填充移入前半 1,300 位元組，成為洋蔥有效載荷的一部分。
+
+9. Chan 用這個洋蔥有效載荷為 Dina 建構洋蔥封包。
+
+10. Chan 為 Dina 建構 +update_add_htlc+ 訊息並將洋蔥封包插入其中。
+
+11. Chan 向 Dina 發送 +update_add_htlc+。
+
+12. Chan 像 Bob 在前一跳為 Dina 做的那樣重新隨機化會話金鑰。
+
+==== Dina 收到最終有效載荷
+
+當 Dina 從 Chan 收到 +update_add_htlc+ 訊息時，她從 +payment_hash+ 知道這是給她的付款。她知道她是洋蔥中的最後一跳。
+
+Dina 按照與 Bob 和 Chan 完全相同的過程來驗證和解開洋蔥，除了她不建構新填充也不轉發任何東西。相反，Dina 用 +update_fulfill_htlc+ 回應 Chan 以兌換 HTLC。+update_fulfill_htlc+ 將沿路徑向後流動直到到達 Alice。所有 HTLC 都被兌換，通道餘額被更新。付款完成！(((range="endofrange", startref="ix_10_onion_routing-asciidoc13")))
+
+=== 返回錯誤
+
+((("error return","onion routing and", id="ix_10_onion_routing-asciidoc14", range="startofrange")))((("onion routing","returning errors", id="ix_10_onion_routing-asciidoc15", range="startofrange")))到目前為止，我們已經研究了洋蔥的前向傳播建立 HTLC，以及付款成功後付款秘密的反向傳播解開 HTLC。
+
+還有另一個非常重要的洋蔥路由功能：_錯誤返回_。如果付款、洋蔥或跳出現問題，我們必須向後傳播錯誤以通知所有節點故障並解開任何 HTLC。
+
+錯誤通常分為三類：洋蔥故障、節點故障和通道故障。此外，這些可以細分為永久性和暫時性錯誤。最後，一些錯誤包含通道更新以幫助未來的付款傳遞嘗試。
+
+[NOTE]
+====
+與點對點（P2P）協定中的訊息（定義在 https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md[BOLT #2: Peer Protocol for Channel Management]）不同，錯誤不是作為 P2P 訊息發送的，而是包裹在洋蔥返回封包內，並遵循洋蔥路徑的反向（反向傳播）。
+====
+
+錯誤返回定義在 https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md#returning-errors[BOLT #4: Onion Routing, Returning Errors]。
+
+錯誤由返回節點（發現錯誤的節點）編碼在_返回封包_中，如下：
+
+----
+    [32*byte:hmac]
+    [u16:failure_len]
+    [failure_len*byte:failuremsg]
+    [u16:pad_len]
+    [pad_len*byte:pad]
+----
+
+返回封包 HMAC 驗證校驗和使用 ++um++ 金鑰計算，該金鑰從洋蔥建立的共享秘密生成。
+
+[TIP]
+====
+++um++ 金鑰名稱是 ++mu++ 名稱的反向，表示相同的用途但方向相反（反向傳播）。
+====
+
+接下來，返回節點生成一個 +ammag+（單詞「gamma」的反向）金鑰，並使用與從 +ammag+ 生成的位元組流的 XOR 操作混淆返回封包。
+
+最後，返回節點將返回封包發送到它收到原始洋蔥的跳。
+
+每個收到錯誤的跳將生成一個 +ammag+ 金鑰，並再次使用與來自 +ammag+ 的位元組流的 XOR 操作混淆返回封包。
+
+最終，發送者（起源節點）收到返回封包。它將為每一跳生成 +ammag+ 和 ++um++ 金鑰，並 XOR 去混淆返回錯誤，迭代直到揭示返回封包。
+
+[[failure_messages]]
+==== 失敗訊息
+
+((("error return","failure messages", id="ix_10_onion_routing-asciidoc16", range="startofrange")))((("failure messages, onion routing and", id="ix_10_onion_routing-asciidoc17", range="startofrange")))+failuremsg+ 定義在 https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md#failure-messages[BOLT #4: Onion Routing, Failure Messages]。
+
+失敗訊息由兩位元組 +failure code+ 後跟適用於該失敗類型的資料組成。
+
++failure_code+ 的頂部位元組是一組可以組合（用二進位 OR）的二進位標誌：
+
+
+0x8000 (`BADONION`):: 發送對等方加密的洋蔥無法解析
+0x4000 (`PERM`):: 永久故障（否則為暫時性）
+0x2000 (`NODE`):: 節點故障（否則為通道）
+0x1000 (`UPDATE`):: 包含新的通道更新
+
+
+<<failure_types_table>> 中顯示的失敗類型目前已定義。
+
+include::failure_types_table.asciidoc[]
+
+[[stuck_payments]]
+===== 卡住的付款
+
+((("onion routing","stuck payments")))((("stuck payments")))在閃電網路的目前實作中，付款嘗試有可能變得_卡住_：既不被履行也不被錯誤取消。這可能由於中間節點上的錯誤、節點在處理 HTLC 時離線，或惡意節點持有 HTLC 而不報告錯誤而發生。在所有這些情況下，HTLC 無法解決直到它過期。在每個 HTLC 上設定的時間鎖（CLTV）有助於解決這種情況（以及其他可能的 HTLC 路由和通道故障）。
+
+然而，這意味著 HTLC 的發送者必須等到過期，並且承諾給該 HTLC 的資金在 HTLC 過期之前仍然不可用。此外，發送者_不能重試_相同的付款，因為如果他們這樣做，他們會冒著原始付款和重試付款_都_成功的風險——接收者收到兩次付款。這是因為，一旦發送，HTLC 不能被發送者「取消」——它要麼必須失敗要麼過期。卡住的付款雖然罕見，但會造成不良的使用者體驗，使用者的錢包無法支付或取消付款。
+
+((("Point Time-Locked Contract (PTLC)")))((("PTLC (Point Time-Locked Contract)")))((("stuckless payments")))針對此問題的一個提議解決方案稱為_無卡住付款_，它依賴於點時間鎖定合約（PTLC），這是使用與 HTLC 不同密碼學原語的付款合約（即橢圓曲線上的點加法而不是雜湊和秘密原像）。使用 ECDSA 的 PTLC 很麻煩，但使用比特幣的 Taproot 和 Schnorr 簽名功能則容易得多，這些功能最近已鎖定於 2021 年 11 月啟用。預計在這些比特幣功能啟用後，PTLC 將在閃電網路中實作(((range="endofrange", startref="ix_10_onion_routing-asciidoc17")))(((range="endofrange", startref="ix_10_onion_routing-asciidoc16")))。(((range="endofrange", startref="ix_10_onion_routing-asciidoc15")))(((range="endofrange", startref="ix_10_onion_routing-asciidoc14")))
+
+[[keysend]]
+=== Keysend 自發付款
+
+((("keysend spontaneous payments")))((("onion routing","keysend spontaneous payments")))在本章前面描述的付款流程中，我們假設 Dina 「帶外」或透過與協定無關的某些機制（通常是複製/貼上或 QR 碼掃描）從 Alice 那裡收到發票。這個特性意味著付款過程總是需要兩步：首先，發送者獲得發票，其次，使用付款雜湊（編碼在發票中）成功路由 HTLC。在透過閃電網路進行微付款串流的應用中，在付款之前獲取發票所需的額外往返可能是瓶頸。如果我們可以自發地「推送」付款，而不必首先從接收者那裡獲得發票呢？`keysend` 協定是閃電網路協定的端對端擴展（只有發送者和接收者知道），它允許自發推送付款。
+
+==== 自訂洋蔥 TLV 記錄
+
+((("onion routing","custom onion TLV records")))((("Type-Length-Value (TLV) format","custom onion TLV records")))現代閃電網路協定使用洋蔥中的 TLV（類型-長度-值）編碼來編碼告訴每個節點_在哪裡_和_如何_轉發付款的資訊。利用 TLV 格式，每條路由資訊（如將 HTLC 傳遞到的下一個節點）被分配一個特定類型（或鍵），編碼為 `BigSize` 可變長度整數（最大為 64 位元整數）。這些「基本」（低於 `65536` 的保留值）類型與洋蔥路由的其餘細節一起定義在 BOLT #4 中。值大於 `65536` 的洋蔥類型旨在被錢包和應用程式用作「自訂記錄」。
+
+自訂記錄允許付款應用程式將額外的中繼資料或上下文作為洋蔥中的鍵/值對附加到付款。由於自訂記錄包含在洋蔥有效載荷本身中，與所有其他跳內容一樣，記錄是端對端加密的。由於自訂記錄實際上消耗了固定大小 1300 位元組洋蔥封包的一部分，編碼每個自訂記錄的每個鍵和值會減少可用於編碼路由其餘部分的空間。在實踐中，這意味著用於自訂記錄的洋蔥空間越多，路由可以越短。鑑於每個 HTLC 封包是固定大小的，自訂記錄不會_添加_任何額外資料到 HTLC；相反，它們重新分配否則會填充隨機資料的位元組。
+
+==== 發送和接收 Keysend 付款
+
+((("onion routing","sending/receiving keysend payments")))`keysend` 付款反轉了接收者向發送者揭示秘密原像的典型 HTLC 流程。相反，發送者在洋蔥_內_包含原像給接收者，並將 HTLC 路由到接收者。接收者然後解密洋蔥有效載荷，並使用包含的原像（_必須_匹配 HTLC 的付款雜湊）來結算付款。因此，`keysend` 付款可以在首先從接收者獲取發票之前進行，因為原像被「推送」到接收者。`keysend` 付款使用 TLV 自訂記錄類型 `5482373484` 來編碼 32 位元組原像值。
+
+==== 閃電網路應用中的 Keysend 和自訂記錄
+
+((("onion routing","keysend and custom records in Lightning applications")))許多串流閃電網路應用程式使用 `keysend` 協定來持續向網路中由其公鑰識別的目的地串流聰。通常，應用程式還會在 `keysend` 記錄之外包含中繼資料，例如打賞/捐贈備註或其他應用程式級資訊。
+
+=== 結論
+
+閃電網路的洋蔥路由協定改編自 Sphinx 協定，以更好地服務於支付網路的需求。因此，與公開透明的比特幣區塊鏈相比，它在隱私和反監視方面提供了巨大的改進。(((range="endofrange", startref="ix_10_onion_routing-asciidoc0")))
+
+在 <<path_finding>> 中，我們將看到源路由和洋蔥路由的組合如何被 Alice 用來找到一條好路徑並將付款路由到 Dina。要找到路徑，Alice 首先需要了解網路拓撲，這是 <<gossip>> 的主題。

@@ -1,0 +1,56 @@
+[[lightning-architecture]]
+== 閃電網路架構
+
+((("architecture, Lightning Network", id="ix_06_lightning_architecture-asciidoc0", range="startofrange")))在本書的第一部分，我們介紹了閃電網路的主要概念，並透過一個完整的範例來路由付款以及設定我們可以用來進一步探索的工具。在本書的第二部分，我們將更詳細地從技術層面探索閃電網路，剖析每個構建模組。
+
+在本節中，我們將更詳細地概述閃電網路的組成部分，並提供一個「整體視角」來引導你閱讀接下來的章節。
+
+=== 閃電網路協定套件
+
+((("architecture, Lightning Network","protocol suite")))((("protocol stack")))閃電網路由一組運行在網際網路之上的複雜協定集合組成。我們可以將這些協定大致分為五個不同的層次，形成一個_協定堆疊_，其中每一層都建構在下一層之上並使用其協定。同時，每個協定層都抽象化了底層，並「隱藏」了一些複雜性。
+
+<<lightning_network_protocol_suite>> 所示的架構圖提供了這些層次及其組成協定的概覽。
+
+[[lightning_network_protocol_suite]]
+.閃電網路協定套件
+image::images/mtln_0601.png[]
+
+((("architecture, Lightning Network","layers")))閃電網路的五個層次，從下到上分別是：
+
+網路連線層:: 包含直接與網際網路核心協定（TCP/IP）、覆蓋協定（Tor v2/v3）和網際網路服務（DNS）互動的協定。此層還包含保護閃電網路 pass:[<span class="keep-together">訊息</span>] 的加密傳輸協定。
+
+訊息層:: 此層包含節點用於協商功能、格式化訊息和編碼訊息欄位的協定。
+
+點對點（P2P）層:: 此層是閃電網路節點之間通訊的主要協定層，包含節點之間交換的所有不同訊息。
+
+路由層:: 此層包含用於在節點之間端對端且原子性地路由付款的協定。此層包含閃電網路的核心功能：路由付款。
+
+支付層:: 網路的最高層，向應用程式呈現可靠的支付介面。
+
+=== 閃電網路詳解
+
+((("architecture, Lightning Network","outline of details")))在接下來的 10 章中，我們將剖析協定套件，並詳細檢視閃電網路的每個組成部分。
+
+我們花了相當多的時間試圖決定呈現這些細節的最佳順序。這不是一個容易的選擇，因為不同組件之間有太多相互依賴性：當你開始解釋一個組件時，你會發現它牽涉到相當多其他組件。我們最終選擇了一條更曲折的路徑，而不是自上而下或自下而上的方法，從閃電網路獨有的最基本構建模組——支付通道開始，然後從那裡向外擴展。但由於這條路徑並不明顯，我們將使用 <<lightning_network_protocol_suite>> 所示的閃電網路協定套件作為地圖。在每一章中，我們將聚焦於一個或多個相關組件，你會看到它們在協定套件中被突顯出來。就像地圖上的標記說「你在這裡！」
+
+以下是我們將涵蓋的內容：
+
+pass:[<a data-type="xref" href="payment_channels" data-xrefstyle="chap-num-title">#payment_channels</a>]:: 在本章中，我們將深入研究支付通道的運作方式，比本書前面部分看到的更加深入。我們將查看資金交易和承諾交易的結構和比特幣腳本，以及節點用於協商協定每個步驟的過程。
+
+pass:[<a data-type="xref" href="#routing" data-xrefstyle="chap-num-title">#routing</a>]:: 接下來，我們將把多個支付通道組成一個網路，並將付款從一端路由到另一端。在這個過程中，我們將深入研究雜湊時間鎖定合約（HTLC）智慧合約以及我們用來構建它的比特幣腳本。
+
+pass:[<a data-type="xref" href="#channel_operation" data-xrefstyle="chap-num-title">#channel_operation</a>]:: 將簡單支付通道和使用 HTLC 的路由付款的概念結合起來，我們現在將看看 HTLC 如何成為每個通道承諾交易的一部分。我們還將研究從承諾中添加、結算、失敗和移除 HTLC 的協定。
+
+pass:[<a data-type="xref" href="#onion_routing" data-xrefstyle="chap-num-title">#onion_routing</a>]:: 接下來，我們將研究 HTLC 資訊如何在洋蔥路由協定內跨網路傳播。我們將研究分層加密和解密的機制，這賦予了閃電網路一些隱私特性。
+
+pass:[<a data-type="xref" href="#gossip" data-xrefstyle="chap-num-title">#gossip</a>]:: 在本章中，我們將研究閃電網路節點如何找到彼此，以及如何了解已發布的通道，以構建可用於在網路中尋找路徑的通道圖。
+
+pass:[<a data-type="xref" href="#path_finding" data-xrefstyle="chap-num-title">>#path_finding</a>]:: 接下來，我們將看到每個節點如何使用來自八卦協定的資訊來構建整個網路的「地圖」，用於尋找從一點到另一點的路徑來路由付款。我們還將研究路徑尋找的令人興奮的創新，例如多部分付款。
+
+pass:[<a data-type="xref" href="#wire_protocol" data-xrefstyle="chap-num-title">#wire_protocol</a>]:: 閃電網路的基礎是節點用來交換關於網路和通道訊息的點對點協定。在本章中，我們將研究這些訊息是如何構建的，以及使用功能位元和類型-長度-值（TLV）編碼構建到訊息中的擴展能力。
+
+pass:[<a data-type="xref" href="#encrypted_message_transport" data-xrefstyle="chap-num-title">#encrypted_message_transport</a>]:: 移動到網路的較低層部分，我們將研究確保節點之間所有通訊的保密性和完整性的底層加密傳輸系統。(((range="endofrange", startref="ix_06_lightning_architecture-asciidoc0")))
+
+pass:[<a data-type="xref" href="#invoices" data-xrefstyle="chap-num-title">#invoices</a>]:: 閃電網路的一個關鍵部分是付款請求，也稱為閃電網路發票。在本章中，我們將剖析發票的結構和編碼。
+
+讓我們開始深入探索吧！
