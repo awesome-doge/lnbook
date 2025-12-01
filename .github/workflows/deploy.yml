@@ -52,8 +52,11 @@ jobs:
           cp zh-TW/style.css docs/ 2>/dev/null || true
           echo "lnbook-zh.doge.tg" > docs/CNAME
 
-          # Add Google Analytics
-          sed -i 's|</head>|<script async src="https://www.googletagmanager.com/gtag/js?id=G-LDEV0N6689"></script>\n<script>\n  window.dataLayer = window.dataLayer \|\| [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag("js", new Date());\n  gtag("config", "G-LDEV0N6689");\n</script>\n</head>|' docs/index.html
+          # Add SEO meta tags, Open Graph, and Google Analytics
+          sed -i 's|</head>|<!-- SEO Meta Tags -->\n<meta name="description" content="精通閃電網路 - 完整繁體中文翻譯。深入了解比特幣第二層擴展解決方案，包含支付通道、路由、HTLC 等核心概念。">\n<meta name="keywords" content="閃電網路, Lightning Network, 比特幣, Bitcoin, 區塊鏈, 支付通道, HTLC, 加密貨幣">\n<meta name="author" content="Andreas M. Antonopoulos, Olaoluwa Osuntokun, René Pickhardt">\n<meta name="robots" content="index, follow">\n<link rel="canonical" href="https://lnbook-zh.doge.tg/">\n\n<!-- Open Graph / Facebook -->\n<meta property="og:type" content="website">\n<meta property="og:url" content="https://lnbook-zh.doge.tg/">\n<meta property="og:title" content="精通閃電網路 - Mastering the Lightning Network 繁體中文版">\n<meta property="og:description" content="深入了解比特幣閃電網路的完整指南。涵蓋支付通道、路由機制、節點操作等核心技術。">\n<meta property="og:image" content="https://lnbook-zh.doge.tg/images/cover.png">\n<meta property="og:locale" content="zh_TW">\n\n<!-- Twitter -->\n<meta name="twitter:card" content="summary_large_image">\n<meta name="twitter:url" content="https://lnbook-zh.doge.tg/">\n<meta name="twitter:title" content="精通閃電網路 - Mastering the Lightning Network 繁體中文版">\n<meta name="twitter:description" content="深入了解比特幣閃電網路的完整指南。涵蓋支付通道、路由機制、節點操作等核心技術。">\n<meta name="twitter:image" content="https://lnbook-zh.doge.tg/images/cover.png">\n\n<!-- Google Analytics -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=G-LDEV0N6689"></script>\n<script>\n  window.dataLayer = window.dataLayer \|\| [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag("js", new Date());\n  gtag("config", "G-LDEV0N6689");\n</script>\n</head>|' docs/index.html
+
+          # Update page title
+          sed -i 's|<title>[^<]*</title>|<title>精通閃電網路 - Mastering the Lightning Network 繁體中文版</title>|' docs/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
