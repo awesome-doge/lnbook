@@ -3,6 +3,12 @@
 /* 載入 Font Awesome */
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
 
+/* 數學公式樣式 */
+.stemblock, .math {
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
 :root {
   --primary-color: #f7931a;
   --secondary-color: #4a90d9;

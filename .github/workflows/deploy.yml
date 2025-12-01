@@ -43,6 +43,7 @@ jobs:
             -a icons=font \
             -a source-highlighter=highlight.js \
             -a imagesdir=images \
+            -a stem=latexmath \
             -o index.html \
             zh-TW/book.adoc
           cp -r images docs/
