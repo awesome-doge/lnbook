@@ -46,6 +46,7 @@ jobs:
             -o index.html \
             zh-TW/book.adoc
           cp -r images docs/
+          cp -r callouts docs/
           cp zh-TW/style.css docs/ 2>/dev/null || true
           echo "lnbook-zh.doge.tg" > docs/CNAME
 
