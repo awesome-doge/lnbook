@@ -7,7 +7,7 @@
 
 [[LN_protocol_channelops_highlight]]
 .閃電網路協定套件中的通道操作和支付轉發
-image::images/mtln_0901.png["閃電網路協定套件中的通道操作和支付轉發"]
+image::mtln_0901.png["閃電網路協定套件中的通道操作和支付轉發"]
 
 
 === 本地（單通道）與路由（多通道）
@@ -22,7 +22,7 @@ image::images/mtln_0901.png["閃電網路協定套件中的通道操作和支付
 
 [[alice_dina_htlc_2]]
 .Alice 透過 Bob 和 Chan 路由 HTLC 向 Dina 付款
-image::images/mtln_0809.png["Alice 透過 Bob 和 Chan 路由 HTLC 向 Dina 付款"]
+image::mtln_0809.png["Alice 透過 Bob 和 Chan 路由 HTLC 向 Dina 付款"]
 
 我們將專注於 Alice 和 Bob 之間的支付通道，並審查他們用於處理此 HTLC 的訊息和交易。
 
@@ -32,7 +32,7 @@ image::images/mtln_0809.png["Alice 透過 Bob 和 Chan 路由 HTLC 向 Dina 付�
 
 [[HTLC_commitment_message_flow]]
 .通道夥伴之間 HTLC 承諾的訊息流程
-image::images/mtln_0903.png["通道夥伴之間 HTLC 承諾的訊息流程"]
+image::mtln_0903.png["通道夥伴之間 HTLC 承諾的訊息流程"]
 
 [role="pagebreak-before"]
 我們已經在 <<payment_channels>> 中看過 +commitment_signed+ 和 +revoke_and_ack+。現在我們將看到 HTLC 如何融入承諾方案。兩個新訊息是 +update_add_htlc+，Alice 用它來要求 Bob 添加 HTLC，以及 +update_fulfill_htlc+，Bob 在收到付款秘密（Dina 的秘密）後用它來兌換 HTLC。(((range="endofrange", startref="ix_09_channel_operation-asciidoc3")))(((range="endofrange", startref="ix_09_channel_operation-asciidoc2")))(((range="endofrange", startref="ix_09_channel_operation-asciidoc1")))
@@ -45,7 +45,7 @@ image::images/mtln_0903.png["通道夥伴之間 HTLC 承諾的訊息流程"]
 
 [[alice_bob_commitment_txs_1]]
 .Alice 和 Bob 的初始承諾交易
-image::images/mtln_0904.png["Alice 和 Bob 的初始承諾交易"]
+image::mtln_0904.png["Alice 和 Bob 的初始承諾交易"]
 
 ==== 添加 HTLC
 
@@ -130,7 +130,7 @@ OP_ENDIF
 
 [[add_commitment_3b]]
 .Bob 帶 HTLC 輸出的新承諾
-image::images/mtln_0905.png["Bob 帶 HTLC 輸出的新承諾"]
+image::mtln_0905.png["Bob 帶 HTLC 輸出的新承諾"]
 
 [role="pagebreak-before less_space"]
 ==== Alice 提交
@@ -162,7 +162,7 @@ Alice 可以毫不猶豫地發送這些簽名：如果 HTLC 過期而未路由�
 
 [[signed_commitment_3b]]
 .Bob 有了新的簽名承諾
-image::images/mtln_0906.png[Bob 有了新的簽名承諾]
+image::mtln_0906.png[Bob 有了新的簽名承諾]
 
 ==== Bob 確認新承諾並撤銷舊承諾
 
@@ -184,7 +184,7 @@ Bob 實際上已經將通道狀態向前推進，如 <<revoked_commitment_2b>> �
 
 [[revoked_commitment_2b]]
 .Bob 已撤銷舊承諾
-image::images/mtln_0907.png[Bob 已撤銷舊承諾]
+image::mtln_0907.png[Bob 已撤銷舊承諾]
 
 儘管 Bob 有一個新的（簽名的）承諾交易和裡面的 HTLC 輸出，他還不能認為他的 HTLC 已成功設定。
 
@@ -196,7 +196,7 @@ Alice 已經建構了一個包含新 HTLC 的鏡像新承諾交易，但它還�
 
 [[add_commitment_3a]]
 .Alice 帶 HTLC 輸出的新承諾
-image::images/mtln_0908.png["Alice 帶 HTLC 輸出的新承諾"]
+image::mtln_0908.png["Alice 帶 HTLC 輸出的新承諾"]
 
 正如我們在 <<payment_channels>> 中描述的，Alice 的承諾是 Bob 的鏡像，因為它包含用於撤銷和懲罰執行舊承諾的非對稱、延遲、可撤銷結構。Alice 的 19,800 聰餘額（扣除 HTLC 值後）是延遲的和可撤銷的。Bob 的 70,000 聰餘額可以立即兌換。
 
@@ -213,7 +213,7 @@ Bob 現在向 Alice 發送 +commitment_signed+，包含他對 Alice 新承諾交
 
 [[signed_commitment_3a]]
 .Alice 有了新的簽名承諾
-image::images/mtln_0909.png[Alice 有了新的簽名承諾]
+image::mtln_0909.png[Alice 有了新的簽名承諾]
 
 Alice 現在可以透過撤銷舊承諾來確認新承諾。Alice 發送包含必要 +per_commitment_point+ 的 +revoke_and_ack+ 訊息，這將允許 Bob 建構撤銷金鑰和懲罰交易。因此，Alice 撤銷了她的舊承諾。
 
@@ -221,7 +221,7 @@ Alice 現在可以透過撤銷舊承諾來確認新承諾。Alice 發送包含�
 
 [[revoked_commitment_2a]]
 .Alice 已撤銷舊承諾
-image::images/mtln_0910.png[Alice 已撤銷舊承諾]
+image::mtln_0910.png[Alice 已撤銷舊承諾]
 
 === 多個 HTLC
 
@@ -289,7 +289,7 @@ Alice 和 Bob 之間的訊息流程如 <<htlc_fulfillment_message_flow>> 所示�
 
 [[htlc_fulfillment_message_flow]]
 .HTLC 履行訊息流程
-image::images/mtln_0911.png[HTLC 履行訊息流程]
+image::mtln_0911.png[HTLC 履行訊息流程]
 
 Alice 和 Bob 現在都可以從承諾交易中移除 HTLC 並更新他們的通道餘額。
 
@@ -297,21 +297,21 @@ Alice 和 Bob 現在都可以從承諾交易中移除 HTLC 並更新他們的通
 
 [[htlc_fulfillment_commitments_added]]
 .HTLC 被移除，餘額在新承諾中更新
-image::images/mtln_0912.png[HTLC 被移除，餘額在新承諾中更新]
+image::mtln_0912.png[HTLC 被移除，餘額在新承諾中更新]
 
 [role="pagebreak-before"]
 接下來，他們完成兩輪承諾和撤銷。首先，Alice 發送 +commitment_signed+ 來簽署 Bob 的新承諾交易。Bob 用 +revoke_and_ack+ 回應以撤銷他的舊承諾。一旦 Bob 將通道狀態向前推進，承諾看起來像我們在 <<htlc_fulfillment_commitments_bob_commit>> 中看到的。
 
 [[htlc_fulfillment_commitments_bob_commit]]
 .Alice 簽署 Bob 的新承諾，Bob 撤銷舊承諾
-image::images/mtln_0913.png[Alice 簽署 Bob 的新承諾，Bob 撤銷舊承諾]
+image::mtln_0913.png[Alice 簽署 Bob 的新承諾，Bob 撤銷舊承諾]
 
 [role="pagebreak-before"]
 最後，Bob 透過向 Alice 發送 +commitment_signed+ 訊息來簽署 Alice 的承諾。然後 Alice 透過向 Bob 發送 +revoke_and_ack+ 來確認並撤銷她的舊承諾。最終結果是 Alice 和 Bob 都已將他們的通道狀態移動到承諾 #4，已移除 HTLC，並已更新他們的餘額。他們目前的通道狀態由 <<alice_bob_htlc_fulfilled>> 中顯示的承諾交易表示。(((range="endofrange", startref="ix_09_channel_operation-asciidoc12")))(((range="endofrange", startref="ix_09_channel_operation-asciidoc11"))) (((range="endofrange", startref="ix_09_channel_operation-asciidoc10")))(((range="endofrange", startref="ix_09_channel_operation-asciidoc9")))
 
 [[alice_bob_htlc_fulfilled]]
 .Alice 和 Bob 結算 HTLC 並更新餘額
-image::images/mtln_0914.png[Alice 和 Bob 結算 HTLC 並更新餘額]
+image::mtln_0914.png[Alice 和 Bob 結算 HTLC 並更新餘額]
 
 [role="pagebreak-before less_space"]
 === 由於錯誤或過期而移除 HTLC

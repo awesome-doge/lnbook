@@ -163,7 +163,7 @@ SSD 運行節點會明顯更快（但更貴）。
 
 [[RaspiBlitz]]
 .RaspiBlitz 節點
-image::images/mtln_0501.png[]
+image::mtln_0501.png[]
 
 ==== Mynode
 
@@ -184,7 +184,7 @@ image::images/mtln_0501.png[]
 
 [[umbrel]]
 .Umbrel 網頁介面
-image::images/mtln_0502.png["Umbrel 網頁介面"]
+image::mtln_0502.png["Umbrel 網頁介面"]
 
 除了比特幣和閃電網路節點之外，Umbrel 推出了 Umbrel App Store，你可以在其中輕鬆安裝額外的服務，例如：
 
@@ -450,7 +450,7 @@ bitcoin-rpcpassword=_PASSWORD_
 
 [[ln_port_check]]
 .檢查傳入埠 9735
-image::images/mtln_0503.png[]
+image::mtln_0503.png[]
 
 ===== 使用 UPnP 自動埠轉發
 
@@ -899,7 +899,7 @@ autopilot-min-channel-size-msat=100000000msat
 
 [[circular_rebalancing]]
 .循環路由重新平衡
-image::images/mtln_0504.png[]
+image::mtln_0504.png[]
 
 大多數閃電網路節點實作都支援循環重新平衡，可以在命令列上或透過 Ride The Lightning（參見 <<rtl>>）等網頁管理介面完成。
 
@@ -953,7 +953,7 @@ F_{total} &= F_{base} + ( P * F_{rate} ) \\
 
 [[rtl-web-interface]]
 .RTL 網頁介面範例
-image::images/mtln_0505.png[]
+image::mtln_0505.png[]
 
 ==== lndmon
 

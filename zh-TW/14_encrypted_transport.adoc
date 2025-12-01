@@ -14,7 +14,7 @@
 
 [[LN_protocol_encrypted_transport_highlight]]
 .閃電協定套件中的加密訊息傳輸
-image::images/mtln_1401.png["閃電協定套件中的加密訊息傳輸"]
+image::mtln_1401.png["閃電協定套件中的加密訊息傳輸"]
 
 === 簡介
 
@@ -332,7 +332,7 @@ Noise 協定使用物件導向的符號來描述每個步驟的協定。在設�
 
 [[noise_encrypted_packet]]
 .加密封包結構
-image::images/mtln_1402.png["加密封包結構"]
+image::mtln_1402.png["加密封包結構"]
 
 前綴訊息長度編碼為 2 位元組大端序整數，總最大封包長度為 pass:[<span>2 + 16 + 65,535 + 16 = 65,569</span>] 位元組。
 

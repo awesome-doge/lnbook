@@ -5,7 +5,7 @@
 
 [[LN_protocol_routing_highlight]]
 .閃電網路協定套件中的原子支付路由
-image::images/mtln_0801.png["閃電網路協定套件中的原子支付路由"]
+image::mtln_0801.png["閃電網路協定套件中的原子支付路由"]
 
 === 路由付款
 
@@ -18,7 +18,7 @@ image::images/mtln_0801.png["閃電網路協定套件中的原子支付路由"]
 
 [[dina_routing_diagram]]
 .粉絲在閃電網路上（間接）連接到 Dina
-image::images/mtln_0802.png["粉絲在閃電網路上（間接）連接到 Dina"]
+image::mtln_0802.png["粉絲在閃電網路上（間接）連接到 Dina"]
 
 ((("routing nodes")))從粉絲到 Dina 路徑上的節點是中間節點，在路由付款的背景下稱為_路由節點_。路由節點與 Dina 粉絲操作的節點之間沒有功能差異。任何閃電網路節點都能夠透過其支付通道路由付款。
 
@@ -56,7 +56,7 @@ Alice 可以與 Dina 開設一個直接通道；然而，這需要流動性和�
 
 [[routing_network]]
 .Alice 和 Dina 之間的支付通道網路
-image::images/mtln_0803.png["Alice 和 Dina 之間的支付通道網路"]
+image::mtln_0803.png["Alice 和 Dina 之間的支付通道網路"]
 
 可以追蹤一條從 Alice 到 Dina 的_路徑_，使用 Bob 和 Chan 作為中間路由節點。
 然後 Alice 可以從這條規劃的路徑製作一條_路由_，並用它向 Dina 發送幾千聰的打賞，付款由 Bob 和 Chan _轉發_。
@@ -72,7 +72,7 @@ image::images/mtln_0803.png["Alice 和 Dina 之間的支付通道網路"]
 
 [[alice_dina_routing_1]]
 .Alice 想付給 Dina 10 枚金幣
-image::images/mtln_0804.png[]
+image::mtln_0804.png[]
 
 Alice 可以付錢給 Bob 讓他付給 Chan 再付給 Dina，但她如何確保 Bob 或 Chan 在收到金幣後不會帶著金幣跑掉？
 在物理世界中，可以使用合約來安全地進行一系列付款。
@@ -113,7 +113,7 @@ Alice 現在承諾給 Bob 12 枚金幣。有 10 枚要交給 Dina，2 枚用於�
 
 [[alice_dina_routing_2]]
 .Alice 付給 Bob，Bob 付給 Chan，Chan 付給 Dina
-image::images/mtln_0805.png[]
+image::mtln_0805.png[]
 
 因為仍然存在信任問題和 Alice 或 Bob 不履行合約的風險，所有各方決定使用第三方託管服務。
 在交換開始時，Alice 可以將這 12 枚金幣「鎖定」在託管中，只有在 Bob 證明他已付給 Chan 11 枚金幣後才會支付給 Bob。
@@ -148,7 +148,7 @@ Dina 從隨機數產生器生成這個秘密值 +R+。
 
 [[alice_dina_routing_3]]
 .Dina 向 Alice 發送雜湊後的秘密
-image::images/mtln_0806.png["Dina 向 Alice 發送雜湊後的秘密"]
+image::mtln_0806.png["Dina 向 Alice 發送雜湊後的秘密"]
 
 Alice 不知道秘密，但她可以重寫她的合約，使用秘密的雜湊作為付款證明：
 
@@ -291,7 +291,7 @@ Alice 訪問 Dina 的網站，在表單中輸入 50,000 聰的金額，作為回
 
 [[alice_dina_invoice_1]]
 .Alice 從 Dina 的網站請求發票
-image::images/mtln_0807.png["Alice 從 Dina 的網站請求發票"]
+image::mtln_0807.png["Alice 從 Dina 的網站請求發票"]
 
 正如我們在前面的範例中看到的，我們假設 Alice 與 Dina 沒有直接的支付通道。相反，Alice 與 Bob 有通道，Bob 與 Chan 有通道，Chan 與 Dina 有通道。為了付款給 Dina，Alice 必須找到一條連接她到 Dina 的路徑。我們將在 <<path_finding>> 中更詳細地討論這一步。現在，讓我們假設 Alice 能夠收集有關可用通道的資訊，並看到從她到 Dina 有一條路徑，途經 Bob 和 Chan。
 
@@ -322,7 +322,7 @@ HTLC 的第一部分是_雜湊_。這指的是使用密碼學雜湊演算法來�
 
 [[alice_dina_invoice_2]]
 .Alice 從 Dina 獲得付款雜湊
-image::images/mtln_0808.png["Alice 從 Dina 獲得付款雜湊"]
+image::mtln_0808.png["Alice 從 Dina 獲得付款雜湊"]
 
 在閃電網路中，Dina 的付款原像不會是像 +Dinas secret+ 這樣的短語，而是由 Dina 節點生成的隨機數。讓我們稱那個隨機數為 _R_。
 
@@ -429,7 +429,7 @@ Bob 沒有承擔風險，也不信任 Alice 或 Chan。相反，Bob 信任簽名
 
 [[alice_dina_htlc_1]]
 .在網路中傳播 HTLC
-image::images/mtln_0809.png["在網路中傳播 HTLC"]
+image::mtln_0809.png["在網路中傳播 HTLC"]
 
 同樣，Chan 可以向 Dina 擴展 50,000 聰的 HTLC。他沒有冒任何風險，也不信任 Bob 或 Dina。要兌換 HTLC，Dina 必須廣播秘密，Chan 可以用它來兌換 Bob 的 HTLC。Chan 也將賺取 100 聰作為路由費。
 
@@ -439,7 +439,7 @@ image::images/mtln_0809.png["在網路中傳播 HTLC"]
 
 [[alice_dina_htlc_redeem_1]]
 .Dina 在鏈下結算 Chan 的 HTLC
-image::images/mtln_0810.png["Dina 在鏈下結算 Chan 的 HTLC"]
+image::mtln_0810.png["Dina 在鏈下結算 Chan 的 HTLC"]
 
 注意 Dina 的通道餘額從 50,000 聰變為 100,000 聰。Chan 的通道餘額從 200,000 聰減少到 150,000 聰。通道容量沒有改變，但 50,000 聰從 Chan 這邊移動到 Dina 這邊。
 
@@ -447,7 +447,7 @@ Chan 現在有了秘密並且已經付給 Dina 50,000 聰。他可以這樣做�
 
 [[alice_dina_htlc_redeem_2]]
 .Chan 在鏈下結算 Bob 的 HTLC
-image::images/mtln_0811.png["Chan 在鏈下結算 Bob 的 HTLC"]
+image::mtln_0811.png["Chan 在鏈下結算 Bob 的 HTLC"]
 
 Chan 已經付給 Dina 50,000 聰，並從 Bob 那裡收到 50,100 聰。所以 Chan 的通道餘額多了 100 聰，這是他作為路由費賺取的。
 
@@ -455,7 +455,7 @@ Bob 現在也有了秘密。他可以用它來花費 Alice 的鏈上 HTLC。或�
 
 [[alice_dina_htlc_redeem_3]]
 .Bob 在鏈下結算 Alice 的 HTLC
-image::images/mtln_0812.png["Bob 在鏈下結算 Alice 的 HTLC"]
+image::mtln_0812.png["Bob 在鏈下結算 Alice 的 HTLC"]
 
 Bob 從 Alice 收到 50,200 聰，並付給 Chan 50,100 聰，所以他從路由費中多了 100 聰的通道餘額。
 
@@ -465,7 +465,7 @@ Alice 收到秘密並已結算 50,200 聰的 HTLC。秘密可以用作_收據_�
 
 [[alice_dina_htlc_redeem_4]]
 .付款後的通道餘額
-image::images/mtln_0813.png["付款後的通道餘額"]
+image::mtln_0813.png["付款後的通道餘額"]
 
 [[preventing_theft]]
 ==== 簽名綁定：防止 HTLC 被盜

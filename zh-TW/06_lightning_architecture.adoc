@@ -13,7 +13,7 @@
 
 [[lightning_network_protocol_suite]]
 .閃電網路協定套件
-image::images/mtln_0601.png[]
+image::mtln_0601.png[]
 
 ((("architecture, Lightning Network","layers")))閃電網路的五個層次，從下到上分別是：
 

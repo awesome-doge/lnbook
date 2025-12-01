@@ -9,7 +9,7 @@
 
 [[LN_payment_request_highlight]]
 .閃電協定套件中的付款請求
-image::images/mtln_1501.png["閃電協定套件中的付款請求"]
+image::mtln_1501.png["閃電協定套件中的付款請求"]
 
 === 簡介
 

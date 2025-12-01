@@ -53,7 +53,7 @@
 
 [[SHA256]]
 .SHA-256 密碼學雜湊演算法
-image::images/mtln_aa01.png["SHA-256 密碼學雜湊演算法"]
+image::mtln_aa01.png["SHA-256 密碼學雜湊演算法"]
 
 [role="pagebreak-before"]
 例如，如果我們使用命令列終端機將文字「Mastering the Lightning Network」輸入到 SHA-256 函數中，它將產生如下指紋：
@@ -152,7 +152,7 @@ $ F_{verify}(m, K, S) $
 
 [[transaction_structure]]
 .交易將價值從輸入轉移到輸出
-image::images/mtln_aa02.png["交易輸入和輸出"]
+image::mtln_aa02.png["交易輸入和輸出"]
 
 (((「未花費交易輸出（UTXOs）」)))(((「UTXOs（未花費交易輸出）」)))比特幣全節點追蹤所有可用和可花費的輸出，稱為_未花費交易輸出_（UTXOs）。所有 UTXOs 的集合稱為 UTXO 集，目前數量達數百萬個 UTXOs。當新的 UTXOs 被創建時，UTXO 集會增長；當 UTXOs 被消費時，它會縮小。每個交易都代表 UTXO 集的一個變化（狀態轉換），通過消費一個或多個 UTXOs 作為_交易輸入_，並創建一個或多個 UTXOs 作為其_交易輸出_。
 
@@ -160,7 +160,7 @@ image::images/mtln_aa02.png["交易輸入和輸出"]
 
 [[alice_100ksat_to_bob]]
 .Alice 向 Bob 支付 100,000 聰
-image::images/mtln_aa03.png["Alice 向 Bob 支付 100,000 聰"]
+image::mtln_aa03.png["Alice 向 Bob 支付 100,000 聰"]
 
 交易輸出可以有任意（整數）值，以聰計價。就像美元可以向下劃分到小數點後兩位為美分一樣，比特幣可以向下劃分到小數點後八位為聰。雖然輸出可以有任何任意值，但一旦創建，它就是不可分割的。這是輸出的一個重要特性，需要強調：輸出是離散的、不可分割的價值單位，以整數聰計價。未花費的輸出只能在交易中完整消費。
 
@@ -168,7 +168,7 @@ image::images/mtln_aa03.png["Alice 向 Bob 支付 100,000 聰"]
 
 [[alice_50ksat_to_bob_change]]
 .Alice 向 Bob 支付 50,000 聰，向自己支付 50,000 聰作為找零
-image::images/mtln_aa04.png["Alice 向 Bob 支付 50,000 聰，向自己支付 50,000 聰作為找零"]
+image::mtln_aa04.png["Alice 向 Bob 支付 50,000 聰，向自己支付 50,000 聰作為找零"]
 
 [TIP]
 ====
@@ -179,7 +179,7 @@ image::images/mtln_aa04.png["Alice 向 Bob 支付 50,000 聰，向自己支付 5
 
 [[tx_twoin_twoout]]
 .Alice 使用兩個 50,000 聰輸入向 Bob 支付 85,000 聰，向自己支付 15,000 聰作為找零
-image::images/mtln_aa05.png["Alice 使用兩個 50,000 聰輸入向 Bob 支付 85,000 聰，向自己支付 15,000 聰作為找零"]
+image::mtln_aa05.png["Alice 使用兩個 50,000 聰輸入向 Bob 支付 85,000 聰，向自己支付 15,000 聰作為找零"]
 
 前面的圖解和範例展示了比特幣交易如何組合（花費）一個或多個輸入並創建一個或多個輸出。一個交易可以有數百甚至數千個輸入和輸出。
 
@@ -200,7 +200,7 @@ image::images/mtln_aa05.png["Alice 使用兩個 50,000 聰輸入向 Bob 支付 8
 
 [[tx_chain]]
 .Alice 支付給 Bob，Bob 支付給 Chan，Chan 支付給 Dina
-image::images/mtln_aa06.png["Alice 支付給 Bob，Bob 支付給 Chan，Chan 支付給 Dina"]
+image::mtln_aa06.png["Alice 支付給 Bob，Bob 支付給 Chan，Chan 支付給 Dina"]
 
 
 ==== TxID：交易識別碼
@@ -246,7 +246,7 @@ e31e4e214c3f436937c74b8663b3ca58f7ad5b3fce7783eb84fd9a5ee5b9a54c
 
 [[tx_chain_vout]]
 .交易輸入引用輸出點形成鏈
-image::images/mtln_aa07.png["交易輸入引用輸出點形成鏈"]
+image::mtln_aa07.png["交易輸入引用輸出點形成鏈"]
 
 Bob 交易中的輸入引用 Alice 的交易（通過 TxID）和索引為 0 的輸出。
 
@@ -274,7 +274,7 @@ Chan 交易中的輸入引用 Bob 交易的 TxID 和第一個索引輸出，因�
 
 [[figa08]]
 .比特幣腳本執行範例
-image::images/mtln_aa08.png["比特幣腳本執行範例"]
+image::mtln_aa08.png["比特幣腳本執行範例"]
 
 [role="pagebreak-before less_space"]
 ==== 鎖定和解鎖腳本
@@ -313,7 +313,7 @@ image::images/mtln_aa08.png["比特幣腳本執行範例"]
 
 [[locking_unlocking_chain]]
 .顯示鎖定腳本（輸出）和解鎖腳本（輸入）的交易鏈
-image::images/mtln_aa09.png["顯示鎖定腳本（輸出）和解鎖腳本（輸入）的交易鏈"]
+image::mtln_aa09.png["顯示鎖定腳本（輸出）和解鎖腳本（輸入）的交易鏈"]
 
 為了驗證 Bob 的交易，比特幣節點會執行以下操作：
 

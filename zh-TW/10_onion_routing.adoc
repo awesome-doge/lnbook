@@ -7,7 +7,7 @@
 
 [[LN_protocol_onion_highlight]]
 .閃電網路協定套件中的洋蔥路由
-image::images/mtln_1001.png["閃電網路協定套件中的洋蔥路由"]
+image::mtln_1001.png["閃電網路協定套件中的洋蔥路由"]
 
 洋蔥路由描述了一種加密通訊方法，訊息發送者建構連續的_嵌套加密層_，由每個中間節點「剝離」，直到最內層被傳遞給預期的接收者。「洋蔥路由」這個名稱描述了這種分層加密的使用，它像洋蔥皮一樣一次剝離一層。
 
@@ -37,7 +37,7 @@ image::images/mtln_1001.png["閃電網路協定套件中的洋蔥路由"]
 
 [[alice_dina_path]]
 .路徑：Alice 到 Bob 到 Chan 到 Dina
-image::images/mtln_1002.png["Alice 到 Bob 到 Chan 到 Dina"]
+image::mtln_1002.png["Alice 到 Bob 到 Chan 到 Dina"]
 
 讓我們看看 Alice 如何使用這條路徑而不向中間人 Bob 和 Chan 透露資訊。
 
@@ -54,25 +54,25 @@ image::images/mtln_1002.png["Alice 到 Bob 到 Chan 到 Dina"]
 
 [[dina_envelope]]
 .Dina 的秘密信件，密封在信封中
-image::images/mtln_1003.png["Dina 的秘密信件，密封在信封中"]
+image::mtln_1003.png["Dina 的秘密信件，密封在信封中"]
 
 Dina 的信件將由 Chan 交給 Dina，Chan 在「路徑」中緊鄰 Dina 之前。所以，Alice 把 Dina 的信封放進一個寫給 Chan 的信封裡（見 <<chan_envelope>>）。Chan 唯一能讀到的是目的地（路由指示）：「給 Dina」。將此密封在寫給 Chan 的信封中代表用 Chan 的公鑰加密，只有 Chan 可以讀取信封地址。Chan 仍然無法打開 Dina 的信封。他只能看到外面的指示（地址）。
 
 [[chan_envelope]]
 .Chan 的信封，包含 Dina 密封的信封
-image::images/mtln_1004.png["Chan 的信封，包含 Dina 密封的信封"]
+image::mtln_1004.png["Chan 的信封，包含 Dina 密封的信封"]
 
 現在，這封信將由 Bob 交給 Chan。所以 Alice 把它放進一個寫給 Bob 的信封裡（見 <<bob_envelope>>）。和以前一樣，信封代表加密給 Bob 的訊息，只有 Bob 可以讀取。Bob 只能讀取 Chan 信封的外面（地址），所以他知道要把它送給 Chan。
 
 [[bob_envelope]]
 .Bob 的信封，包含 Chan 密封的信封
-image::images/mtln_1005.png["Bob 的信封，包含 Chan 密封的信封"]
+image::mtln_1005.png["Bob 的信封，包含 Chan 密封的信封"]
 
 現在，如果我們可以透過信封（用 X 光！）我們會看到信封一個套一個嵌套，如 <<nested_envelopes>> 所示。(((range="endofrange", startref="ix_10_onion_routing-asciidoc2")))
 
 [[nested_envelopes]]
 .嵌套的信封
-image::images/mtln_1006.png[嵌套的信封]
+image::mtln_1006.png[嵌套的信封]
 
 ==== 剝離層次
 
@@ -80,7 +80,7 @@ image::images/mtln_1006.png[嵌套的信封]
 
 [[sending_nested_envelopes]]
 .發送信封
-image::images/mtln_1007.png[發送信封]
+image::mtln_1007.png[發送信封]
 
 如你所見，Bob 從 Alice 那裡收到信封。他知道它來自 Alice，但不知道 Alice 是原始發送者還是只是轉發信封的人。他打開它發現裡面有一個信封寫著「給 Chan」。由於這是寫給 Chan 的，Bob 無法打開它。他不知道裡面是什麼，不知道 Chan 是收到一封信還是另一個要轉發的信封。Bob 不知道 Chan 是否是最終收件人。Bob 將信封轉發給 Chan。
 
@@ -110,7 +110,7 @@ Dina 從 Chan 那裡收到一個信封。打開它她發現裡面有一封信，
 
 [[alice_dina_htlc_path]]
 .從 Alice 到 Dina 的 HTLC 付款路徑
-image::images/mtln_1008.png[從 Alice 到 Dina 的 HTLC 付款路徑]
+image::mtln_1008.png[從 Alice 到 Dina 的 HTLC 付款路徑]
 
 正如我們將在 <<gossip>> 中看到的，Alice 能夠建構這條到 Dina 的路徑，因為閃電網路節點使用閃電網路八卦協定向整個閃電網路宣布它們的通道。在初始通道公告後，Bob 和 Chan 各自發送了額外的 `channel_update` 訊息，包含他們對付款路由的路由費和時間鎖預期。
 
@@ -128,7 +128,7 @@ Alice 使用此資訊來識別以下詳細路徑的節點、通道、費用和�
 
 [[alice_dina_path_detail]]
 .從八卦的通道和節點資訊建構的詳細路徑
-image::images/mtln_1009.png[從八卦的通道和節點資訊建構的路徑]
+image::mtln_1009.png[從八卦的通道和節點資訊建構的路徑]
 
 Alice 已經知道她自己到 Bob 的通道，因此不需要此資訊來建構路徑。另請注意，Alice 不需要 Dina 的通道更新，因為她有 Chan 對該路徑中最後一個通道的更新。
 
@@ -172,7 +172,7 @@ Alice 將其序列化為 TLV 格式，如（簡化的）<<dina_onion_payload>> �
 
 [[dina_onion_payload]]
 .Dina 的有效載荷由 Alice 建構
-image::images/mtln_1010.png[Dina 的有效載荷由 Alice 建構]
+image::mtln_1010.png[Dina 的有效載荷由 Alice 建構]
 
 ===== Chan 的跳有效載荷
 
@@ -190,7 +190,7 @@ Alice 將此有效載荷序列化為 TLV 格式，如（簡化的）<<chan_onion
 
 [[chan_onion_payload]]
 .Chan 的有效載荷由 Alice 建構
-image::images/mtln_1011.png[Chan 的有效載荷由 Alice 建構]
+image::mtln_1011.png[Chan 的有效載荷由 Alice 建構]
 
 ===== Bob 的跳有效載荷
 
@@ -215,7 +215,7 @@ Alice 將此有效載荷序列化為 TLV 格式，如（簡化的）<<bob_onion_
 
 [[bob_onion_payload]]
 .Bob 的有效載荷由 Alice 建構
-image::images/mtln_1012.png[Bob 的有效載荷由 Alice 建構]
+image::mtln_1012.png[Bob 的有效載荷由 Alice 建構]
 
 ===== 完成的跳有效載荷
 
@@ -223,7 +223,7 @@ Alice 現在已經建構了將包裹在洋蔥中的三個跳有效載荷。有�
 
 [[onion_hop_payloads]]
 .所有跳的跳有效載荷
-image::images/mtln_1013.png[所有跳的跳有效載荷]
+image::mtln_1013.png[所有跳的跳有效載荷]
 
 [role="pagebreak-before less_space"]
 ==== 金鑰生成
@@ -258,7 +258,7 @@ image::images/mtln_1013.png[所有跳的跳有效載荷]
 
 [[onion_keygen]]
 .洋蔥金鑰生成
-image::images/mtln_1014.png[洋蔥金鑰生成]
+image::mtln_1014.png[洋蔥金鑰生成]
 
 [[session_key]]
 ===== Alice 的會話金鑰
@@ -428,7 +428,7 @@ session_key_i = session_key_{i-1} * SHA-256(node_pubkey_{i-1} || shared_secret_{
 
 [[onion_packet]]
 .洋蔥封包
-image::images/mtln_1015.png[]
+image::mtln_1015.png[]
 
 Sphinx 作為混合網路封包格式的一個獨特特性是，不是為路由中的每一跳包含一個獨特的會話金鑰，這會大大增加混合網路封包的大小，而是使用一種巧妙的_盲化_方案在每一跳確定性地隨機化會話金鑰。
 
@@ -489,13 +489,13 @@ Alice 從一個空的 1,300 位元組欄位開始，即固定長度的_洋蔥有
 
 [[onion_payload_filler]]
 .用隨機位元組流填充洋蔥有效載荷
-image::images/mtln_1016.png[]
+image::mtln_1016.png[]
 
 Alice 現在將 Dina 的跳有效載荷插入 1,300 位元組陣列的左側，將填充向右移動並丟棄任何溢出的內容。這在 <<onion_add_dina>> 中視覺化。
 
 [[onion_add_dina]]
 .添加 Dina 的跳有效載荷
-image::images/mtln_1017.png[]
+image::mtln_1017.png[]
 
 另一種看法是 Alice 測量 Dina 跳有效載荷的長度，將填充向右移動以在洋蔥有效載荷的左側建立相等的空間，並將 Dina 的有效載荷插入該空間。
 
@@ -507,7 +507,7 @@ image::images/mtln_1017.png[]
 
 [[onion_obfuscate_dina]]
 .混淆洋蔥有效載荷
-image::images/mtln_1018.png[]
+image::mtln_1018.png[]
 
 XOR 的一個屬性是，如果你做兩次，你會得到原始資料。正如我們將在 <<bobDeobfuscates>> 中看到的，如果 Dina 使用從 ++rho++ 生成的位元組流應用相同的 XOR 操作，它將揭示原始洋蔥有效載荷。
 
@@ -522,7 +522,7 @@ XOR 是一個_對合_函數，意味著如果應用兩次，它會撤銷自身�
 
 [[dina_hop_payload_hmac]]
 .為 Dina 的跳有效載荷添加 HMAC 完整性校驗和
-image::images/mtln_1019.png[]
+image::mtln_1019.png[]
 
 ===== 洋蔥路由重播保護和檢測
 
@@ -559,7 +559,7 @@ image::images/mtln_1019.png[]
 
 [[chan_onion_wrapping]]
 .為 Chan 包裹洋蔥
-image::images/mtln_1020.png[]
+image::mtln_1020.png[]
 
 Alice 從為 Dina 建立的 1,300 洋蔥有效載荷開始。前 65（或更少）位元組是 Dina 的混淆有效載荷，其餘是填充。Alice 必須小心不要覆蓋 Dina 的有效載荷。
 
@@ -596,7 +596,7 @@ Alice 為 Chan 的有效載荷添加內部 HMAC 校驗和，並將其插入洋�
 
 [[bob_onion_wrapping]]
 .為 Bob 包裹洋蔥
-image::images/mtln_1021.png[]
+image::mtln_1021.png[]
 
 
 ==== 最終洋蔥封包
@@ -613,7 +613,7 @@ Alice 添加一個 33 位元組的公開會話金鑰，每一跳將使用它來�
 
 [[onion_packet_2]]
 .洋蔥封包
-image::images/mtln_1015.png[]
+image::mtln_1015.png[]
 
 === 發送洋蔥
 
@@ -674,7 +674,7 @@ Bob 以與 Alice 略有不同但遵循相同一般原則的方式生成填充。
 
 [[bob_extends]]
 .Bob 將洋蔥有效載荷擴展 1,300（零填充）位元組
-image::images/mtln_1023.png["Bob 將洋蔥有效載荷擴展 1,300（零填充）位元組"]
+image::mtln_1023.png["Bob 將洋蔥有效載荷擴展 1,300（零填充）位元組"]
 
 這個空白空間將被混淆並透過 Bob 用來去混淆他自己跳有效載荷的相同過程變成「填充」。讓我們看看這是如何運作的。
 
@@ -696,7 +696,7 @@ Bob 使用 ++rho++ 金鑰生成的位元組流的前 1,300 位元組與 Alice �
 
 [[bob_deobfuscates]]
 .Bob 去混淆洋蔥，混淆填充
-image::images/mtln_1024.png["Bob 去混淆洋蔥，混淆填充"]
+image::mtln_1024.png["Bob 去混淆洋蔥，混淆填充"]
 
 ==== Bob 提取下一跳的外部 HMAC
 
@@ -713,7 +713,7 @@ Bob 現在有一個 1,300 位元組的洋蔥封包要發送到下一跳。它幾
 
 [[bob_removes_shifts]]
 .Bob 移除跳有效載荷並左移其餘部分，用新填充填補空白
-image::images/mtln_1025.png["Bob 移除跳有效載荷並左移其餘部分，用新填充填補空白"]
+image::mtln_1025.png["Bob 移除跳有效載荷並左移其餘部分，用新填充填補空白"]
 
 [role="pagebreak-before"]
 沒有人能分辨 Alice 放的填充和 Bob 放的填充之間的區別。填充就是填充！反正都是隨機位元組。請注意，如果 Bob（或 Bob 的其他別名之一）在路由中出現在兩個不同的位置，那麼他們可以分辨區別，因為基本協定總是在整個路由中使用相同的付款雜湊。原子多路徑付款（AMP）和點時間鎖定合約（PTLC）透過在每個路由/跳上隨機化付款識別碼來消除關聯向量。

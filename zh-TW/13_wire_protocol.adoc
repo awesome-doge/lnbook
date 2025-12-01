@@ -9,7 +9,7 @@
 
 [[LN_protocol_wire_message_highlight]]
 .閃電協定套件中的訊息層
-image::images/mtln_1301.png["閃電協定套件中的訊息層"]
+image::mtln_1301.png["閃電協定套件中的訊息層"]
 
 === 線路框架
 

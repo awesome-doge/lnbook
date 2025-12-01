@@ -8,7 +8,7 @@ Alice 和 Bob 的節點交換的訊息在 https://github.com/lightningnetwork/li
 
 [[LN_protocol_channel_highlight]]
 .閃電網路協定套件中的支付通道
-image::images/mtln_0701.png["閃電網路協定套件中的支付通道"]
+image::mtln_0701.png["閃電網路協定套件中的支付通道"]
 
 === 使用比特幣系統的不同方式
 
@@ -22,7 +22,7 @@ image::images/mtln_0701.png["閃電網路協定套件中的支付通道"]
 
 [[on_off_chain]]
 .由鏈上和鏈下交易組成的閃電網路支付通道
-image::images/mtln_0702.png["由鏈上和鏈下交易組成的閃電網路支付通道"]
+image::mtln_0702.png["由鏈上和鏈下交易組成的閃電網路支付通道"]
 
 閃電網路就是比特幣。它只是使用比特幣系統的不同方式。
 
@@ -146,7 +146,7 @@ René 的節點別名是 +ln.rene-pickhardt.de+；然而，這個名稱只是為
 
 [[funding_message_flow]]
 .通道建立訊息流程
-image::images/mtln_0703.png["通道建立訊息流程"]
+image::mtln_0703.png["通道建立訊息流程"]
 
 在 <<funding_message_flow>> 中，Alice 和 Bob 的節點由圖表兩側的垂直線「A」和「B」表示。像這樣的時序圖顯示時間向下流動，訊息在兩個通訊對等方之間從一側流向另一側。線條向下傾斜以表示傳輸每個訊息所需的時間，訊息的方向由每條線末端的箭頭顯示。
 
@@ -280,7 +280,7 @@ bc1q89ju02heg32yrqdrnqghe6132wek25p6sv6e564znvrvez7tq5zqt4dn02
 
 [[A_B_funding_Tx]]
 .Alice 構建資金交易
-image::images/mtln_0704.png["Alice 構建資金交易"]
+image::mtln_0704.png["Alice 構建資金交易"]
 
 Alice _不廣播_這筆交易，因為這樣做會讓她的 140,000 satoshi 面臨風險。一旦花費到 2-of-2 多重簽名，如果沒有 Bob 的簽名，Alice 就無法取回她的錢。
 
@@ -310,7 +310,7 @@ Alice _不廣播_這筆交易，因為這樣做會讓她的 140,000 satoshi 面�
 
 [[A_B_fund_refund_Tx]]
 .Alice 也構建退款交易
-image::images/mtln_0705.png["Alice 也構建退款交易"]
+image::mtln_0705.png["Alice 也構建退款交易"]
 
 在本章後面，我們將看到如何創建更多承諾交易以不同金額分配通道餘額。
 
@@ -432,7 +432,7 @@ Alice 和 Bob 透過_推進通道狀態_來操作支付通道，透過一系列�
 
 [[competing_commitments_1]]
 .多個承諾交易
-image::images/mtln_0706.png[多個承諾交易]
+image::mtln_0706.png[多個承諾交易]
 
 ==== 競爭的承諾
 
@@ -478,13 +478,13 @@ image::images/mtln_0706.png[多個承諾交易]
 
 [[commitment_2]]
 .承諾交易 #2
-image::images/mtln_0707.png[承諾交易 #2]
+image::mtln_0707.png[承諾交易 #2]
 
 Alice 和 Bob 持有此交易的兩個不同變體，如 <<asymmetric_1>> 所示。
 
 [[asymmetric_1]]
 .不對稱承諾交易
-image::images/mtln_0708.png[不對稱承諾交易]
+image::mtln_0708.png[不對稱承諾交易]
 
 按照慣例，在閃電網路協定中，我們將兩個通道合作夥伴稱為 `self`（也稱為 `local`）和 `remote`，取決於我們從哪一側看。支付給每個通道合作夥伴的輸出分別稱為 `to_local` 和 `to_remote`。
 
@@ -500,7 +500,7 @@ Bob 持有該交易的鏡像，其中第一個輸出是 80,000 satoshi `to_self`
 
 [[asymmetric_delayed_1]]
 .不對稱和延遲的承諾交易
-image::images/mtln_0709.png[不對稱和延遲的承諾交易]
+image::mtln_0709.png[不對稱和延遲的承諾交易]
 
 [role="pagebreak-before"]
 這意味著如果 Alice 透過廣播並確認她持有的承諾交易來關閉通道，她在 432 個區塊內不能花費她的餘額，但 Bob 可以立即領取他的餘額。如果 Bob 使用他持有的承諾交易關閉通道，他在 432 個區塊內不能花費他的輸出，而 Alice 可以立即花費她的。
@@ -521,7 +521,7 @@ image::images/mtln_0709.png[不對稱和延遲的承諾交易]
 
 [[asymmetric_delayed_revocable_1]]
 .不對稱、延遲和可撤銷的承諾
-image::images/mtln_0710.png["不對稱、延遲和可撤銷的承諾"]
+image::mtln_0710.png["不對稱、延遲和可撤銷的承諾"]
 
 [[commitment_transaction]]
 === 承諾交易
@@ -591,7 +591,7 @@ revocationpubkey = G*(revocationbase_priv * sha256(revocation_basepoint || per_c
 
 [[commitment_message_flow]]
 .承諾和撤銷訊息流程
-image::images/mtln_0711.png[承諾和撤銷訊息流程]
+image::mtln_0711.png[承諾和撤銷訊息流程]
 
 ==== commitment_signed 訊息
 
@@ -668,7 +668,7 @@ Alice 給 Bob 提供了創建新承諾的方法。作為回報，Bob 撤銷舊�
 
 [[competing_commitments_2]]
 .已撤銷和當前承諾
-image::images/mtln_0712.png[已撤銷和當前承諾]
+image::mtln_0712.png[已撤銷和當前承諾]
 
 每次承諾，Alice 都撤銷了先前（較舊的）承諾。通道的當前狀態和正確餘額由承諾 #3 表示。所有先前的承諾都已被撤銷，Bob 有必要的金鑰對它們發出懲罰交易，以防 Alice 試圖廣播其中之一。
 
@@ -678,7 +678,7 @@ Alice 決定冒巨大風險，廣播已撤銷的承諾 #1，從 Bob 那裡偷走
 
 [[cheating_commitment]]
 .Alice 作弊
-image::images/mtln_0713.png[Alice 作弊]
+image::mtln_0713.png[Alice 作弊]
 
 如你所見，Alice 的舊承諾有兩個輸出，一個支付給她自己 70,000 satoshi（+to_local+ 輸出），一個支付給 Bob 70,000 satoshi。Alice 還不能花費她的 70,000 +to_local+ 輸出，因為它有 432 個區塊（3 天）的時間鎖。她現在希望 Bob 三天內不會注意到。
 
@@ -688,7 +688,7 @@ Bob 的節點將立即廣播懲罰交易。由於這個舊承諾被 Alice 撤銷
 
 [[penalty_transaction]]
 .作弊和懲罰
-image::images/mtln_0714.png[作弊和懲罰]
+image::mtln_0714.png[作弊和懲罰]
 
 Bob 的懲罰交易將 140,000 satoshi 支付到他自己的錢包，獲取了整個通道容量。Alice 不僅沒能作弊成功，她還在嘗試中失去了一切！(((range="endofrange", startref="ix_07_payment_channels-asciidoc17")))(((range="endofrange", startref="ix_07_payment_channels-asciidoc16")))
 
@@ -706,7 +706,7 @@ Bob 的懲罰交易將 140,000 satoshi 支付到他自己的錢包，獲取了�
 
 [[closing_message_flow]]
 .通道關閉訊息流程
-image::images/mtln_0715.png[通道關閉訊息流程]
+image::mtln_0715.png[通道關閉訊息流程]
 
 [[theShutdownmessage]]
 ==== shutdown 訊息
@@ -767,7 +767,7 @@ Alice 廣播 <<closing_transaction>> 中顯示的交易來關閉通道。
 
 [[closing_transaction]]
 .協作關閉交易
-image::images/mtln_0716.png[協作關閉交易]
+image::mtln_0716.png[協作關閉交易]
 
 一旦這個關閉交易在比特幣區塊鏈上確認，通道就關閉了。現在，Alice 和 Bob 可以隨意花費他們的輸出。(((range="endofrange", startref="ix_07_payment_channels-asciidoc19")))(((range="endofrange", startref="ix_07_payment_channels-asciidoc18")))
 

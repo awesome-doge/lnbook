@@ -943,7 +943,7 @@ $ mvn package
 
 [[alice_bob_chan_dina_network_demo]]
 .四個節點的小型演示網路
-image::images/mtln_1002.png["四個節點的小型演示網路"]
+image::mtln_1002.png["四個節點的小型演示網路"]
 
 最後，我們將讓 Dina 建立一張發票，並讓 Alice 支付該發票。由於 Alice 和 Dina 沒有直接連接，支付將作為 HTLC 在所有支付通道上路由。
 

@@ -178,7 +178,7 @@ Alice 使用 Android 裝置，將使用 Google Play 商店下載並安裝 Eclair
 
 [[eclair-playstore]]
 .Google Play 商店中的 Eclair Mobile
-image::images/mtln_0201.png["Google Play 商店中的 Eclair 錢包"]
+image::mtln_0201.png["Google Play 商店中的 Eclair 錢包"]
 
 
 [TIP]
@@ -219,7 +219,7 @@ Alice 注意到此頁面上有幾個不同的元素，幫助她確定這很可�
 
 [[eclair-mnemonic]]
 .新錢包助記詞
-image::images/mtln_0202.png["新錢包助記詞"]
+image::mtln_0202.png["新錢包助記詞"]
 
 在 <<eclair-mnemonic>> 中，我們故意模糊了部分助記詞，以防止本書讀者重複使用該助記詞。
 
@@ -268,7 +268,7 @@ Alice 可以透過幾種方式獲取比特幣：
 
 [[bitcoin-atm]]
 .Lamassu 比特幣 ATM
-image::images/mtln_0203.png["Lamassu 比特幣 ATM"]
+image::mtln_0203.png["Lamassu 比特幣 ATM"]
 
 要在她的 Eclair 閃電網路錢包中接收比特幣，Alice 需要向 ATM 出示 Eclair 閃電網路錢包中的比特幣地址。然後 ATM 可以將 Alice 新獲得的比特幣發送到這個比特幣地址。
 
@@ -278,7 +278,7 @@ QR 碼包含與下面顯示的相同的字母和數字字串，格式易於掃�
 
 [[eclair-receive]]
 .Eclair 中顯示的 Alice 的比特幣地址
-image::images/mtln_0204.png["Eclair 比特幣地址 QR 碼"]
+image::mtln_0204.png["Eclair 比特幣地址 QR 碼"]
 
 [NOTE]
 ====
@@ -290,7 +290,7 @@ Alice 可以將她的行動裝置拿到 ATM 並向內建攝影機展示它，如
 
 [[bitcoin-atm-receive]]
 .比特幣 ATM 掃描 QR 碼
-image::images/mtln_0205.png["比特幣 ATM 掃描 QR 碼"]
+image::mtln_0205.png["比特幣 ATM 掃描 QR 碼"]
 
 Alice 將在 Eclair 錢包的 TRANSACTION HISTORY 標籤中看到來自 ATM 的交易。雖然 Eclair 會在幾秒鐘內檢測到比特幣交易，但比特幣交易需要大約一個小時才能在比特幣區塊鏈上「確認」。如您在 <<eclair-tx1>> 中所見，Alice 的 Eclair 錢包在交易下方顯示「6+ conf」，表示該交易已收到所需的最少六次確認，她的資金現在可以使用了。
 
@@ -303,7 +303,7 @@ Alice 將在 Eclair 錢包的 TRANSACTION HISTORY 標籤中看到來自 ATM 的�
 
 [[eclair-tx1]]
 .Alice 收到比特幣
-image::images/mtln_0206.png["收到比特幣交易"]
+image::mtln_0206.png["收到比特幣交易"]
 
 同樣，如果她為透過網際網路提供的服務向客戶開帳單，Alice 可以向她的客戶發送包含比特幣地址或 QR 碼的電子郵件或即時訊息，他們可以將資訊貼上或掃描到比特幣錢包中來支付給她。
 
@@ -342,7 +342,7 @@ Alice 開啟通道連接的錢包或「節點」稱為她的「通道對等節�
 
 [[eclair-channels]]
 .LIGHTNING CHANNELS 標籤
-image::images/mtln_0207.png["LIGHTNING CHANNELS 標籤"]
+image::mtln_0207.png["LIGHTNING CHANNELS 標籤"]
 
 [role="pagebreak-before"]
 Alice 按下加號，並被提供四種可能的方式來開啟通道：
@@ -356,7 +356,7 @@ Alice 按下加號，並被提供四種可能的方式來開啟通道：
 
 [[node-URI-QR]]
 .節點 URI 作為 QR 碼
-image::images/mtln_0208.png["閃電網路節點 URI QR 碼",width=120]
+image::mtln_0208.png["閃電網路節點 URI QR 碼",width=120]
 
 [[node-URI-example]]
 .節點 URI
@@ -378,7 +378,7 @@ Alice 將她 0.020 BTC 總額中的 0.018 BTC 分配給她的通道，並接受�
 
 [[eclair-open-channel]]
 .開啟閃電網路通道
-image::images/mtln_0209.png["開啟閃電網路通道"]
+image::mtln_0209.png["開啟閃電網路通道"]
 
 一旦她點擊 OPEN，她的錢包就會構建開啟閃電網路通道的特殊比特幣交易，稱為「資金交易」。鏈上資金交易被發送到比特幣網路進行確認。
 
@@ -386,13 +386,13 @@ Alice 現在必須再次等待（參見 <<eclair-channel-waiting>>），等待�
 
 [[eclair-channel-waiting]]
 .等待資金交易開啟通道
-image::images/mtln_0210.png["等待資金交易開啟通道"]
+image::mtln_0210.png["等待資金交易開啟通道"]
 
 一旦資金交易被確認，Alice 到 ACINQ 節點的通道就開啟、注資並準備就緒，如 <<eclair-channel-open>> 所示。
 
 [[eclair-channel-open]]
 .通道已開啟
-image::images/mtln_0211.png["通道已開啟"]
+image::mtln_0211.png["通道已開啟"]
 
 [TIP]
 ====
@@ -419,7 +419,7 @@ BTCPay Server 使安裝所有必要軟體、上傳圖片和產品價格以及快
 
 [[bob-cafe-posapp]]
 .Bob 的銷售點應用程式
-image::images/mtln_0212.png["Bob 的銷售點應用程式"]
+image::mtln_0212.png["Bob 的銷售點應用程式"]
 
 ==== 閃電網路發票
 
@@ -427,14 +427,14 @@ Alice 從螢幕上選擇 Cafe Latte 選項，並被提供一張「閃電網路�
 
 [[bob-cafe-invoice]]
 .Alice 拿鐵的閃電網路發票
-image::images/mtln_0213.png["BTCPay Server 閃電網路發票"]
+image::mtln_0213.png["BTCPay Server 閃電網路發票"]
 
 [role="pagebreak-before"]
 要支付發票，Alice 打開她的 Eclair 錢包，並選擇 TRANSACTION HISTORY 標籤下的 Send 按鈕（看起來像一個向上的箭頭），如 <<alice-send-start>> 所示。
 
 [[alice-send-start]]
 .Alice 選擇發送
-image::images/mtln_0214.png["閃電網路交易發送",width=300]
+image::mtln_0214.png["閃電網路交易發送",width=300]
 
 [TIP]
 ====
@@ -447,7 +447,7 @@ Alice 按下 PAY，一秒鐘後，Bob 的平板顯示付款成功。Alice 完成
 
 [[alice-send-detail]]
 .Alice 的發送確認
-image::images/mtln_0215.png["閃電網路交易發送確認",width=300]
+image::mtln_0215.png["閃電網路交易發送確認",width=300]
 
 閃電網路支付對 Bob 來說也更好。他確信他會收到 Alice 拿鐵的錢，而不需要等待鏈上確認。將來，每當 Alice 想在 Bob's Cafe 喝咖啡時，她可以選擇在比特幣網路或閃電網路上用比特幣付款。您認為她會選擇哪一個？
 

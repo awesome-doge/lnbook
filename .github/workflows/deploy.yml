@@ -42,6 +42,7 @@ jobs:
             -a sectnumlevels=3 \
             -a icons=font \
             -a source-highlighter=highlight.js \
+            -a imagesdir=images \
             -o index.html \
             zh-TW/book.adoc
           cp -r images docs/

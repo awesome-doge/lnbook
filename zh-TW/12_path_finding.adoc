@@ -13,7 +13,7 @@
 
 [[LN_protocol_pathfinding_highlight]]
 .閃電協定套件中的付款傳遞
-image::images/mtln_1201.png["閃電協定套件中的付款傳遞"]
+image::mtln_1201.png["閃電協定套件中的付款傳遞"]
 
 ==== BOLT 在哪裡？
 
@@ -29,7 +29,7 @@ image::images/mtln_1201.png["閃電協定套件中的付款傳遞"]
 
 [[lngraph]]
 .截至 2021 年 7 月閃電網路部分的視覺化
-image::images/mtln_1202.png[]
+image::mtln_1202.png[]
 
 [NOTE]
 ====
@@ -190,13 +190,13 @@ Selena 監聽 +node_announcement+ 訊息並發現另外四個節點（除了預�
 
 [[channel_graph_nodes]]
 .節點公告
-image::images/mtln_1203.png[]
+image::mtln_1203.png[]
 
 Selena 還收到七條帶有相應通道容量的 +channel_announcement+ 訊息，允許她構建網路的基本「地圖」，如 <<channel_graph_1>> 所示。（名稱 Alice、Bob、Selena、Xavier、Yan 和 Rashid 已被它們的首字母取代：分別是 A、B、S、X 和 R。）
 
 [[channel_graph_1]]
 .通道圖
-image::images/mtln_1204.png[]
+image::mtln_1204.png[]
 
 ===== 通道圖中的不確定性
 
@@ -206,7 +206,7 @@ image::images/mtln_1204.png[]
 
 [[channel_graph_2]]
 .帶有已知和未知餘額的通道圖
-image::images/mtln_1205.png[]
+image::mtln_1205.png[]
 
 雖然「?」符號看起來很不祥，但缺乏確定性與完全無知不同。我們可以 _量化_ 不確定性，並通過用我們嘗試的成功/失敗 HTLC 更新圖來 _減少_ 它。
 
@@ -276,7 +276,7 @@ $P_{payment} = \prod_{i=1}^n P_i$
 
 [[channel_graph_3]]
 .通道圖費用和其他通道指標
-image::images/mtln_1206.png[]
+image::mtln_1206.png[]
 
 費用和時間鎖資訊非常重要，不僅作為路徑選擇指標。正如我們在 <<onion_routing>> 中看到的，發送者需要在每一跳添加費用和時間鎖（+cltv_expiry_delta+）來製作洋蔥。計算費用的過程是從接收者到發送者 _向後_ 沿著路徑進行的，因為每個中間跳期望傳入的 HTLC 具有比他們將發送給下一跳的傳出 HTLC 更高的金額和到期時間鎖。因此，例如，如果 Bob 想要 1,000 聰的費用和 30 個區塊的到期時間鎖增量來向 Rashid 發送付款，那麼該金額和到期增量必須添加到 _來自 Alice_ 的 HTLC 中。
 
@@ -324,7 +324,7 @@ Selena 嘗試第一條路徑（S->A->B->R）。她構建洋蔥並發送它，但
 
 [[path_1_fail]]
 .路徑 #1 嘗試失敗
-image::images/mtln_1207.png[]
+image::mtln_1207.png[]
 
 ===== 從失敗中學習
 
@@ -338,7 +338,7 @@ image::images/mtln_1207.png[]
 
 [[path_4_success]]
 .路徑 #4 嘗試成功
-image::images/mtln_1208.png[]
+image::mtln_1208.png[]
 
 ===== 從成功中學習
 
@@ -401,7 +401,7 @@ MPP 不是用戶會選擇的東西，而是一種節點路徑尋找和付款傳�
 
 [[mpp_paths]]
 .發送多部分付款的兩個部分
-image::images/mtln_1209.png[]
+image::mtln_1209.png[]
 
 ==== 多「回合」的試錯
 
@@ -431,7 +431,7 @@ image::images/mtln_1209.png[]
 
 [[mpp_rounds]]
 .使用 MPP 在多回合中發送付款
-image::images/mtln_1210.png[]
+image::mtln_1210.png[]
 
 最後，Selena 的節點使用 3 回合的路徑尋找將 1M 聰分成 30 個部分發送。(((range=「endofrange」, startref=「ix_12_path_finding-asciidoc11」)))(((range=「endofrange」, startref=「ix_12_path_finding-asciidoc10」)))
 
