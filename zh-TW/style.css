@@ -1,5 +1,8 @@
 /* 精通閃電網路 - 繁體中文版樣式 */
 
+/* 載入 Font Awesome */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
 :root {
   --primary-color: #f7931a;
   --secondary-color: #4a90d9;
@@ -217,6 +220,54 @@ hr {
   pre {
     font-size: 0.85em;
   }
+}
+
+/* Callout 標號樣式 */
+.conum[data-value] {
+  display: inline-block;
+  color: #fff !important;
+  background: var(--secondary-color);
+  border-radius: 50%;
+  text-align: center;
+  font-size: 0.75em;
+  width: 1.67em;
+  height: 1.67em;
+  line-height: 1.67em;
+  font-family: "Open Sans", sans-serif;
+  font-style: normal;
+  font-weight: bold;
+}
+
+.conum[data-value]::after {
+  content: attr(data-value);
+}
+
+.conum[data-value] + b {
+  display: none;
+}
+
+.colist ol {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.colist ol li {
+  margin: 0.5em 0;
+}
+
+.colist ol li::before {
+  content: attr(data-value);
+  display: inline-block;
+  color: #fff;
+  background: var(--secondary-color);
+  border-radius: 50%;
+  text-align: center;
+  font-size: 0.75em;
+  width: 1.67em;
+  height: 1.67em;
+  line-height: 1.67em;
+  margin-right: 0.5em;
+  font-weight: bold;
 }
 
 /* 列印樣式 */
