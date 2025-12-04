@@ -533,8 +533,17 @@ SEOHTML
           # Replace BUILDDATE placeholder with actual date
           sed -i "s/BUILDDATE/$(date -Iseconds)/g" docs/seo-inject.html
 
-          # Inject SEO content before </head>
-          sed -i '/<\/head>/e cat docs/seo-inject.html' docs/index.html
+          # Inject SEO content before </head> using Python for reliable multiline handling
+          python3 << 'PYEOF'
+import re
+with open('docs/index.html', 'r', encoding='utf-8') as f:
+    html = f.read()
+with open('docs/seo-inject.html', 'r', encoding='utf-8') as f:
+    seo = f.read()
+html = html.replace('</head>', seo + '\n</head>', 1)
+with open('docs/index.html', 'w', encoding='utf-8') as f:
+    f.write(html)
+PYEOF
           rm docs/seo-inject.html
 
           # Update page title
