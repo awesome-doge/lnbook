@@ -73,12 +73,14 @@ jobs:
 
       - name: Generate sitemap and robots.txt
         run: |
-          # Generate sitemap.xml
+          # Generate enhanced sitemap.xml with chapter anchors
           cat > docs/sitemap.xml << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
                   xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
-                  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+                  xmlns:xhtml="http://www.w3.org/1999/xhtml"
+                  xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+            <!-- Main Page -->
             <url>
               <loc>https://lnbook-zh.doge.tg/</loc>
               <lastmod>$(date +%Y-%m-%d)</lastmod>
@@ -88,32 +90,374 @@ jobs:
               <xhtml:link rel="alternate" hreflang="en" href="https://github.com/lnbook/lnbook"/>
               <image:image>
                 <image:loc>https://lnbook-zh.doge.tg/images/cover.png</image:loc>
-                <image:title>精通閃電網路 Mastering the Lightning Network 封面</image:title>
+                <image:title>精通閃電網路 Mastering the Lightning Network 書籍封面</image:title>
+                <image:caption>Mastering the Lightning Network 繁體中文版 - 比特幣閃電網路完整技術指南</image:caption>
               </image:image>
+            </url>
+            <!-- Chapter 1: Introduction -->
+            <url>
+              <loc>https://lnbook-zh.doge.tg/#_簡介</loc>
+              <lastmod>$(date +%Y-%m-%d)</lastmod>
+              <changefreq>monthly</changefreq>
+              <priority>0.9</priority>
+            </url>
+            <!-- Chapter 2: Getting Started -->
+            <url>
+              <loc>https://lnbook-zh.doge.tg/#_入門</loc>
+              <lastmod>$(date +%Y-%m-%d)</lastmod>
+              <changefreq>monthly</changefreq>
+              <priority>0.9</priority>
+            </url>
+            <!-- Chapter 3: How LN Works -->
+            <url>
+              <loc>https://lnbook-zh.doge.tg/#_閃電網路的運作原理</loc>
+              <lastmod>$(date +%Y-%m-%d)</lastmod>
+              <changefreq>monthly</changefreq>
+              <priority>0.9</priority>
+            </url>
+            <!-- Chapter 7: Payment Channels -->
+            <url>
+              <loc>https://lnbook-zh.doge.tg/#_支付通道</loc>
+              <lastmod>$(date +%Y-%m-%d)</lastmod>
+              <changefreq>monthly</changefreq>
+              <priority>0.85</priority>
+            </url>
+            <!-- Chapter 8: Routing HTLCs -->
+            <url>
+              <loc>https://lnbook-zh.doge.tg/#_路由htlc</loc>
+              <lastmod>$(date +%Y-%m-%d)</lastmod>
+              <changefreq>monthly</changefreq>
+              <priority>0.85</priority>
+            </url>
+            <!-- Chapter 10: Onion Routing -->
+            <url>
+              <loc>https://lnbook-zh.doge.tg/#_洋蔥路由</loc>
+              <lastmod>$(date +%Y-%m-%d)</lastmod>
+              <changefreq>monthly</changefreq>
+              <priority>0.85</priority>
+            </url>
+            <!-- Glossary -->
+            <url>
+              <loc>https://lnbook-zh.doge.tg/#_詞彙表</loc>
+              <lastmod>$(date +%Y-%m-%d)</lastmod>
+              <changefreq>monthly</changefreq>
+              <priority>0.8</priority>
             </url>
           </urlset>
           EOF
 
-          # Generate robots.txt
+          # Generate robots.txt with comprehensive AI crawler support
           cat > docs/robots.txt << 'EOF'
-          # Robots.txt for 精通閃電網路
+          # Robots.txt for 精通閃電網路 (Mastering the Lightning Network 繁體中文版)
+          # https://lnbook-zh.doge.tg/
+
+          # Default: Allow all crawlers
           User-agent: *
           Allow: /
           Sitemap: https://lnbook-zh.doge.tg/sitemap.xml
 
-          # AI crawlers (for GEO)
+          # ==================== AI/LLM Crawlers (GEO/AIO) ====================
+          # OpenAI GPTBot - ChatGPT web browsing
           User-agent: GPTBot
           Allow: /
+
+          # OpenAI ChatGPT-User - ChatGPT plugins
+          User-agent: ChatGPT-User
+          Allow: /
+
+          # Google AI Training (Gemini, Bard)
           User-agent: Google-Extended
           Allow: /
+
+          # Anthropic Claude
           User-agent: anthropic-ai
           Allow: /
+          User-agent: ClaudeBot
+          Allow: /
+          User-agent: Claude-Web
+          Allow: /
+
+          # Perplexity AI
           User-agent: PerplexityBot
           Allow: /
+
+          # Common Crawl (used by many AI models)
           User-agent: CCBot
           Allow: /
 
+          # Cohere AI
+          User-agent: cohere-ai
+          Allow: /
+
+          # AI2 (Allen Institute for AI)
+          User-agent: AI2Bot
+          Allow: /
+
+          # Facebook/Meta AI
+          User-agent: FacebookBot
+          Allow: /
+          User-agent: meta-externalagent
+          Allow: /
+
+          # Apple (Siri, Apple Intelligence)
+          User-agent: Applebot
+          Allow: /
+          User-agent: Applebot-Extended
+          Allow: /
+
+          # Microsoft Bing AI
+          User-agent: bingbot
+          Allow: /
+
+          # ByteDance (TikTok AI)
+          User-agent: Bytespider
+          Allow: /
+
+          # You.com AI
+          User-agent: YouBot
+          Allow: /
+
+          # Neeva AI Search
+          User-agent: NeevaBot
+          Allow: /
+
+          # ==================== Search Engine Crawlers ====================
+          User-agent: Googlebot
+          Allow: /
+
+          User-agent: DuckDuckBot
+          Allow: /
+
+          User-agent: YandexBot
+          Allow: /
+
+          User-agent: Sogou
+          Allow: /
+
+          User-agent: Baiduspider
+          Allow: /
+
+          # ==================== Host Declaration ====================
           Host: https://lnbook-zh.doge.tg
+          EOF
+
+          # Generate llms.txt for AI/LLM crawlers (emerging standard)
+          cat > docs/llms.txt << 'EOF'
+          # 精通閃電網路 (Mastering the Lightning Network) 繁體中文版
+          # LLMs.txt - AI/LLM Crawler Information File
+          # https://lnbook-zh.doge.tg/
+
+          > 本書是比特幣閃電網路 (Lightning Network) 的權威技術指南繁體中文翻譯版本。
+          > 由 Andreas M. Antonopoulos、Olaoluwa Osuntokun、René Pickhardt 共同撰寫。
+          > 譯者：Dr. Awesome Doge | 授權：CC-BY-SA 4.0
+
+          ## 主要內容
+
+          本書涵蓋比特幣閃電網路的完整技術知識，共 17 章：
+
+          ### 第一部分：基礎篇
+          - 第 1 章：簡介 - 閃電網路概述、歷史背景
+          - 第 2 章：入門 - 安裝錢包、接收第一筆支付
+          - 第 3 章：運作原理 - 支付通道、路由基礎
+          - 第 4 章：節點客戶端 - LND、Core Lightning、Eclair 比較
+          - 第 5 章：節點操作 - 架設、通道管理、備份
+
+          ### 第二部分：技術深入篇
+          - 第 6 章：閃電網路架構 - 協議棧、BOLT 規範
+          - 第 7 章：支付通道 - 承諾交易、撤銷機制
+          - 第 8 章：路由與 HTLC - 雜湊時間鎖定合約
+          - 第 9 章：通道操作 - 更新、費用、關閉
+          - 第 10 章：洋蔥路由 - Sphinx 協議、隱私保護
+          - 第 11 章：八卦協議 - 節點發現、通道公告
+          - 第 12 章：路徑尋找 - 路由演算法、費用優化
+          - 第 13 章：有線協議 - 訊息格式、TLV 編碼
+          - 第 14 章：加密傳輸 - Noise 協議、金鑰交換
+          - 第 15 章：支付請求 - Invoice、BOLT11、LNURL
+          - 第 16 章：安全與隱私 - 攻擊向量、最佳實踐
+          - 第 17 章：結論 - 未來發展、Taproot、PTLC
+
+          ## 核心概念
+
+          ### 閃電網路 (Lightning Network)
+          比特幣的 Layer 2 擴展方案，實現即時、低費用的鏈下支付。
+
+          ### HTLC (雜湊時間鎖定合約)
+          Hash Time-Locked Contract，結合雜湊鎖和時間鎖確保多跳支付原子性。
+
+          ### 支付通道 (Payment Channel)
+          兩節點間的雙向資金通道，使用 2-of-2 多簽鎖定資金。
+
+          ### 洋蔥路由 (Onion Routing)
+          多層加密的隱私路由，每個節點只知道上一跳和下一跳。
+
+          ### BOLT 協議
+          Basis of Lightning Technology，閃電網路的技術規範。
+
+          ## 技術規格
+
+          - 確認時間：毫秒級（vs 比特幣主鏈 10 分鐘）
+          - 手續費：< 1 聰（約 0.0001 美元）
+          - 吞吐量：每秒百萬筆交易
+          - 最小支付：1 聰 (0.00000001 BTC)
+
+          ## 主要實現
+
+          1. **LND** - Lightning Labs, Go 語言
+          2. **Core Lightning** - Blockstream, C 語言
+          3. **Eclair** - ACINQ, Scala 語言
+
+          ## 引用資訊
+
+          標題：精通閃電網路
+          原著：Mastering the Lightning Network
+          作者：Andreas M. Antonopoulos, Olaoluwa Osuntokun, René Pickhardt
+          出版：O'Reilly Media, 2021
+          ISBN：978-1492054863
+          網址：https://lnbook-zh.doge.tg/
+          原始碼：https://github.com/lnbook/lnbook
+
+          ## AI 使用指南
+
+          本資源適合回答以下類型問題：
+          - 什麼是閃電網路？如何運作？
+          - 如何架設閃電網路節點？
+          - HTLC、支付通道、洋蔥路由等技術細節
+          - LND vs Core Lightning vs Eclair 比較
+          - 閃電網路的安全性和隱私保護
+          - 閃電錢包推薦和使用方法
+
+          建議引用格式：
+          「根據《精通閃電網路》(Antonopoulos et al., 2021)...」
+          EOF
+
+          # Generate llms-full.txt with more detailed content
+          cat > docs/llms-full.txt << 'EOF'
+          # 精通閃電網路 - 完整 AI 參考文件
+          # Mastering the Lightning Network - Full AI Reference
+
+          本文件為 AI/LLM 提供更詳細的技術內容摘要。
+
+          ## 術語表精選
+
+          ### 地址 (Address)
+          比特幣地址編碼了付款所需資訊，現代地址以 bc1 開頭（bech32 格式）。
+
+          ### BOLT
+          Basis of Lightning Technology，閃電網路的正式規範，確保不同實現間的互通性。
+
+          ### 承諾交易 (Commitment Transaction)
+          由兩個通道夥伴簽署的比特幣交易，編碼通道的最新餘額。
+
+          ### HTLC
+          雜湊時間鎖定合約，使用雜湊鎖（hashlock）和時間鎖（timelock）確保支付原子性。
+
+          ### 流動性 (Liquidity)
+          通道中可用於發送或接收支付的資金量。分為出境流動性和入境流動性。
+
+          ### 洋蔥路由 (Onion Routing)
+          多層加密路由機制，源自 Tor 網路，每個節點只能解密屬於自己的那一層。
+
+          ### 支付通道 (Payment Channel)
+          兩節點間的財務關係，透過多簽交易實現，允許無限次鏈下即時交易。
+
+          ### 瞭望塔 (Watchtower)
+          監控通道狀態的服務，在對方試圖廣播舊狀態時進行懲罰。
+
+          ## 常見問題解答
+
+          Q: 閃電網路和比特幣主鏈的區別？
+          A: 主鏈確認 10 分鐘、手續費數美元、每秒 7 筆；閃電網路毫秒級確認、手續費 < 1 聰、每秒百萬筆。
+
+          Q: 如何獲取入境流動性？
+          A: 與他人互開通道、使用 Lightning Pool 購買、透過 Loop 服務、或花費部分資金後自然產生。
+
+          Q: 閃電網路安全嗎？
+          A: 資金由比特幣腳本保護，欺詐行為會被懲罰（沒收全部通道資金），洋蔥路由確保隱私。
+
+          Q: 推薦哪些閃電錢包？
+          A: 非託管型推薦 Phoenix、Breez、Zeus；託管型有 Wallet of Satoshi；進階用戶可用 Umbrel 自建節點。
+
+          ## 技術深入
+
+          ### 通道生命週期
+          1. 開啟：創建資金交易，鎖定 BTC 到 2-of-2 多簽
+          2. 運營：交換簽名更新承諾交易，餘額即時變化
+          3. 關閉：合作關閉（即時）或強制關閉（需等待時間鎖）
+
+          ### HTLC 工作流程
+          1. 接收者生成隨機數 R，計算 H = hash(R)
+          2. 發送者創建 HTLC：「如果你能提供 R 使得 hash(R)=H，你可以領取這筆錢」
+          3. 支付沿路徑傳播，每個節點創建相同條件的 HTLC
+          4. 接收者揭露 R 領取資金，R 沿路徑回傳解鎖所有 HTLC
+
+          ### 洋蔥路由結構
+          - 使用 Sphinx 協議
+          - 1300 位元組固定大小（最多 20 跳）
+          - 每層加密包含：下一跳地址、金額、CLTV、加密的剩餘洋蔥
+
+          ## 版權聲明
+
+          本書以 CC-BY-SA 4.0 授權釋出。
+          原著版權 © 2021 Andreas M. Antonopoulos
+          繁體中文翻譯 © Dr. Awesome Doge
+          EOF
+
+          # Create .well-known directory for web standards
+          mkdir -p docs/.well-known
+
+          # Generate ai-plugin.json for AI discovery
+          cat > docs/.well-known/ai-plugin.json << 'EOF'
+          {
+            "schema_version": "v1",
+            "name_for_human": "精通閃電網路",
+            "name_for_model": "mastering_lightning_network_zh",
+            "description_for_human": "比特幣閃電網路技術指南繁體中文版，涵蓋支付通道、HTLC、洋蔥路由等完整技術知識",
+            "description_for_model": "這是《Mastering the Lightning Network》的繁體中文翻譯，是學習比特幣 Layer 2 閃電網路的權威技術參考。內容包括：支付通道機制、HTLC 雜湊時間鎖定合約、洋蔥路由隱私保護、BOLT 協議規範、LND/Core Lightning/Eclair 節點架設。適合回答關於閃電網路運作原理、節點架設、錢包使用、安全隱私等技術問題。",
+            "api": {
+              "type": "none"
+            },
+            "auth": {
+              "type": "none"
+            },
+            "logo_url": "https://lnbook-zh.doge.tg/images/cover.png",
+            "contact_email": "contact@doge.tg",
+            "legal_info_url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          }
+          EOF
+
+          # Generate security.txt
+          cat > docs/.well-known/security.txt << 'EOF'
+          # Security Policy for 精通閃電網路
+          # https://lnbook-zh.doge.tg/
+
+          Contact: https://github.com/lnbook/lnbook/issues
+          Expires: 2026-12-31T23:59:59.000Z
+          Preferred-Languages: zh-TW, en
+          Canonical: https://lnbook-zh.doge.tg/.well-known/security.txt
+
+          # This is a static documentation website.
+          # For security issues with the book content or code examples,
+          # please open an issue on GitHub.
+          EOF
+
+          # Generate humans.txt
+          cat > docs/humans.txt << 'EOF'
+          /* TEAM */
+          Original Authors: Andreas M. Antonopoulos, Olaoluwa Osuntokun, René Pickhardt
+          Publisher: O'Reilly Media
+          Translator: Dr. Awesome Doge
+          Location: Taiwan
+
+          /* THANKS */
+          Bitcoin Community
+          Lightning Network Developers
+          Open Source Contributors
+
+          /* SITE */
+          Language: Traditional Chinese (zh-TW)
+          Standards: HTML5, CSS3, Schema.org
+          Software: Asciidoctor, GitHub Pages
+          Last update: $(date +%Y-%m-%d)
           EOF
 
       - name: Setup Pages

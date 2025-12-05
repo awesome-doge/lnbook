@@ -1,6 +1,6 @@
 <!-- ==================== SEO Meta Tags ==================== -->
 <meta name="description" content="精通閃電網路 (Mastering the Lightning Network) 繁體中文版免費線上閱讀。由 Andreas M. Antonopoulos 等專家撰寫，完整介紹比特幣 Layer 2 擴展方案。涵蓋 LND、c-lightning、Eclair 節點架設教學，支付通道原理，HTLC 路由機制，洋蔥路由隱私保護。17 章完整技術指南，適合開發者與區塊鏈技術愛好者。">
-<meta name="keywords" content="閃電網路, Lightning Network, 比特幣, Bitcoin, 區塊鏈, blockchain, 支付通道, payment channel, HTLC, 雜湊時間鎖定合約, 加密貨幣, cryptocurrency, Layer 2, L2, 二層網路, LND, Lightning Network Daemon, c-lightning, CLN, Core Lightning, Eclair, 節點, node, 錢包, wallet, 微支付, micropayment, 即時支付, instant payment, 洋蔥路由, onion routing, Mastering the Lightning Network, Andreas Antonopoulos, 比特幣閃電網路, 閃電網路教學, 閃電網路中文, 比特幣擴容, 比特幣二層, BOLT, Lightning BOLT, 閃電網路協議, 路由費, routing fee, 通道容量, channel capacity, 多路徑支付, MPP, AMP, 原子多路徑支付, Sphinx, 支付請求, invoice, LNURL, keysend, 閃電地址, Lightning Address, Taproot, PTLC, 比特幣第二層, 離鏈交易, off-chain, 鏈下支付">
+<meta name="keywords" content="閃電網路, Lightning Network, 比特幣, Bitcoin, 區塊鏈, blockchain, 支付通道, payment channel, HTLC, 雜湊時間鎖定合約, 加密貨幣, cryptocurrency, Layer 2, L2, 二層網路, LND, Lightning Network Daemon, c-lightning, CLN, Core Lightning, Eclair, 節點, node, 錢包, wallet, 微支付, micropayment, 即時支付, instant payment, 洋蔥路由, onion routing, Mastering the Lightning Network, Andreas Antonopoulos, 比特幣閃電網路, 閃電網路教學, 閃電網路中文, 比特幣擴容, 比特幣二層, BOLT, Lightning BOLT, 閃電網路協議, 路由費, routing fee, 通道容量, channel capacity, 多路徑支付, MPP, AMP, 原子多路徑支付, Sphinx, 支付請求, invoice, LNURL, keysend, 閃電地址, Lightning Address, Taproot, PTLC, 比特幣第二層, 離鏈交易, off-chain, 鏈下支付, BTC, satoshi, 聰, 閃電錢包, Phoenix, Breez, Zeus, BlueWallet, Muun, 流動性, liquidity, 入境流動性, inbound liquidity, 瞭望塔, watchtower, 承諾交易, commitment transaction, 撤銷密鑰, revocation key, 多簽, multisig, 2-of-2, 時間鎖, timelock, CLTV, CSV, 原像, preimage, 支付雜湊, payment hash, 路由節點, routing node, 通道餘額, channel balance, 強制關閉, force close, 合作關閉, cooperative close, Splicing, 通道拼接, 零確認通道, zero-conf channel, Anchor Output, 錨點輸出">
 <meta name="author" content="Andreas M. Antonopoulos, Olaoluwa Osuntokun, René Pickhardt">
 <meta name="translator" content="Dr. Awesome Doge">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
@@ -20,8 +20,31 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="精通閃電網路">
 <link rel="alternate" hreflang="zh-TW" href="https://lnbook-zh.doge.tg/">
+<link rel="alternate" hreflang="zh-Hant" href="https://lnbook-zh.doge.tg/">
 <link rel="alternate" hreflang="en" href="https://github.com/lnbook/lnbook">
 <link rel="alternate" hreflang="x-default" href="https://lnbook-zh.doge.tg/">
+<link rel="author" href="https://lnbook-zh.doge.tg/humans.txt">
+<link rel="license" href="https://creativecommons.org/licenses/by-sa/4.0/">
+<link rel="me" href="https://github.com/lnbook/lnbook">
+<meta name="citation_title" content="精通閃電網路 - Mastering the Lightning Network">
+<meta name="citation_author" content="Andreas M. Antonopoulos">
+<meta name="citation_author" content="Olaoluwa Osuntokun">
+<meta name="citation_author" content="René Pickhardt">
+<meta name="citation_publication_date" content="2021/12/21">
+<meta name="citation_publisher" content="O'Reilly Media">
+<meta name="citation_isbn" content="978-1492054863">
+<meta name="citation_language" content="zh-TW">
+<meta name="DC.title" content="精通閃電網路">
+<meta name="DC.creator" content="Andreas M. Antonopoulos">
+<meta name="DC.subject" content="Lightning Network, Bitcoin, Cryptocurrency">
+<meta name="DC.description" content="比特幣閃電網路完整技術指南繁體中文版">
+<meta name="DC.publisher" content="O'Reilly Media">
+<meta name="DC.date" content="2021-12-21">
+<meta name="DC.type" content="Book">
+<meta name="DC.format" content="text/html">
+<meta name="DC.identifier" content="https://lnbook-zh.doge.tg/">
+<meta name="DC.language" content="zh-TW">
+<meta name="DC.rights" content="CC-BY-SA 4.0">
 
 <!-- ==================== Open Graph / Facebook ==================== -->
 <meta property="og:type" content="book">
@@ -296,6 +319,102 @@
         "@type": "Answer",
         "text": "《精通閃電網路》適合具備比特幣基礎知識的讀者。書籍分為兩大部分：基礎篇（第1-5章）適合一般用戶，介紹概念和錢包使用；技術深入篇（第6-17章）適合開發者，深入協議細節和實現。建議先閱讀《精通比特幣》建立基礎。本書提供完整的 Docker 環境，讓讀者實際操作閃電網路節點。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "閃電網路和比特幣主鏈有什麼區別？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "主要區別：1) 確認時間：比特幣主鏈約 10 分鐘，閃電網路毫秒級；2) 手續費：主鏈數美元，閃電網路 0.0001 美元以下；3) 吞吐量：主鏈每秒 7 筆，閃電網路可達百萬筆；4) 隱私：主鏈交易永久公開，閃電網路只有開關通道上鏈；5) 最小金額：主鏈受限於手續費，閃電網路支援 1 聰微支付。閃電網路適合日常小額交易，主鏈適合大額結算。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "什麼是閃電網路流動性？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "流動性分為兩種：1) 出境流動性（outbound）：你的通道中可用於發送支付的資金；2) 入境流動性（inbound）：通道中可用於接收支付的容量。新開通道通常只有出境流動性。獲取入境流動性方法：與他人互開通道、使用 Lightning Pool 市場購買、透過 Loop 服務、或花費部分資金後自然產生。流動性管理是節點運營的關鍵技能。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "閃電網路支援哪些錢包應用？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "主流閃電錢包：1) 託管型（新手友好）：Wallet of Satoshi、Strike；2) 非託管型（自主控制）：Phoenix（ACINQ）、Breez、Zeus、BlueWallet；3) 節點錢包（進階用戶）：Umbrel、RaspiBlitz、MyNode。選擇建議：小額使用選 Phoenix 或 Breez，大額或商業用途建議自建節點。所有錢包都支援 BOLT11 標準，可互相支付。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "什麼是 BOLT 協議？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "BOLT（Basis of Lightning Technology）是閃電網路的技術規範，確保不同實現間的互通性。主要規範：BOLT #1 基礎協議、BOLT #2 通道管理、BOLT #3 交易格式、BOLT #4 洋蔥路由、BOLT #7 P2P 訊息、BOLT #11 支付請求編碼。所有閃電網路實現（LND、Core Lightning、Eclair）都必須遵循 BOLT 規範才能互相通訊。規範持續更新，新功能如 AMP、Offers 正在標準化中。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "閃電網路通道關閉有哪些方式？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "三種關閉方式：1) 合作關閉（cooperative close）：雙方協商後立即結算，手續費最低，資金即時可用；2) 強制關閉（force close）：單方面廣播最新承諾交易，需等待時間鎖（通常 144-2016 個區塊），手續費較高；3) 懲罰關閉（penalty close）：對方廣播舊狀態時觸發，誠實方可沒收全部通道資金。建議優先使用合作關閉，強制關閉僅在對方離線或不配合時使用。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "什麼是閃電網路的多路徑支付 (MPP)？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "多路徑支付 (Multi-Path Payment, MPP) 是將大額支付拆分成多個小額支付，透過不同路徑同時發送的技術。優點：1) 突破單一通道容量限制；2) 提高支付成功率；3) 增強隱私性（金額分散）；4) 更好利用網路流動性。例如支付 1 BTC 可拆成 10 筆 0.1 BTC，分別走不同路徑。相關技術包括 AMP（Atomic Multi-Path Payment，原子多路徑支付）。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "閃電網路如何保護用戶隱私？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "閃電網路的隱私保護機制：1) 洋蔥路由：支付資訊層層加密，中間節點無法得知完整路徑和最終收款人；2) 鏈下交易：只有開關通道上鏈，日常交易不公開；3) 支付雜湊隱私：每筆支付使用不同雜湊，無法關聯；4) 私有通道：不公告的通道不出現在公開圖譜中；5) 隨機路徑選擇：增加追蹤難度。但需注意：通道圖譜公開、節點 IP 可能暴露、流動性分析攻擊風險。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "如何用閃電網路接收支付？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "接收閃電支付步驟：1) 確保有入境流動性（inbound liquidity）；2) 使用錢包生成 Invoice（支付請求），指定金額和過期時間；3) 將 Invoice（以 lnbc 開頭的字串或 QR 碼）發送給付款方；4) 付款方掃碼或貼上 Invoice 完成支付；5) 你的錢包收到通知並更新餘額。無需入境流動性的方案：使用 LNURL-withdraw、閃電地址 (Lightning Address)、或支援自動通道開啟的錢包如 Phoenix。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "閃電網路的未來發展方向是什麼？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "閃電網路未來發展：1) Taproot 整合：更高效的多簽、更小的交易體積；2) PTLC（Point Time-Locked Contract）：取代 HTLC，提升隱私性；3) Splicing：不關閉通道即可增減資金；4) Dual-Funded Channels：雙向注資通道；5) BOLT12 Offers：可重複使用的支付請求；6) Channel Factories：多方共享通道，降低鏈上成本；7) Trampoline Routing：簡化輕客戶端路由；8) LSP（Lightning Service Provider）生態完善。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "閃電地址 (Lightning Address) 是什麼？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "閃電地址是類似電子郵件格式的閃電網路收款地址（如 user@wallet.com），基於 LNURL-pay 協議。優點：1) 易於記憶和分享；2) 可重複使用（不像 Invoice 一次性）；3) 支援自定義金額；4) 可附帶訊息。使用流程：付款方輸入閃電地址 → 錢包查詢對應服務器 → 獲取 Invoice → 完成支付。支援錢包：Phoenix、Breez、Zeus、BlueWallet、Wallet of Satoshi 等。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "如何選擇閃電網路節點的連接對象？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "選擇連接節點考量：1) 節點正常運行時間（uptime）：選擇穩定在線的節點；2) 連接性：選擇連接數多、位於網路中心的節點；3) 費用政策：低基本費和低費率的節點；4) 流動性：高容量節點能處理大額支付；5) 地理分佈：選擇不同地區節點增加可靠性。推薦連接知名節點如 ACINQ、Bitfinex、River、Kraken。可使用 1ML.com、Amboss.space 查詢節點統計。Autopilot 功能可自動推薦連接。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "閃電網路支付失敗的常見原因？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "閃電支付失敗常見原因：1) 路徑流動性不足：中間通道沒有足夠餘額轉發；2) 節點離線：路徑上的節點暫時不可用；3) Invoice 過期：支付請求已超時；4) 金額過大：超過路徑最大容量；5) 費用不足：提供的費用低於路由節點要求；6) HTLC 數量限制：通道 pending HTLC 達上限。解決方案：重試支付（會嘗試不同路徑）、使用 MPP 拆分支付、增加費用預算、選擇流動性更好的路徑。"
+      }
     }
   ]
 }
@@ -461,6 +580,225 @@
     "cssSelector": [".sect1 > h2", ".paragraph > p:first-of-type", "#preamble"]
   },
   "url": "https://lnbook-zh.doge.tg/"
+}
+</script>
+
+<!-- ==================== AIO: DefinedTermSet for AI Understanding ==================== -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "DefinedTermSet",
+  "@id": "https://lnbook-zh.doge.tg/#glossary",
+  "name": "閃電網路術語表",
+  "description": "本書涵蓋的閃電網路專業術語定義，包含中英對照",
+  "inLanguage": "zh-TW",
+  "hasDefinedTerm": [
+    {
+      "@type": "DefinedTerm",
+      "name": "HTLC",
+      "alternateName": "雜湊時間鎖定合約",
+      "description": "Hash Time-Locked Contract，閃電網路用於安全多跳支付的密碼學機制，結合雜湊鎖和時間鎖確保原子性",
+      "termCode": "HTLC"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "支付通道",
+      "alternateName": "Payment Channel",
+      "description": "兩個節點間建立的雙向資金通道，透過 2-of-2 多簽交易鎖定資金，允許無限次鏈下即時交易",
+      "termCode": "payment-channel"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "洋蔥路由",
+      "alternateName": "Onion Routing",
+      "description": "多層加密的隱私保護路由機制，源自 Tor 網路設計，每個節點只能解密屬於自己的那一層",
+      "termCode": "onion-routing"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "BOLT",
+      "alternateName": "閃電技術基礎",
+      "description": "Basis of Lightning Technology，閃電網路協議規範文件的總稱，確保不同實現間的互通性",
+      "termCode": "BOLT"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "承諾交易",
+      "alternateName": "Commitment Transaction",
+      "description": "由兩個通道夥伴簽署的比特幣交易，編碼通道的最新餘額分配，每次支付後更新",
+      "termCode": "commitment-tx"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "流動性",
+      "alternateName": "Liquidity",
+      "description": "通道中可用於發送（出境流動性）或接收（入境流動性）支付的資金量",
+      "termCode": "liquidity"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "瞭望塔",
+      "alternateName": "Watchtower",
+      "description": "監控通道狀態的服務，在對方試圖廣播舊承諾交易時進行懲罰，保護離線用戶",
+      "termCode": "watchtower"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "Invoice",
+      "alternateName": "支付請求",
+      "description": "包含金額、支付雜湊、過期時間等資訊的 BOLT11 編碼字串，用於請求閃電支付",
+      "termCode": "invoice"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "LND",
+      "alternateName": "Lightning Network Daemon",
+      "description": "Lightning Labs 開發的閃電網路實現，使用 Go 語言編寫，市佔率最高",
+      "termCode": "lnd"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "Core Lightning",
+      "alternateName": "c-lightning",
+      "description": "Blockstream 開發的閃電網路實現，使用 C 語言編寫，輕量高效，插件系統靈活",
+      "termCode": "core-lightning"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "Eclair",
+      "description": "ACINQ 開發的閃電網路實現，使用 Scala 語言編寫，支援行動端，Phoenix 錢包的後端",
+      "termCode": "eclair"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "通道容量",
+      "alternateName": "Channel Capacity",
+      "description": "資金交易中鎖定的比特幣總量，決定通道的最大支付能力",
+      "termCode": "capacity"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "路由費",
+      "alternateName": "Routing Fee",
+      "description": "節點轉發支付收取的費用，由基本費（base fee）和費率（fee rate）組成",
+      "termCode": "routing-fee"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "多路徑支付",
+      "alternateName": "MPP (Multi-Path Payment)",
+      "description": "將大額支付拆分成多個小額支付，透過不同路徑同時發送，提高成功率",
+      "termCode": "mpp"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "原像",
+      "alternateName": "Preimage",
+      "description": "HTLC 中的秘密值 R，其雜湊值用於鎖定支付，揭露原像即可領取資金",
+      "termCode": "preimage"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "CLTV",
+      "alternateName": "CheckLockTimeVerify",
+      "description": "比特幣腳本運算子，定義輸出可被花費的絕對區塊高度，用於 HTLC 時間鎖",
+      "termCode": "cltv"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "強制關閉",
+      "alternateName": "Force Close",
+      "description": "單方面廣播承諾交易關閉通道，需等待時間鎖，手續費較高",
+      "termCode": "force-close"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "合作關閉",
+      "alternateName": "Cooperative Close",
+      "description": "雙方協商後共同簽署關閉交易，資金即時可用，手續費最低",
+      "termCode": "cooperative-close"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "Satoshi",
+      "alternateName": "聰",
+      "description": "比特幣最小單位，1 BTC = 100,000,000 satoshi，閃電網路支援 1 聰微支付",
+      "termCode": "satoshi"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "LNURL",
+      "description": "Lightning Network URL，簡化閃電支付流程的協議擴展，支援靜態支付碼",
+      "termCode": "lnurl"
+    }
+  ]
+}
+</script>
+
+<!-- ==================== AIO: SoftwareApplication Schema ==================== -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "@id": "https://lnbook-zh.doge.tg/#code-examples",
+  "name": "閃電網路 Docker 實作環境",
+  "description": "本書提供的 Docker 容器化實作環境，包含 bitcoind、LND、Core Lightning、Eclair 四個節點",
+  "codeRepository": "https://github.com/lnbook/lnbook/tree/develop/code/docker",
+  "programmingLanguage": ["Bash", "Docker", "Python"],
+  "runtimePlatform": "Docker",
+  "targetProduct": {
+    "@type": "SoftwareApplication",
+    "name": "Lightning Network Node",
+    "applicationCategory": "Cryptocurrency",
+    "operatingSystem": "Linux, macOS, Windows (via Docker)"
+  }
+}
+</script>
+
+<!-- ==================== GEO: CreativeWork for AI Citation ==================== -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "@id": "https://lnbook-zh.doge.tg/#scholarly",
+  "name": "精通閃電網路：比特幣第二層支付協議技術詳解",
+  "headline": "Mastering the Lightning Network 繁體中文技術文獻",
+  "author": [
+    {"@type": "Person", "name": "Andreas M. Antonopoulos", "affiliation": "Bitcoin Educator"},
+    {"@type": "Person", "name": "Olaoluwa Osuntokun", "affiliation": "Lightning Labs CTO"},
+    {"@type": "Person", "name": "René Pickhardt", "affiliation": "Lightning Network Researcher"}
+  ],
+  "datePublished": "2021-12-21",
+  "publisher": {"@type": "Organization", "name": "O'Reilly Media"},
+  "inLanguage": "zh-TW",
+  "isAccessibleForFree": true,
+  "citation": "Antonopoulos, A. M., Osuntokun, O., & Pickhardt, R. (2021). Mastering the Lightning Network. O'Reilly Media.",
+  "abstract": "本書是比特幣閃電網路的權威技術指南，涵蓋 Layer 2 擴展原理、支付通道機制、HTLC 路由協議、洋蔥路由隱私保護、BOLT 規範詳解，以及 LND、Core Lightning、Eclair 三大實現的架設與 API 使用。適合區塊鏈開發者、比特幣技術愛好者、金融科技工程師學習參考。"
+}
+</script>
+
+<!-- ==================== Enhanced Speakable for Voice/AI Assistants ==================== -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "@id": "https://lnbook-zh.doge.tg/#speakable-enhanced",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      ".sect1 > h2",
+      ".paragraph > p:first-of-type",
+      "#preamble",
+      ".admonitionblock.note .content",
+      ".admonitionblock.tip .content",
+      ".sidebarblock .content"
+    ]
+  },
+  "url": "https://lnbook-zh.doge.tg/",
+  "mainContentOfPage": {
+    "@type": "WebPageElement",
+    "cssSelector": "#content"
+  }
 }
 </script>
 
