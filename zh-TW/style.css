@@ -192,10 +192,22 @@ body.book {
 /* ============================================================
    CONTENT AREA
    ============================================================ */
+/* Content centered within the space right of TOC.
+   52rem ≈ 832px = ~48 CJK chars at 17px — ideal reading width.
+   On wide screens (>1280px), extra space is distributed evenly on both sides. */
 #content {
   max-width: 52rem !important;
-  margin: 0 auto !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
   padding: 2rem 3rem 3rem !important;
+}
+
+/* On very wide screens, limit the dead space by widening slightly */
+@media screen and (min-width: 1600px) {
+  #content {
+    max-width: 58rem !important;
+    padding: 2rem 4rem 3rem !important;
+  }
 }
 
 /* ============================================================
@@ -527,8 +539,17 @@ hr {
   line-height: 2 !important;
 }
 
-.sect1 { padding-top: 0.5rem; }
+/* Scroll performance: contain layout paint for large DOM (14K+ elements) */
+.sect1 {
+  padding-top: 0.5rem;
+  contain: layout style;
+}
 .sect1 + .sect1 { border-top: 1px solid var(--ln-border-light); margin-top: 2.5rem; }
+
+.imageblock {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 300px;
+}
 
 /* --- Footer --- */
 #footer {

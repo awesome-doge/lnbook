@@ -85,6 +85,38 @@ jobs:
           # Update page title
           sed -i 's|<title>[^<]*</title>|<title>精通閃電網路 - Mastering the Lightning Network 繁體中文版</title>|' docs/index.html
 
+          # Remove unused Asciidoctor default Google Fonts (Open Sans, Noto Serif, Droid Sans Mono)
+          # We use Noto Sans TC + JetBrains Mono loaded via docinfo.html instead
+          sed -i '/fonts\.googleapis\.com\/css?family=Open+Sans/d' docs/index.html
+
+          # Lazy-load MathJax: only load when .stemblock elements exist on page
+          # Replace the eager MathJax <script src=...> with a deferred loader
+          python3 << 'MATHEOF'
+          with open('docs/index.html', 'r', encoding='utf-8') as f:
+              html = f.read()
+
+          # Find and replace the MathJax CDN script tag with lazy loader
+          mathjax_cdn = '<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_CHTML"></script>'
+          lazy_mathjax = '''<script>
+          // Lazy-load MathJax only when math content exists
+          if (document.querySelector('.stemblock, .math')) {
+            var s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_CHTML';
+            s.async = true;
+            document.body.appendChild(s);
+          }
+          </script>'''
+
+          if mathjax_cdn in html:
+              html = html.replace(mathjax_cdn, lazy_mathjax)
+              print("MathJax converted to lazy loading")
+          else:
+              print("MathJax CDN tag not found (may have different URL)")
+
+          with open('docs/index.html', 'w', encoding='utf-8') as f:
+              f.write(html)
+          MATHEOF
+
       - name: Inject build version and English cross-references
         run: |
           BUILD_DATE=$(date '+%Y-%m-%d %H:%M')
