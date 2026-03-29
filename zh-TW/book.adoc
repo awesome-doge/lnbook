@@ -25,6 +25,14 @@ Andreas M. Antonopoulos; Olaoluwa Osuntokun; Rene Pickhardt
 
 本翻譯遵循 CC-BY-SA 4.0 授權。
 
+[TIP]
+.下載電子書
+====
+* link:mastering-lightning-network-zh-TW.epub[EPUB 格式] — 適用於 Apple Books、Kobo、Readmoo 等電子書閱讀器
+* link:mastering-lightning-network-zh-TW.pdf[PDF 格式] — 適用於列印與桌面閱讀
+* 原始碼：https://github.com/lnbook/lnbook[GitHub]
+====
+
 '''
 
 = 第一部分：基礎篇
