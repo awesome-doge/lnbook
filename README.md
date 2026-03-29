@@ -1,79 +1,125 @@
-# 精通閃電網路
+# 精通閃電網路 ⚡
 
 [![CC BY-SA 4.0][cc-by-sa-shield]][cc-by-sa]
+[![Deploy](https://github.com/awesome-doge/lnbook/actions/workflows/deploy.yml/badge.svg)](https://github.com/awesome-doge/lnbook/actions/workflows/deploy.yml)
 
 <img src="images/cover_thumb.png" width=200 alt="精通閃電網路封面">
 
-## 關於本書
+**Mastering the Lightning Network** 繁體中文翻譯
 
-《精通閃電網路》是由 Andreas M. Antonopoulos ([@aantonop](https://twitter.com/aantonop))、Olaoluwa Osuntokun ([@roasbeef](https://twitter.com/roasbeef)) 和 Rene Pickhardt ([@renepickhardt](https://twitter.com/renepickhardt)) 共同撰寫的 O'Reilly Media 書籍。英文版於 2021 年 12 月 21 日出版。
+> 原著：Andreas M. Antonopoulos、Olaoluwa Osuntokun、Rene Pickhardt
+> 翻譯：Dr. Awesome Doge
 
-本書描述了閃電網路 (Lightning Network)，一個運行在比特幣和其他區塊鏈之上的點對點協議，提供近乎即時、安全的微支付功能。
+## 閱讀
 
-本書適合對比特幣和其他開放區塊鏈基礎知識有一定了解的技術讀者閱讀。
+| 格式 | 連結 |
+|------|------|
+| 線上閱讀 | [lnbook-zh.doge.tg](https://lnbook-zh.doge.tg/) |
+| EPUB 電子書 | [下載 EPUB](https://lnbook-zh.doge.tg/mastering-lightning-network-zh-TW.epub) |
+| PDF 電子書 | [下載 PDF](https://lnbook-zh.doge.tg/mastering-lightning-network-zh-TW.pdf) |
 
-**線上閱讀**: [https://lnbook-zh.doge.tg/](https://lnbook-zh.doge.tg/)
+線上版支援全文搜尋 (Ctrl+K)、Dark Mode、手機響應式、離線閱讀 (PWA)。
 
 ## 目錄
 
 ### 第一部分：基礎篇
 
-* [前言](zh-TW/preface.adoc)
-* [第 1 章：簡介](zh-TW/01_introduction.adoc)
-* [第 2 章：入門指南](zh-TW/02_getting_started.adoc)
-* [第 3 章：閃電網路運作原理](zh-TW/03_how_ln_works.adoc)
-* [第 4 章：閃電網路節點軟體](zh-TW/04_node_client.adoc)
-* [第 5 章：節點操作](zh-TW/05_node_operations.adoc)
+| 章節 | 標題 |
+|------|------|
+| 1 | [簡介](zh-TW/01_introduction.adoc) |
+| 2 | [入門指南](zh-TW/02_getting_started.adoc) |
+| 3 | [閃電網路運作原理](zh-TW/03_how_ln_works.adoc) |
+| 4 | [閃電網路節點軟體](zh-TW/04_node_client.adoc) |
+| 5 | [節點操作](zh-TW/05_node_operations.adoc) |
 
 ### 第二部分：技術深入篇
 
-* [第 6 章：閃電網路架構](zh-TW/06_lightning_architecture.adoc)
-* [第 7 章：支付通道](zh-TW/07_payment_channels.adoc)
-* [第 8 章：路由與 HTLC](zh-TW/08_routing_htlcs.adoc)
-* [第 9 章：通道操作與支付轉發](zh-TW/09_channel_operation.adoc)
-* [第 10 章：洋蔥路由](zh-TW/10_onion_routing.adoc)
-* [第 11 章：Gossip 協議與通道圖](zh-TW/11_gossip_channel_graph.adoc)
-* [第 12 章：路徑搜尋與支付傳遞](zh-TW/12_path_finding.adoc)
-* [第 13 章：Wire 協議](zh-TW/13_wire_protocol.adoc)
-* [第 14 章：加密訊息傳輸](zh-TW/14_encrypted_transport.adoc)
-* [第 15 章：閃電網路支付請求](zh-TW/15_payment_requests.adoc)
-* [第 16 章：安全性與隱私](zh-TW/16_security_privacy_ln.adoc)
-* [第 17 章：結論](zh-TW/17_conclusion.adoc)
+| 章節 | 標題 |
+|------|------|
+| 6 | [閃電網路架構](zh-TW/06_lightning_architecture.adoc) |
+| 7 | [支付通道](zh-TW/07_payment_channels.adoc) |
+| 8 | [路由與 HTLC](zh-TW/08_routing_htlcs.adoc) |
+| 9 | [通道操作與支付轉發](zh-TW/09_channel_operation.adoc) |
+| 10 | [洋蔥路由](zh-TW/10_onion_routing.adoc) |
+| 11 | [Gossip 協議與通道圖](zh-TW/11_gossip_channel_graph.adoc) |
+| 12 | [路徑搜尋與支付傳遞](zh-TW/12_path_finding.adoc) |
+| 13 | [Wire 協議](zh-TW/13_wire_protocol.adoc) |
+| 14 | [加密訊息傳輸](zh-TW/14_encrypted_transport.adoc) |
+| 15 | [閃電網路支付請求](zh-TW/15_payment_requests.adoc) |
+| 16 | [安全性與隱私](zh-TW/16_security_privacy_ln.adoc) |
+| 17 | [結論](zh-TW/17_conclusion.adoc) |
 
 ### 附錄
 
-* [術語表](zh-TW/glossary.adoc)
-* [比特幣基礎回顧](zh-TW/appendix_bitcoin_fundamentals_review.adoc)
-* [Docker 基礎](zh-TW/appendix_docker_basics.adoc)
-* [協議訊息](zh-TW/appendix_protocol_messages.adoc)
+| 附錄 | 標題 |
+|------|------|
+| A | [術語表](zh-TW/glossary.adoc) |
+| B | [比特幣基礎回顧](zh-TW/appendix_bitcoin_fundamentals_review.adoc) |
+| C | [Docker 基礎](zh-TW/appendix_docker_basics.adoc) |
+| D | [協議訊息](zh-TW/appendix_protocol_messages.adoc) |
 
-## 翻譯進度
+## 本地建置
 
-- [ ] 前言
-- [ ] 第 1-5 章（基礎篇）
-- [ ] 第 6-11 章（技術深入篇上）
-- [ ] 第 12-17 章（技術深入篇下）
-- [ ] 附錄與術語表
+```bash
+# 安裝依賴
+gem install asciidoctor asciidoctor-diagram rouge
 
-## 授權
+# 建置 HTML
+asciidoctor \
+  -D docs \
+  -a toc=left -a toclevels=2 -a sectnums \
+  -a icons=font -a source-highlighter=rouge \
+  -a imagesdir=images -a stem=latexmath \
+  -a docinfo=shared \
+  -o index.html zh-TW/book.adoc
+```
 
-本書採用 Creative Commons CC-BY-SA 4.0 授權釋出。
+## 專案結構
 
-[![CC BY-SA 4.0][cc-by-sa-shield]][cc-by-sa]
+```
+zh-TW/              繁體中文翻譯 (AsciiDoc)
+  book.adoc          主入口，引用所有章節
+  style.css          自訂樣式（中文排版、Dark Mode、響應式）
+  docinfo.html       <head> 注入（字體、CSS、PWA）
+  docinfo-footer.html  互動功能 JS（搜尋、TOC、進度條）
+  pdf-theme.yml      PDF 電子書排版主題
+images/              書籍圖片與示意圖
+code/docker/         閃電網路 Docker 實驗環境
+docs/                建置輸出（GitHub Pages）
+sw.js                Service Worker（離線閱讀）
+manifest.json        PWA Manifest
+```
 
-<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a>
+## CI/CD
 
-《精通閃電網路》繁體中文版基於原作翻譯。
+推送到 `develop` 分支自動觸發 [GitHub Actions](.github/workflows/deploy.yml)：
 
-原作者：Andreas M. Antonopoulos、Olaoluwa Osuntokun、Rene Pickhardt
-
-繁體中文翻譯：Dr. Awesome Doge
-
-原始專案：[https://github.com/lnbook/lnbook](https://github.com/lnbook/lnbook)
+1. Asciidoctor 建置 HTML
+2. 圖片無損壓縮 (optipng/jpegoptim)
+3. Pagefind 全文搜尋索引
+4. EPUB / PDF 電子書生成
+5. 部署至 GitHub Pages
 
 ## 貢獻
 
-歡迎對翻譯內容提出修正或建議，請透過 Issue 或 Pull Request 參與貢獻。
+歡迎對翻譯內容提出修正或建議，請透過 [Issue](https://github.com/awesome-doge/lnbook/issues) 或 Pull Request 參與。
+
+### AsciiDoc 格式規範
+
+- 每句一行（方便 diff）
+- Unix 換行符 (LF)
+- 無尾隨空白或 Tab
+- 標題使用 `==`（章）、`===`（節）
+- 首次使用縮寫時拼出全名：「雜湊時間鎖定合約 (HTLC)」
+
+## 授權
+
+[![CC BY-SA 4.0][cc-by-sa-image]][cc-by-sa]
+
+本書以 [CC BY-SA 4.0][cc-by-sa] 授權釋出。
+
+原作者：Andreas M. Antonopoulos、Olaoluwa Osuntokun、Rene Pickhardt
+原始專案：[lnbook/lnbook](https://github.com/lnbook/lnbook)
 
 [cc-by-sa]: http://creativecommons.org/licenses/by-sa/4.0/
 [cc-by-sa-image]: https://licensebuttons.net/l/by-sa/4.0/88x31.png
