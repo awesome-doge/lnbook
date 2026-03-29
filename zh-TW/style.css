@@ -903,18 +903,40 @@ hr {
     color: #90cdf4 !important;
   }
 
-  /* --- Tables (aggressive overrides) --- */
-  table.tableblock,
+  /* --- Tables (must match Asciidoctor inline CSS selectors exactly) --- */
+  /* Override: table tr th, table tr td { color:rgba(0,0,0,.8) } */
+  table tr th,
+  table tr td,
+  table thead tr th,
+  table thead tr td,
+  table tfoot tr th,
+  table tfoot tr td,
   table.tableblock th,
   table.tableblock td,
   table.tableblock thead th,
-  table.tableblock tbody td {
-    border-color: #4a5568 !important;
+  table.tableblock tbody td,
+  td.tableblock,
+  th.tableblock,
+  p.tableblock {
     color: #e2e8f0 !important;
+    border-color: #4a5568 !important;
   }
 
+  /* Override: table thead, table tfoot { background:#f7f8f7 } */
+  table thead,
+  table tfoot,
+  table.tableblock thead,
   table.tableblock thead th {
     background-color: #2d3748 !important;
+    background: #2d3748 !important;
+  }
+
+  /* Override: table tr.even, table tr.alt { background:#f8f8f7 } */
+  table tr.even,
+  table tr.alt,
+  table.tableblock tbody tr:nth-child(even) {
+    background-color: #2d374833 !important;
+    background: #2d374833 !important;
   }
 
   table.tableblock td {
@@ -922,19 +944,31 @@ hr {
     background-color: transparent !important;
   }
 
-  table.tableblock tbody tr:nth-child(even) {
-    background-color: #2d374833 !important;
-  }
-
   table.tableblock tbody tr:hover {
     background-color: #2d374888 !important;
   }
 
-  /* Table title/caption */
+  table.tableblock,
+  table.tableblock > colgroup + thead,
+  table.tableblock > colgroup + tbody {
+    border-color: #4a5568 !important;
+  }
+
+  /* Override: table.tableblock>.title { color:#7a2518 } */
   table.tableblock > caption,
-  .tableblock > .title,
-  table.tableblock > .title {
+  table.tableblock > .title,
+  .tableblock > .title {
     color: #a0aec0 !important;
+  }
+
+  /* Override: .admonitionblock>table td.content { color:rgba(0,0,0,.6) } */
+  .admonitionblock > table td.content {
+    color: #e2e8f0 !important;
+  }
+
+  /* Override: .admonitionblock>table td.icon .title { font-family, color } */
+  .admonitionblock > table td.icon .title {
+    color: #e2e8f0 !important;
   }
 
   /* --- Code --- */
@@ -999,16 +1033,26 @@ hr {
     box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important;
   }
 
-  /* --- All subtitles/titles --- */
+  /* Override: .subheader,...>.title { color:#7a2518 } (Asciidoctor red) */
   .subheader,
+  .admonitionblock td.content > .title,
+  .audioblock > .title,
+  .exampleblock > .title,
   .imageblock > .title,
   .listingblock > .title,
   .literalblock > .title,
-  .paragraph > .title,
-  .admonitionblock td.content > .title,
-  .exampleblock > .title,
+  .stemblock > .title,
   .openblock > .title,
-  .stemblock > .title {
+  .paragraph > .title,
+  .quoteblock > .title,
+  table.tableblock > .title,
+  .verseblock > .title,
+  .videoblock > .title,
+  .dlist > .title,
+  .olist > .title,
+  .ulist > .title,
+  .qlist > .title,
+  .hdlist > .title {
     color: #a0aec0 !important;
   }
 
