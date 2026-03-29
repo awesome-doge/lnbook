@@ -49,6 +49,192 @@
     --ln-shadow: 0 1px 3px rgba(0,0,0,0.3);
     --ln-shadow-lg: 0 4px 16px rgba(0,0,0,0.4);
   }
+
+  /* Override ALL Asciidoctor hardcoded colors */
+  body.book,
+  body.book p,
+  body.book td,
+  body.book th,
+  body.book li,
+  body.book dt,
+  body.book dd,
+  body.book span,
+  body.book div,
+  .admonitionblock td.content,
+  .sidebarblock,
+  .sidebarblock p,
+  .quoteblock blockquote,
+  .dlist dd,
+  .dlist dt {
+    color: #e2e8f0 !important;
+  }
+
+  body.book {
+    background-color: #1a202c !important;
+  }
+
+  h1, h2, h3, h4, h5, h6,
+  .sidebarblock > .content > .title {
+    color: #e2e8f0 !important;
+  }
+
+  /* Part titles keep orange */
+  .sect0 > h1, h1.sect0 {
+    color: var(--ln-primary) !important;
+  }
+
+  a, a:visited {
+    color: #63b3ed !important;
+  }
+  a:hover, a:focus {
+    color: #90cdf4 !important;
+  }
+
+  /* Tables */
+  table.tableblock,
+  table.tableblock th,
+  table.tableblock td {
+    border-color: #4a5568 !important;
+  }
+
+  table.tableblock thead th {
+    background-color: #2d3748 !important;
+    color: #e2e8f0 !important;
+  }
+
+  table.tableblock td {
+    color: #e2e8f0 !important;
+    border-bottom-color: #4a5568 !important;
+  }
+
+  table.tableblock tbody tr:hover {
+    background-color: #2d374888 !important;
+  }
+
+  /* Code blocks */
+  pre, pre code {
+    background-color: #2d3748 !important;
+    color: #e2e8f0 !important;
+    border-color: #4a5568 !important;
+  }
+
+  code {
+    color: #f08d8d !important;
+    background-color: #2d3748 !important;
+    border-color: #4a5568 !important;
+  }
+
+  /* Sidebar blocks */
+  .sidebarblock {
+    background: #2d3748 !important;
+    border-color: #4a5568 !important;
+  }
+
+  .sidebarblock > .content > .title {
+    color: var(--ln-primary) !important;
+    border-bottom-color: #4a5568 !important;
+  }
+
+  /* Blockquotes */
+  blockquote, .quoteblock {
+    background-color: #1e2533 !important;
+  }
+
+  /* Images - reduce shadow and adjust background */
+  .imageblock img {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important;
+  }
+
+  .imageblock .title {
+    color: #a0aec0 !important;
+  }
+
+  /* Listing titles */
+  .listingblock > .title,
+  .literalblock > .title {
+    color: #a0aec0 !important;
+  }
+
+  /* TOC sidebar */
+  #toc.toc2 {
+    background-color: #2d3748 !important;
+    border-right-color: #4a5568 !important;
+  }
+
+  #toc.toc2 a {
+    color: #a0aec0 !important;
+  }
+
+  #toc.toc2 a:hover,
+  #toc.toc2 a.toc-active {
+    color: var(--ln-primary) !important;
+    background-color: #1e253388 !important;
+  }
+
+  /* Footer */
+  #footer {
+    border-top-color: #4a5568 !important;
+    color: #a0aec0 !important;
+  }
+
+  /* Chapter nav */
+  #chapter-nav {
+    background: #1a202c !important;
+    border-top-color: #4a5568 !important;
+  }
+
+  /* Floating buttons */
+  #back-to-top,
+  #search-toggle {
+    background: #2d3748 !important;
+    border-color: #4a5568 !important;
+    color: #a0aec0 !important;
+  }
+
+  #search-modal-content {
+    background: #1a202c !important;
+  }
+
+  /* Selection */
+  ::selection {
+    background: rgba(247, 147, 26, 0.35);
+  }
+
+  /* Callout numbers */
+  .conum[data-value] {
+    background: #63b3ed !important;
+  }
+
+  /* Admonition backgrounds */
+  .admonitionblock.tip > table      { background: #064e3b55 !important; }
+  .admonitionblock.note > table     { background: #1e3a5f55 !important; }
+  .admonitionblock.warning > table  { background: #78350f55 !important; }
+  .admonitionblock.caution > table  { background: #7f1d1d55 !important; }
+  .admonitionblock.important > table{ background: #4c1d9555 !important; }
+
+  /* Admonition text */
+  .admonitionblock td.content .title {
+    color: #e2e8f0 !important;
+  }
+
+  /* Description list titles */
+  .subheader,
+  .admonitionblock td.content > .title,
+  .imageblock > .title,
+  .listingblock > .title,
+  .paragraph > .title,
+  table.tableblock > .title {
+    color: #a0aec0 !important;
+  }
+
+  /* HR */
+  hr {
+    border-top-color: #4a5568 !important;
+  }
+
+  .sect1 + .sect1 {
+    border-top-color: #4a5568 !important;
+  }
 }
 
 /* --- Reading Progress Bar --- */
@@ -342,9 +528,7 @@ code {
   word-break: break-word;
 }
 
-@media (prefers-color-scheme: dark) {
-  code { color: #f08d8d; }
-}
+/* code dark mode color handled in main dark mode block above */
 
 .listingblock > .title,
 .literalblock > .title {
@@ -414,13 +598,7 @@ code {
 .admonitionblock.caution > table  { background: #fef2f2 !important; border-left: 4px solid #ef4444 !important; }
 .admonitionblock.important > table{ background: #f5f3ff !important; border-left: 4px solid #8b5cf6 !important; }
 
-@media (prefers-color-scheme: dark) {
-  .admonitionblock.tip > table      { background: #064e3b44 !important; }
-  .admonitionblock.note > table     { background: #1e3a5f44 !important; }
-  .admonitionblock.warning > table  { background: #78350f44 !important; }
-  .admonitionblock.caution > table  { background: #7f1d1d44 !important; }
-  .admonitionblock.important > table{ background: #4c1d9544 !important; }
-}
+/* admonition dark mode colors handled in main dark mode block above */
 
 /* ============================================================
    TABLES
