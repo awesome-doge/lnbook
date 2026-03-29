@@ -1,27 +1,10 @@
 extends: default
-font:
-  catalog:
-    Noto Sans TC:
-      normal: GEM_FONTS_DIR/notosanstc-regular-subset.ttf
-      bold: GEM_FONTS_DIR/notosanstc-bold-subset.ttf
-    Noto Serif TC:
-      normal: GEM_FONTS_DIR/notoserif-regular-subset.ttf
-      bold: GEM_FONTS_DIR/notoserif-bold-subset.ttf
-    M Plus 1p:
-      normal: GEM_FONTS_DIR/mplus1p-regular-fallback.ttf
-      bold: GEM_FONTS_DIR/mplus1p-regular-fallback.ttf
-    Noto Sans Mono:
-      normal: GEM_FONTS_DIR/notosansmono-regular-subset.ttf
-      bold: GEM_FONTS_DIR/notosansmono-bold-subset.ttf
-  fallbacks:
-    - M Plus 1p
 page:
   layout: portrait
   margin: [25mm, 20mm, 25mm, 20mm]
   size: A4
 base:
-  font-family: Noto Sans TC
-  font-fallbacks: [M Plus 1p]
+  font-family: Noto Sans CJK TC
   font-size: 10.5
   line-height-length: 18
   line-height: $base_line_height_length / $base_font_size
@@ -44,7 +27,7 @@ title-page:
     font-color: #444444
     margin-top: 18
 heading:
-  font-family: Noto Sans TC
+  font-family: Noto Sans CJK TC
   font-color: #2c3e50
   h1-font-size: 24
   h2-font-size: 20
@@ -58,7 +41,7 @@ heading:
 link:
   font-color: #4a90d9
 code:
-  font-family: Noto Sans Mono
+  font-family: M+ 1mn
   font-size: 9
   line-height: 1.4
   padding: [4, 8, 4, 8]
@@ -72,7 +55,7 @@ codespan:
   font-color: #c7254e
   background-color: #f6f8fa
   border-radius: 2
-blockquote:
+quote:
   border-color: #f7931a
   border-width: 3
   padding: [0, 12, 0, 14]
