@@ -89,6 +89,47 @@ jobs:
           # We use Noto Sans TC + JetBrains Mono loaded via docinfo.html instead
           sed -i '/fonts\.googleapis\.com\/css?family=Open+Sans/d' docs/index.html
 
+          # Patch Asciidoctor inline CSS for dark mode compatibility
+          # Remove hardcoded dark-on-light colors that break dark mode
+          python3 << 'PATCHEOF'
+          with open('docs/index.html', 'r', encoding='utf-8') as f:
+              html = f.read()
+
+          # These replacements target the Asciidoctor inline <style> block
+          # Replace hardcoded rgba(0,0,0,...) text colors with CSS variable references
+          replacements = [
+              # body text color
+              ('color:rgba(0,0,0,.8)', 'color:var(--ln-text, rgba(0,0,0,.8))'),
+              ('color:rgba(0,0,0,.85)', 'color:var(--ln-text, rgba(0,0,0,.85))'),
+              ('color:rgba(0,0,0,.9)', 'color:var(--ln-text, rgba(0,0,0,.9))'),
+              ('color:rgba(0,0,0,.6)', 'color:var(--ln-text-light, rgba(0,0,0,.6))'),
+              # background colors that break dark mode
+              ('background:#fff', 'background:var(--ln-bg, #fff)'),
+              ('background:#f7f8f7', 'background:var(--ln-bg-alt, #f7f8f7)'),
+              ('background:#f8f8f7', 'background:var(--ln-bg-alt, #f8f8f7)'),
+              # heading red color
+              ('color:#ba3925', 'color:var(--ln-text, #ba3925)'),
+              # .title red color
+              ('color:#7a2518', 'color:var(--ln-text-light, #7a2518)'),
+              # link colors
+              ('color:#2156a5', 'color:var(--ln-secondary, #2156a5)'),
+              ('color:#1d4b8f', 'color:var(--ln-secondary-dark, #1d4b8f)'),
+              # border colors
+              ('border:0 solid #dedede', 'border:0 solid var(--ln-border, #dedede)'),
+          ]
+
+          for old, new in replacements:
+              count = html.count(old)
+              if count > 0:
+                  html = html.replace(old, new)
+                  print(f"  Replaced {count}x: {old[:40]}")
+
+          with open('docs/index.html', 'w', encoding='utf-8') as f:
+              f.write(html)
+
+          print("Asciidoctor inline CSS patched for dark mode")
+          PATCHEOF
+
           # Lazy-load MathJax: only load when .stemblock elements exist on page
           # Replace the eager MathJax <script src=...> with a deferred loader
           python3 << 'MATHEOF'
