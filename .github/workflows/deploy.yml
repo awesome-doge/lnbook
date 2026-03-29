@@ -750,6 +750,15 @@ jobs:
           Last update: $(date +%Y-%m-%d)
           EOF
 
+      - name: Upload ebook artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ebooks
+          path: |
+            docs/mastering-lightning-network-zh-TW.epub
+            docs/mastering-lightning-network-zh-TW.pdf
+          if-no-files-found: warn
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
@@ -768,3 +777,60 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download ebook artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ebooks
+          path: ebooks
+
+      - name: Create or update release
+        run: |
+          BUILD_DATE=$(date '+%Y-%m-%d')
+          GIT_HASH=$(git rev-parse --short HEAD)
+          TAG="latest"
+          TITLE="精通閃電網路 繁體中文版 電子書"
+
+          BODY="$(cat <<'BODYEOF'
+          ## 精通閃電網路 - Mastering the Lightning Network 繁體中文版
+
+          **下載電子書：**
+
+          | 格式 | 說明 |
+          |------|------|
+          | **EPUB** | 適用於 Apple Books、Kobo、Readmoo 等電子書閱讀器 |
+          | **PDF** | 適用於列印與桌面閱讀 |
+
+          **線上閱讀：** https://lnbook-zh.doge.tg/
+
+          ---
+          原著：Andreas M. Antonopoulos、Olaoluwa Osuntokun、Rene Pickhardt
+          翻譯：Dr. Awesome Doge
+          授權：CC-BY-SA 4.0
+          BODYEOF
+          )"
+
+          # Delete existing release if exists
+          gh release delete "$TAG" --yes 2>/dev/null || true
+          git tag -d "$TAG" 2>/dev/null || true
+          git push origin ":refs/tags/$TAG" 2>/dev/null || true
+
+          # Create new release
+          gh release create "$TAG" \
+            --title "$TITLE" \
+            --notes "$BODY" \
+            --latest \
+            ebooks/mastering-lightning-network-zh-TW.epub \
+            ebooks/mastering-lightning-network-zh-TW.pdf \
+            2>/dev/null || echo "Release creation failed (ebook files may be missing)"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
