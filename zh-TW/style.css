@@ -726,6 +726,12 @@ hr {
   /* Show TOC toggle */
   #toc-toggle { display: flex !important; }
 
+  /* Ensure content doesn't stack above TOC overlay */
+  #header, #content, #footer {
+    position: relative !important;
+    z-index: 1 !important;
+  }
+
   /* Hide TOC by default, slide in from left */
   #toc.toc2,
   #toc {
