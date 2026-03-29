@@ -684,6 +684,31 @@ hr {
   z-index: 1;
 }
 
+#search-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--ln-text-light);
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background 0.15s;
+}
+
+#search-close:hover {
+  background: var(--ln-bg-alt);
+  color: var(--ln-text);
+}
+
 /* Pagefind UI overrides */
 .pagefind-ui {
   --pagefind-ui-primary: var(--ln-primary) !important;

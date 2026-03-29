@@ -11,6 +11,7 @@
 <div id="search-modal" role="dialog" aria-label="搜尋" aria-modal="true" aria-hidden="true">
   <div id="search-modal-backdrop"></div>
   <div id="search-modal-content">
+    <button id="search-close" aria-label="關閉搜尋" title="關閉">&times;</button>
     <div id="search-container"></div>
   </div>
 </div>
@@ -173,8 +174,11 @@
     document.body.style.overflow = '';
   }
 
+  var searchClose = document.getElementById('search-close');
+
   searchToggle.addEventListener('click', openSearch);
   searchBackdrop.addEventListener('click', closeSearch);
+  searchClose.addEventListener('click', closeSearch);
 
   // ==============================
   // Keyboard Shortcuts
