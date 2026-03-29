@@ -49,7 +49,7 @@ jobs:
           asciidoctor \
             -D docs \
             -a toc=left \
-            -a toclevels=3 \
+            -a toclevels=2 \
             -a sectnums \
             -a sectnumlevels=3 \
             -a icons=font \
@@ -115,11 +115,14 @@ jobs:
           build_info = build_info.replace('$' + '{GIT_HASH}', '${GIT_HASH}')
           build_info = build_info.replace('$' + '{COMMIT_COUNT}', '${COMMIT_COUNT}')
 
-          # Inject before </div> of #footer, or before </body>
-          if 'id="footer"' in html:
-              html = html.replace('</div>\n</body>', build_info + '</div>\n</body>', 1)
-          else:
-              html = html.replace('</body>', '<div id="footer">' + build_info + '</div>\n</body>', 1)
+          # Inject build-info inside the #footer div, after #footer-text
+          import re
+          footer_pattern = r'(<div id="footer-text">.*?</div>)'
+          match = re.search(footer_pattern, html, re.DOTALL)
+          if match:
+              html = html[:match.end()] + '\n' + build_info + html[match.end():]
+          elif '<div id="footer">' in html:
+              html = html.replace('<div id="footer">', '<div id="footer">\n' + build_info, 1)
 
           # --- Inject English chapter cross-reference links ---
           # Map zh-TW chapter files to English originals on GitHub
@@ -195,7 +198,7 @@ jobs:
           asciidoctor-epub3 \
             -D docs \
             -a toc \
-            -a toclevels=3 \
+            -a toclevels=2 \
             -a sectnums \
             -a sectnumlevels=3 \
             -a icons=font \
@@ -216,7 +219,7 @@ jobs:
           asciidoctor-pdf \
             -D docs \
             -a toc \
-            -a toclevels=3 \
+            -a toclevels=2 \
             -a sectnums \
             -a sectnumlevels=3 \
             -a icons=font \
@@ -236,7 +239,7 @@ jobs:
             asciidoctor-pdf \
               -D docs \
               -a toc \
-              -a toclevels=3 \
+              -a toclevels=2 \
               -a sectnums \
               -a sectnumlevels=3 \
               -a icons=font \
