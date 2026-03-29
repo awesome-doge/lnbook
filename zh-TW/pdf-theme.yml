@@ -1,4 +1,16 @@
 extends: default
+font:
+  catalog:
+    Noto Sans CJK TC:
+      normal: NotoSansCJK-Regular.ttc
+      bold: NotoSansCJK-Bold.ttc
+      italic: NotoSansCJK-Regular.ttc
+      bold_italic: NotoSansCJK-Bold.ttc
+    Noto Serif CJK TC:
+      normal: NotoSerifCJK-Regular.ttc
+      bold: NotoSerifCJK-Bold.ttc
+      italic: NotoSerifCJK-Regular.ttc
+      bold_italic: NotoSerifCJK-Bold.ttc
 page:
   layout: portrait
   margin: [25mm, 20mm, 25mm, 20mm]
