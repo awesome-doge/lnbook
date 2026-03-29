@@ -903,70 +903,58 @@ hr {
     color: #90cdf4 !important;
   }
 
-  /* --- Tables (must match Asciidoctor inline CSS selectors exactly) --- */
-  /* Override: table tr th, table tr td { color:rgba(0,0,0,.8) } */
-  table tr th,
-  table tr td,
-  table thead tr th,
-  table thead tr td,
-  table tfoot tr th,
-  table tfoot tr td,
-  table.tableblock th,
-  table.tableblock td,
-  table.tableblock thead th,
-  table.tableblock tbody td,
-  td.tableblock,
-  th.tableblock,
-  p.tableblock {
-    color: #e2e8f0 !important;
-    border-color: #4a5568 !important;
+  /* --- Tables --- */
+  /* Nuclear option: force ALL text inside any table to be light */
+  table, table *, table.tableblock, table.tableblock * {
+    color: #cbd5e0 !important;
   }
 
-  /* Override: table thead, table tfoot { background:#f7f8f7 } */
-  table thead,
-  table tfoot,
-  table.tableblock thead,
-  table.tableblock thead th {
-    background-color: #2d3748 !important;
+  table thead, table tfoot,
+  table.tableblock thead {
     background: #2d3748 !important;
   }
 
-  /* Override: table tr.even, table tr.alt { background:#f8f8f7 } */
-  table tr.even,
-  table tr.alt,
-  table.tableblock tbody tr:nth-child(even) {
-    background-color: #2d374833 !important;
-    background: #2d374833 !important;
+  table thead *, table.tableblock thead * {
+    color: #e2e8f0 !important;
+    font-weight: 700 !important;
   }
 
-  table.tableblock td {
-    border-bottom-color: #4a5568 !important;
-    background-color: transparent !important;
-  }
-
-  table.tableblock tbody tr:hover {
-    background-color: #2d374888 !important;
-  }
-
-  table.tableblock,
-  table.tableblock > colgroup + thead,
-  table.tableblock > colgroup + tbody {
+  table tr, table.tableblock tr {
     border-color: #4a5568 !important;
   }
 
-  /* Override: table.tableblock>.title { color:#7a2518 } */
+  table tr.even, table tr.alt,
+  table.tableblock tbody tr:nth-child(even) {
+    background: #ffffff08 !important;
+  }
+
+  table.tableblock tbody tr:nth-child(odd) {
+    background: transparent !important;
+  }
+
+  table.tableblock tbody tr:hover {
+    background: #ffffff10 !important;
+  }
+
+  table td, table th,
+  table.tableblock td, table.tableblock th,
+  td.tableblock, th.tableblock {
+    border-color: #4a5568 !important;
+  }
+
+  /* Table title */
   table.tableblock > caption,
+  table.tableblock > caption.title,
   table.tableblock > .title,
-  .tableblock > .title {
+  .tableblock > .title,
+  caption.title {
     color: #a0aec0 !important;
+    font-style: italic !important;
   }
 
-  /* Override: .admonitionblock>table td.content { color:rgba(0,0,0,.6) } */
-  .admonitionblock > table td.content {
-    color: #e2e8f0 !important;
-  }
-
-  /* Override: .admonitionblock>table td.icon .title { font-family, color } */
+  /* Admonition text */
+  .admonitionblock > table td.content,
+  .admonitionblock > table td.content *,
   .admonitionblock > table td.icon .title {
     color: #e2e8f0 !important;
   }
