@@ -1,0 +1,369 @@
+<!-- Reading Progress Bar -->
+<div id="reading-progress" role="progressbar" aria-label="閱讀進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+
+<!-- TOC Overlay (mobile) -->
+<div id="toc-overlay" aria-hidden="true"></div>
+
+<!-- TOC Toggle Button (mobile) -->
+<button id="toc-toggle" aria-label="開啟目錄" aria-expanded="false" aria-controls="toc" title="目錄">&#9776;</button>
+
+<!-- Search Modal -->
+<div id="search-modal" role="dialog" aria-label="搜尋" aria-modal="true" aria-hidden="true">
+  <div id="search-modal-backdrop"></div>
+  <div id="search-modal-content">
+    <div id="search-container"></div>
+  </div>
+</div>
+
+<!-- Search Toggle Button -->
+<button id="search-toggle" aria-label="搜尋本書" title="搜尋 (Ctrl+K)">&#128269;</button>
+
+<!-- Back to Top Button -->
+<button id="back-to-top" aria-label="回到頂部" title="回到頂部">&#8593;</button>
+
+<!-- Chapter Navigation -->
+<nav id="chapter-nav" aria-label="章節導覽">
+  <a id="prev-chapter" href="#" aria-label="上一章" title="上一章">&#8592; 上一章</a>
+  <a id="next-chapter" href="#" aria-label="下一章" title="下一章">下一章 &#8594;</a>
+</nav>
+
+<script>
+(function() {
+  'use strict';
+
+  // ==============================
+  // Reading Progress Bar
+  // ==============================
+  var progressBar = document.getElementById('reading-progress');
+  function updateProgress() {
+    var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    var progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    var val = Math.min(Math.round(progress), 100);
+    progressBar.style.width = val + '%';
+    progressBar.setAttribute('aria-valuenow', val);
+  }
+
+  // ==============================
+  // Back to Top
+  // ==============================
+  var backToTop = document.getElementById('back-to-top');
+  function updateBackToTop() {
+    var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    if (scrollTop > 500) {
+      backToTop.classList.add('visible');
+    } else {
+      backToTop.classList.remove('visible');
+    }
+  }
+
+  backToTop.addEventListener('click', function() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // ==============================
+  // Throttled Scroll Handler
+  // ==============================
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      window.requestAnimationFrame(function() {
+        updateProgress();
+        updateBackToTop();
+        updateActiveToc();
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true });
+
+  updateProgress();
+  updateBackToTop();
+
+  // ==============================
+  // Mobile TOC Toggle
+  // ==============================
+  var tocToggle = document.getElementById('toc-toggle');
+  var toc = document.getElementById('toc');
+  var tocOverlay = document.getElementById('toc-overlay');
+
+  function openToc() {
+    if (toc) toc.classList.add('toc-open');
+    if (tocOverlay) tocOverlay.classList.add('visible');
+    tocToggle.innerHTML = '&#10005;';
+    tocToggle.setAttribute('aria-expanded', 'true');
+    tocToggle.setAttribute('aria-label', '關閉目錄');
+    document.body.style.overflow = 'hidden';
+    // Focus first link in TOC for keyboard users
+    var firstLink = toc && toc.querySelector('a');
+    if (firstLink) firstLink.focus();
+  }
+
+  function closeToc() {
+    if (toc) toc.classList.remove('toc-open');
+    if (tocOverlay) tocOverlay.classList.remove('visible');
+    tocToggle.innerHTML = '&#9776;';
+    tocToggle.setAttribute('aria-expanded', 'false');
+    tocToggle.setAttribute('aria-label', '開啟目錄');
+    document.body.style.overflow = '';
+  }
+
+  tocToggle.addEventListener('click', function() {
+    if (toc && toc.classList.contains('toc-open')) {
+      closeToc();
+    } else {
+      openToc();
+    }
+  });
+
+  if (tocOverlay) {
+    tocOverlay.addEventListener('click', closeToc);
+  }
+
+  // Close TOC when clicking a link (mobile)
+  if (toc) {
+    toc.addEventListener('click', function(e) {
+      if (e.target.tagName === 'A' && window.innerWidth <= 768) {
+        closeToc();
+      }
+    });
+  }
+
+  // ==============================
+  // Search Modal (Pagefind)
+  // ==============================
+  var searchToggle = document.getElementById('search-toggle');
+  var searchModal = document.getElementById('search-modal');
+  var searchBackdrop = document.getElementById('search-modal-backdrop');
+  var searchInitialized = false;
+
+  function openSearch() {
+    searchModal.classList.add('open');
+    searchModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+
+    // Lazy-init Pagefind
+    if (!searchInitialized && typeof PagefindUI !== 'undefined') {
+      new PagefindUI({
+        element: '#search-container',
+        showSubResults: true,
+        showImages: false,
+        translations: {
+          placeholder: '搜尋本書內容...',
+          zero_results: '找不到「[SEARCH_TERM]」的結果',
+          many_results: '找到 [COUNT] 個結果',
+          searching: '搜尋中...',
+          filters_label: '篩選',
+          load_more: '載入更多結果'
+        }
+      });
+      searchInitialized = true;
+    }
+
+    // Focus the search input
+    setTimeout(function() {
+      var input = searchModal.querySelector('input');
+      if (input) input.focus();
+    }, 100);
+  }
+
+  function closeSearch() {
+    searchModal.classList.remove('open');
+    searchModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  searchToggle.addEventListener('click', openSearch);
+  searchBackdrop.addEventListener('click', closeSearch);
+
+  // ==============================
+  // Keyboard Shortcuts
+  // ==============================
+  document.addEventListener('keydown', function(e) {
+    // Escape: close any open modal/TOC
+    if (e.key === 'Escape') {
+      if (searchModal.classList.contains('open')) {
+        closeSearch();
+      } else {
+        closeToc();
+      }
+    }
+
+    // Ctrl+K or Cmd+K: open search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      if (searchModal.classList.contains('open')) {
+        closeSearch();
+      } else {
+        openSearch();
+      }
+    }
+  });
+
+  // ==============================
+  // Active TOC Highlighting
+  // ==============================
+  var tocLinks = toc ? toc.querySelectorAll('a') : [];
+  var headings = [];
+
+  tocLinks.forEach(function(link) {
+    var href = link.getAttribute('href');
+    if (href && href.startsWith('#')) {
+      var target = document.getElementById(href.substring(1));
+      if (target) {
+        headings.push({ el: target, link: link });
+      }
+    }
+  });
+
+  var activeLink = null;
+  function updateActiveToc() {
+    var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    var current = null;
+
+    for (var i = 0; i < headings.length; i++) {
+      if (headings[i].el.offsetTop <= scrollTop + 120) {
+        current = headings[i];
+      }
+    }
+
+    if (current && current.link !== activeLink) {
+      if (activeLink) activeLink.classList.remove('toc-active');
+      current.link.classList.add('toc-active');
+      activeLink = current.link;
+
+      // Auto-scroll TOC sidebar (desktop only)
+      if (window.innerWidth > 768 && toc) {
+        var linkTop = activeLink.offsetTop;
+        var tocScroll = toc.scrollTop;
+        var tocHeight = toc.clientHeight;
+        if (linkTop < tocScroll + 100 || linkTop > tocScroll + tocHeight - 100) {
+          toc.scrollTo({ top: linkTop - tocHeight / 3, behavior: 'smooth' });
+        }
+      }
+    }
+  }
+
+  updateActiveToc();
+
+  // ==============================
+  // Chapter Navigation (prev/next)
+  // ==============================
+  var chapterNav = document.getElementById('chapter-nav');
+  var prevBtn = document.getElementById('prev-chapter');
+  var nextBtn = document.getElementById('next-chapter');
+
+  // Collect h2 headings as chapter markers
+  var chapters = [];
+  var allH2 = document.querySelectorAll('#content h2');
+  allH2.forEach(function(h) {
+    if (h.id) chapters.push({ id: h.id, el: h, title: h.textContent.trim() });
+  });
+
+  function updateChapterNav() {
+    if (chapters.length < 2) {
+      chapterNav.style.display = 'none';
+      return;
+    }
+    var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    var currentIdx = -1;
+    for (var i = 0; i < chapters.length; i++) {
+      if (chapters[i].el.offsetTop <= scrollTop + 200) {
+        currentIdx = i;
+      }
+    }
+
+    if (currentIdx > 0) {
+      prevBtn.href = '#' + chapters[currentIdx - 1].id;
+      prevBtn.title = chapters[currentIdx - 1].title;
+      prevBtn.style.visibility = 'visible';
+    } else {
+      prevBtn.style.visibility = 'hidden';
+    }
+
+    if (currentIdx < chapters.length - 1 && currentIdx >= 0) {
+      nextBtn.href = '#' + chapters[currentIdx + 1].id;
+      nextBtn.title = chapters[currentIdx + 1].title;
+      nextBtn.style.visibility = 'visible';
+    } else {
+      nextBtn.style.visibility = 'hidden';
+    }
+  }
+
+  // Throttled chapter nav update (less frequent)
+  var navTicking = false;
+  window.addEventListener('scroll', function() {
+    if (!navTicking) {
+      window.requestAnimationFrame(function() {
+        updateChapterNav();
+        navTicking = false;
+      });
+      navTicking = true;
+    }
+  }, { passive: true });
+
+  updateChapterNav();
+
+  // ==============================
+  // Lazy Loading Images
+  // ==============================
+  document.querySelectorAll('.imageblock img, #content img').forEach(function(img) {
+    if (!img.hasAttribute('loading')) {
+      img.setAttribute('loading', 'lazy');
+      img.setAttribute('decoding', 'async');
+    }
+  });
+
+  // ==============================
+  // ARIA Landmarks
+  // ==============================
+  var content = document.getElementById('content');
+  if (content) content.setAttribute('role', 'main');
+  if (toc) toc.setAttribute('role', 'navigation');
+  if (toc) toc.setAttribute('aria-label', '目錄');
+
+  var footer = document.getElementById('footer');
+  if (footer) footer.setAttribute('role', 'contentinfo');
+
+  // ==============================
+  // Service Worker Registration
+  // ==============================
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function() {
+      // SW registration failed, silent fallback
+    });
+  }
+
+  // ==============================
+  // Save/Restore Reading Position
+  // ==============================
+  var STORAGE_KEY = 'lnbook-scroll-pos';
+  var saveTimeout;
+
+  function savePosition() {
+    try {
+      localStorage.setItem(STORAGE_KEY, window.pageYOffset || 0);
+    } catch(e) {}
+  }
+
+  window.addEventListener('scroll', function() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(savePosition, 1000);
+  }, { passive: true });
+
+  // Restore position on load (only if no hash in URL)
+  if (!window.location.hash) {
+    try {
+      var saved = parseInt(localStorage.getItem(STORAGE_KEY), 10);
+      if (saved > 100) {
+        setTimeout(function() {
+          window.scrollTo(0, saved);
+        }, 100);
+      }
+    } catch(e) {}
+  }
+})();
+</script>
+
+<!-- Pagefind UI Script (loaded async) -->
+<script src="pagefind/pagefind-ui.js" async></script>

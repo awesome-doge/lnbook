@@ -1,0 +1,19 @@
+{
+  "name": "精通閃電網路 - Mastering the Lightning Network 繁體中文版",
+  "short_name": "精通閃電網路",
+  "description": "比特幣閃電網路技術指南繁體中文版",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f7931a",
+  "lang": "zh-TW",
+  "icons": [
+    {
+      "src": "images/cover.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["books", "education"]
+}

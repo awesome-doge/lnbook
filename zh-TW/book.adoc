@@ -10,6 +10,7 @@ Andreas M. Antonopoulos; Olaoluwa Osuntokun; Rene Pickhardt
 :imagesdir: ../images
 :lang: zh-TW
 :encoding: utf-8
+:docinfo: shared
 
 [preface]
 == 關於本書

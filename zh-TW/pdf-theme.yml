@@ -1,0 +1,136 @@
+extends: default
+font:
+  catalog:
+    Noto Sans TC:
+      normal: GEM_FONTS_DIR/notosanstc-regular-subset.ttf
+      bold: GEM_FONTS_DIR/notosanstc-bold-subset.ttf
+    Noto Serif TC:
+      normal: GEM_FONTS_DIR/notoserif-regular-subset.ttf
+      bold: GEM_FONTS_DIR/notoserif-bold-subset.ttf
+    M Plus 1p:
+      normal: GEM_FONTS_DIR/mplus1p-regular-fallback.ttf
+      bold: GEM_FONTS_DIR/mplus1p-regular-fallback.ttf
+    Noto Sans Mono:
+      normal: GEM_FONTS_DIR/notosansmono-regular-subset.ttf
+      bold: GEM_FONTS_DIR/notosansmono-bold-subset.ttf
+  fallbacks:
+    - M Plus 1p
+page:
+  layout: portrait
+  margin: [25mm, 20mm, 25mm, 20mm]
+  size: A4
+base:
+  font-family: Noto Sans TC
+  font-fallbacks: [M Plus 1p]
+  font-size: 10.5
+  line-height-length: 18
+  line-height: $base_line_height_length / $base_font_size
+  font-color: #333333
+title-page:
+  align: center
+  font-size: 27
+  font-color: #f7931a
+  title:
+    top: 40%
+    font-size: 36
+    font-color: #f7931a
+    line-height: 1.2
+  subtitle:
+    font-size: 18
+    font-color: #666666
+    margin-top: 12
+  authors:
+    font-size: 14
+    font-color: #444444
+    margin-top: 18
+heading:
+  font-family: Noto Sans TC
+  font-color: #2c3e50
+  h1-font-size: 24
+  h2-font-size: 20
+  h3-font-size: 16
+  h4-font-size: 14
+  line-height: 1.3
+  margin-top: 18
+  margin-bottom: 12
+  chapter:
+    break-before: always
+link:
+  font-color: #4a90d9
+code:
+  font-family: Noto Sans Mono
+  font-size: 9
+  line-height: 1.4
+  padding: [4, 8, 4, 8]
+  background-color: #f6f8fa
+  border-color: #e2e8f0
+  border-radius: 3
+  border-width: 0.5
+codespan:
+  font-family: $code_font_family
+  font-size: 9.5
+  font-color: #c7254e
+  background-color: #f6f8fa
+  border-radius: 2
+blockquote:
+  border-color: #f7931a
+  border-width: 3
+  padding: [0, 12, 0, 14]
+  cite-font-color: #999999
+sidebar:
+  background-color: #f8f9fa
+  border-color: #e2e8f0
+  border-radius: 4
+  border-width: 0.5
+  padding: [12, 12, 12, 12]
+  title:
+    font-color: #f7931a
+    font-size: 13
+    font-style: bold
+admonition:
+  padding: [8, 12, 8, 12]
+  border-radius: 4
+  column-rule-color: #e2e8f0
+  icon:
+    tip:
+      stroke-color: #10b981
+    note:
+      stroke-color: #4a90d9
+    warning:
+      stroke-color: #f59e0b
+    caution:
+      stroke-color: #ef4444
+    important:
+      stroke-color: #8b5cf6
+table:
+  border-color: #e2e8f0
+  border-width: 0.5
+  head:
+    background-color: #f8f9fa
+    font-style: bold
+  cell-padding: [5, 8, 5, 8]
+  body:
+    stripe-background-color: #fafbfc
+image:
+  align: center
+  border-radius: 4
+toc:
+  font-family: $heading_font_family
+  line-height: 1.6
+  indent: 16
+  h2-font-size: 12
+  h3-font-size: 10
+  dot-leader:
+    font-color: #cccccc
+header:
+  height: 0
+footer:
+  height: 18mm
+  font-size: 8
+  font-color: #999999
+  recto:
+    center:
+      content: '{page-number}'
+  verso:
+    center:
+      content: '{page-number}'

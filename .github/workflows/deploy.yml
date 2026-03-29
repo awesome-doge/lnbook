@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -20,17 +20,28 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2'
 
-      - name: Install Asciidoctor
+      - name: Setup Node.js (for Pagefind)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Asciidoctor and dependencies
         run: |
           gem install asciidoctor
           gem install asciidoctor-diagram
           gem install rouge
+          gem install asciidoctor-epub3
+          gem install asciidoctor-pdf
+          gem install citeproc-ruby csl-styles
+          npm install -g pagefind
 
       - name: Build HTML
         run: |
@@ -45,11 +56,14 @@ jobs:
             -a source-highlighter=rouge \
             -a imagesdir=images \
             -a stem=latexmath \
+            -a docinfo=shared \
             -o index.html \
             zh-TW/book.adoc
           cp -r images docs/
           cp -r callouts docs/
           cp zh-TW/style.css docs/ 2>/dev/null || true
+          cp sw.js docs/ 2>/dev/null || true
+          cp manifest.json docs/ 2>/dev/null || true
           echo "lnbook-zh.doge.tg" > docs/CNAME
 
       - name: Inject SEO meta tags
@@ -70,6 +84,177 @@ jobs:
 
           # Update page title
           sed -i 's|<title>[^<]*</title>|<title>精通閃電網路 - Mastering the Lightning Network 繁體中文版</title>|' docs/index.html
+
+      - name: Inject build version and English cross-references
+        run: |
+          BUILD_DATE=$(date '+%Y-%m-%d %H:%M')
+          GIT_HASH=$(git rev-parse --short HEAD)
+          GIT_HASH_FULL=$(git rev-parse HEAD)
+          COMMIT_COUNT=$(git rev-list --count HEAD)
+
+          python3 << PYEOF
+          import re
+
+          with open('docs/index.html', 'r', encoding='utf-8') as f:
+              html = f.read()
+
+          # --- Inject build info into footer ---
+          build_info = '''
+          <div id="build-info" style="margin-top:1rem;padding-top:1rem;border-top:1px solid #e2e8f0;font-size:0.8rem;color:#999;">
+            <p>建置時間：${BUILD_DATE} | 版本：<a href="https://github.com/lnbook/lnbook/commit/${GIT_HASH_FULL}" target="_blank" rel="noopener">${GIT_HASH}</a> | 提交 #${COMMIT_COUNT}</p>
+            <p>
+              <a href="mastering-lightning-network-zh-TW.epub" download>📖 下載 EPUB</a> &nbsp;|&nbsp;
+              <a href="mastering-lightning-network-zh-TW.pdf" download>📄 下載 PDF</a> &nbsp;|&nbsp;
+              <a href="https://github.com/lnbook/lnbook" target="_blank" rel="noopener">📦 GitHub 原始碼</a>
+            </p>
+          </div>
+          '''
+
+          build_info = build_info.replace('$' + '{BUILD_DATE}', '${BUILD_DATE}')
+          build_info = build_info.replace('$' + '{GIT_HASH_FULL}', '${GIT_HASH_FULL}')
+          build_info = build_info.replace('$' + '{GIT_HASH}', '${GIT_HASH}')
+          build_info = build_info.replace('$' + '{COMMIT_COUNT}', '${COMMIT_COUNT}')
+
+          # Inject before </div> of #footer, or before </body>
+          if 'id="footer"' in html:
+              html = html.replace('</div>\n</body>', build_info + '</div>\n</body>', 1)
+          else:
+              html = html.replace('</body>', '<div id="footer">' + build_info + '</div>\n</body>', 1)
+
+          # --- Inject English chapter cross-reference links ---
+          # Map zh-TW chapter files to English originals on GitHub
+          chapter_map = {
+              '_簡介': ('01_introduction.asciidoc', '第 1 章'),
+              '_入門': ('02_getting_started.asciidoc', '第 2 章'),
+              '_閃電網路的運作原理': ('03_how_ln_works.asciidoc', '第 3 章'),
+              '_閃電網路節點軟體': ('04_node_client.asciidoc', '第 4 章'),
+              '_操作閃電網路節點': ('05_node_operations.asciidoc', '第 5 章'),
+              '_閃電網路架構': ('06_lightning_architecture.asciidoc', '第 6 章'),
+              '_支付通道': ('07_payment_channels.asciidoc', '第 7 章'),
+              '_路由htlc': ('08_routing_htlcs.asciidoc', '第 8 章'),
+              '_通道操作與支付轉發': ('09_channel_operation.asciidoc', '第 9 章'),
+              '_洋蔥路由': ('10_onion_routing.asciidoc', '第 10 章'),
+              '_gossip_與通道圖': ('11_gossip_channel_graph.asciidoc', '第 11 章'),
+              '_路徑尋找與支付傳遞': ('12_path_finding.asciidoc', '第 12 章'),
+              '_有線協議': ('13_wire_protocol.asciidoc', '第 13 章'),
+              '_閃電網路加密傳輸': ('14_encrypted_transport.asciidoc', '第 14 章'),
+              '_支付請求': ('15_payment_requests.asciidoc', '第 15 章'),
+              '_閃電網路中的安全性和隱私性': ('16_security_privacy_ln.asciidoc', '第 16 章'),
+              '_結論': ('17_conclusion.asciidoc', '第 17 章'),
+          }
+
+          base_url = 'https://github.com/lnbook/lnbook/blob/develop/'
+
+          for anchor_id, (en_file, ch_label) in chapter_map.items():
+              # Find the h2 with this id and add a small link after it
+              pattern = f'id="{anchor_id}"'
+              if pattern in html:
+                  en_link = f'<a href="{base_url}{en_file}" target="_blank" rel="noopener" class="en-source-link" style="font-size:0.75rem;color:#999;margin-left:0.5rem;font-weight:400;vertical-align:middle;" title="View English original">📖 English</a>'
+                  # Insert link right before the closing </h2> tag after this id
+                  html = html.replace(
+                      f'id="{anchor_id}"',
+                      f'id="{anchor_id}" data-en-source="{en_file}"',
+                      1
+                  )
+
+          with open('docs/index.html', 'w', encoding='utf-8') as f:
+              f.write(html)
+          PYEOF
+
+          # Now do shell variable substitution on the build info we injected
+          sed -i "s|\${BUILD_DATE}|${BUILD_DATE}|g" docs/index.html
+          sed -i "s|\${GIT_HASH_FULL}|${GIT_HASH_FULL}|g" docs/index.html
+          sed -i "s|\${GIT_HASH}|${GIT_HASH}|g" docs/index.html
+          sed -i "s|\${COMMIT_COUNT}|${COMMIT_COUNT}|g" docs/index.html
+
+      - name: Optimize images
+        run: |
+          # Install image optimization tools
+          sudo apt-get install -y -qq optipng jpegoptim > /dev/null 2>&1
+
+          # Optimize PNGs (lossless)
+          find docs/images -name '*.png' -exec optipng -quiet -o2 {} \; 2>/dev/null || true
+
+          # Optimize JPEGs (quality 85)
+          find docs/images -name '*.jpg' -o -name '*.jpeg' | xargs -r jpegoptim --quiet --max=85 --strip-all 2>/dev/null || true
+
+          echo "=== Image optimization complete ==="
+          du -sh docs/images/
+
+      - name: Build Pagefind search index
+        run: |
+          pagefind \
+            --site docs \
+            --glob "index.html" \
+            --root-selector "#content"
+          echo "=== Pagefind index built ==="
+          ls -lh docs/pagefind/
+
+      - name: Build EPUB
+        run: |
+          asciidoctor-epub3 \
+            -D docs \
+            -a toc \
+            -a toclevels=3 \
+            -a sectnums \
+            -a sectnumlevels=3 \
+            -a icons=font \
+            -a imagesdir=images \
+            -a source-highlighter=rouge \
+            -o mastering-lightning-network-zh-TW.epub \
+            zh-TW/book.adoc
+        continue-on-error: true
+
+      - name: Build PDF
+        run: |
+          # Install CJK fonts for PDF generation
+          sudo apt-get install -y -qq fonts-noto-cjk fonts-noto-cjk-extra > /dev/null 2>&1
+
+          asciidoctor-pdf \
+            -D docs \
+            -a toc \
+            -a toclevels=3 \
+            -a sectnums \
+            -a sectnumlevels=3 \
+            -a icons=font \
+            -a imagesdir=images \
+            -a source-highlighter=rouge \
+            -a pdf-theme=zh-TW/pdf-theme.yml \
+            -a pdf-fontsdir="/usr/share/fonts/opentype/noto;GEM_FONTS_DIR" \
+            -a scripts=cjk \
+            -o mastering-lightning-network-zh-TW.pdf \
+            zh-TW/book.adoc
+        continue-on-error: true
+
+      - name: List generated ebooks
+        run: |
+          echo "=== Generated files in docs/ ==="
+          ls -lh docs/*.epub docs/*.pdf 2>/dev/null || echo "Some ebook formats may have failed"
+
+      - name: Create download page
+        run: |
+          # Create a simple download metadata file
+          cat > docs/downloads.json << DLEOF
+          {
+            "formats": {
+              "html": {
+                "url": "https://lnbook-zh.doge.tg/",
+                "description": "線上閱讀 (HTML)"
+              },
+              "epub": {
+                "url": "https://lnbook-zh.doge.tg/mastering-lightning-network-zh-TW.epub",
+                "filename": "mastering-lightning-network-zh-TW.epub",
+                "description": "EPUB 電子書 (適用於大多數電子書閱讀器)"
+              },
+              "pdf": {
+                "url": "https://lnbook-zh.doge.tg/mastering-lightning-network-zh-TW.pdf",
+                "filename": "mastering-lightning-network-zh-TW.pdf",
+                "description": "PDF 電子書 (適用於列印和桌面閱讀)"
+              }
+            },
+            "updated": "$(date -Iseconds)"
+          }
+          DLEOF
 
       - name: Generate sitemap and robots.txt
         run: |
@@ -291,7 +476,7 @@ jobs:
           多層加密的隱私路由，每個節點只知道上一跳和下一跳。
 
           ### BOLT 協議
-          Basis of Lightning Technology，閃電網路的技術規範。
+          Basis of Lightning Technology，閃電網路的��術規範。
 
           ## 技術規格
 
@@ -305,6 +490,12 @@ jobs:
           1. **LND** - Lightning Labs, Go 語言
           2. **Core Lightning** - Blockstream, C 語言
           3. **Eclair** - ACINQ, Scala 語言
+
+          ## 下載格式
+
+          - HTML 線上閱讀：https://lnbook-zh.doge.tg/
+          - EPUB 電子書：https://lnbook-zh.doge.tg/mastering-lightning-network-zh-TW.epub
+          - PDF 電子書：https://lnbook-zh.doge.tg/mastering-lightning-network-zh-TW.pdf
 
           ## 引用資訊
 
@@ -361,7 +552,7 @@ jobs:
           兩節點間的財務關係，透過多簽交易實現，允許無限次鏈下即時交易。
 
           ### 瞭望塔 (Watchtower)
-          監控通道狀態的服務，在對方試圖廣播舊狀態時進行懲罰。
+          ��控通道狀態的服務，在對方試圖廣播舊狀態時進行懲罰。
 
           ## 常見問題解答
 
@@ -411,8 +602,8 @@ jobs:
             "schema_version": "v1",
             "name_for_human": "精通閃電網路",
             "name_for_model": "mastering_lightning_network_zh",
-            "description_for_human": "比特幣閃電網路技術指南繁體中文版，涵蓋支付通道、HTLC、洋蔥路由等完整技術知識",
-            "description_for_model": "這是《Mastering the Lightning Network》的繁體中文翻譯，是學習比特幣 Layer 2 閃電網路的權威技術參考。內容包括：支付通道機制、HTLC 雜湊時間鎖定合約、洋蔥路由隱私保護、BOLT 協議規範、LND/Core Lightning/Eclair 節點架設。適合回答關於閃電網路運作原理、節點架設、錢包使用、安全隱私等技術問題。",
+            "description_for_human": "比特幣閃電網路技術指南繁體中文版��涵蓋支付通道、HTLC、洋蔥路由等完整技術知識",
+            "description_for_model": "這是《Mastering the Lightning Network》的繁體中文翻譯，是學習比特幣 Layer 2 閃電網路的權威技術參考。內容包括：支付通道機制、HTLC 雜湊時間鎖定合約、洋蔥路由隱私保��、BOLT 協議規範、LND/Core Lightning/Eclair 節點架設。適合回答關於閃電網路運作原理、節點架設、錢包使用、安全隱私等技術問題。",
             "api": {
               "type": "none"
             },
