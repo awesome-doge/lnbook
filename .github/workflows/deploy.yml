@@ -246,7 +246,18 @@ jobs:
       - name: Optimize images
         run: |
           # Install image optimization tools
-          sudo apt-get install -y -qq optipng jpegoptim > /dev/null 2>&1
+          sudo apt-get install -y -qq optipng jpegoptim imagemagick > /dev/null 2>&1
+
+          # Create optimized OG social sharing image (1200x630, <300KB)
+          if [ -f docs/images/cover.png ]; then
+            convert docs/images/cover.png \
+              -resize 1200x630^ \
+              -gravity center \
+              -extent 1200x630 \
+              -quality 85 \
+              docs/images/og-cover.jpg 2>/dev/null || true
+            echo "OG image: $(ls -lh docs/images/og-cover.jpg 2>/dev/null || echo 'failed')"
+          fi
 
           # Optimize PNGs (lossless)
           find docs/images -name '*.png' -exec optipng -quiet -o2 {} \; 2>/dev/null || true
@@ -355,80 +366,102 @@ jobs:
           }
           DLEOF
 
-      - name: Generate sitemap and robots.txt
+      - name: Generate sitemap, 404 page, and robots.txt
         run: |
-          # Generate enhanced sitemap.xml with chapter anchors
-          cat > docs/sitemap.xml << EOF
-          <?xml version="1.0" encoding="UTF-8"?>
+          TODAY=$(date +%Y-%m-%d)
+
+          # Auto-generate sitemap from actual HTML anchors
+          python3 << SMEOF
+          import re
+          from urllib.parse import quote
+
+          with open('docs/index.html', 'r', encoding='utf-8') as f:
+              html = f.read()
+
+          base = 'https://lnbook-zh.doge.tg'
+          today = '${TODAY}'
+
+          # Extract all h2 ids (chapters)
+          h2_ids = re.findall(r'<h2 id="([^"]+)"', html)
+
+          urls = []
+
+          # Main page
+          urls.append(f'''  <url>
+            <loc>{base}/</loc>
+            <lastmod>{today}</lastmod>
+            <changefreq>weekly</changefreq>
+            <priority>1.0</priority>
+            <xhtml:link rel="alternate" hreflang="zh-TW" href="{base}/"/>
+            <xhtml:link rel="alternate" hreflang="en" href="https://github.com/lnbook/lnbook"/>
+            <image:image>
+              <image:loc>{base}/images/cover.png</image:loc>
+              <image:title>精通閃電網路 Mastering the Lightning Network</image:title>
+            </image:image>
+          </url>''')
+
+          # Ebook downloads
+          for fmt in ['epub', 'pdf']:
+              urls.append(f'''  <url>
+            <loc>{base}/mastering-lightning-network-zh-TW.{fmt}</loc>
+            <lastmod>{today}</lastmod>
+            <changefreq>monthly</changefreq>
+            <priority>0.7</priority>
+          </url>''')
+
+          # All chapters from h2 ids
+          for i, h2id in enumerate(h2_ids):
+              encoded = quote(h2id, safe='')
+              pri = '0.9' if i < 5 else '0.85' if i < 12 else '0.8'
+              urls.append(f'''  <url>
+            <loc>{base}/#{encoded}</loc>
+            <lastmod>{today}</lastmod>
+            <changefreq>monthly</changefreq>
+            <priority>{pri}</priority>
+          </url>''')
+
+          sitemap = f'''<?xml version="1.0" encoding="UTF-8"?>
           <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
                   xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
-                  xmlns:xhtml="http://www.w3.org/1999/xhtml"
-                  xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
-            <!-- Main Page -->
-            <url>
-              <loc>https://lnbook-zh.doge.tg/</loc>
-              <lastmod>$(date +%Y-%m-%d)</lastmod>
-              <changefreq>weekly</changefreq>
-              <priority>1.0</priority>
-              <xhtml:link rel="alternate" hreflang="zh-TW" href="https://lnbook-zh.doge.tg/"/>
-              <xhtml:link rel="alternate" hreflang="en" href="https://github.com/lnbook/lnbook"/>
-              <image:image>
-                <image:loc>https://lnbook-zh.doge.tg/images/cover.png</image:loc>
-                <image:title>精通閃電網路 Mastering the Lightning Network 書籍封面</image:title>
-                <image:caption>Mastering the Lightning Network 繁體中文版 - 比特幣閃電網路完整技術指南</image:caption>
-              </image:image>
-            </url>
-            <!-- Chapter 1: Introduction -->
-            <url>
-              <loc>https://lnbook-zh.doge.tg/#_簡介</loc>
-              <lastmod>$(date +%Y-%m-%d)</lastmod>
-              <changefreq>monthly</changefreq>
-              <priority>0.9</priority>
-            </url>
-            <!-- Chapter 2: Getting Started -->
-            <url>
-              <loc>https://lnbook-zh.doge.tg/#_入門</loc>
-              <lastmod>$(date +%Y-%m-%d)</lastmod>
-              <changefreq>monthly</changefreq>
-              <priority>0.9</priority>
-            </url>
-            <!-- Chapter 3: How LN Works -->
-            <url>
-              <loc>https://lnbook-zh.doge.tg/#_閃電網路的運作原理</loc>
-              <lastmod>$(date +%Y-%m-%d)</lastmod>
-              <changefreq>monthly</changefreq>
-              <priority>0.9</priority>
-            </url>
-            <!-- Chapter 7: Payment Channels -->
-            <url>
-              <loc>https://lnbook-zh.doge.tg/#_支付通道</loc>
-              <lastmod>$(date +%Y-%m-%d)</lastmod>
-              <changefreq>monthly</changefreq>
-              <priority>0.85</priority>
-            </url>
-            <!-- Chapter 8: Routing HTLCs -->
-            <url>
-              <loc>https://lnbook-zh.doge.tg/#_路由htlc</loc>
-              <lastmod>$(date +%Y-%m-%d)</lastmod>
-              <changefreq>monthly</changefreq>
-              <priority>0.85</priority>
-            </url>
-            <!-- Chapter 10: Onion Routing -->
-            <url>
-              <loc>https://lnbook-zh.doge.tg/#_洋蔥路由</loc>
-              <lastmod>$(date +%Y-%m-%d)</lastmod>
-              <changefreq>monthly</changefreq>
-              <priority>0.85</priority>
-            </url>
-            <!-- Glossary -->
-            <url>
-              <loc>https://lnbook-zh.doge.tg/#_詞彙表</loc>
-              <lastmod>$(date +%Y-%m-%d)</lastmod>
-              <changefreq>monthly</changefreq>
-              <priority>0.8</priority>
-            </url>
-          </urlset>
-          EOF
+                  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+          {chr(10).join(urls)}
+          </urlset>'''
+
+          with open('docs/sitemap.xml', 'w', encoding='utf-8') as f:
+              f.write(sitemap)
+
+          print(f"Sitemap: {len(urls)} URLs generated from {len(h2_ids)} h2 anchors")
+          SMEOF
+
+          # Generate custom 404 page
+          cat > docs/404.html << 'FOUREOF'
+          <!DOCTYPE html>
+          <html lang="zh-TW">
+          <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>找不到頁面 - 精通閃電網路</title>
+          <style>
+          body { font-family: "Noto Sans TC", sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #1a202c; color: #e2e8f0; }
+          .box { text-align: center; max-width: 480px; padding: 2rem; }
+          h1 { font-size: 4rem; color: #f7931a; margin: 0; }
+          p { font-size: 1.1rem; line-height: 1.8; color: #a0aec0; }
+          a { color: #63b3ed; text-decoration: none; }
+          a:hover { text-decoration: underline; }
+          .btn { display: inline-block; margin-top: 1.5rem; padding: 0.8rem 2rem; background: #f7931a; color: #fff; border-radius: 8px; font-weight: 700; font-size: 1rem; }
+          .btn:hover { background: #e07b00; text-decoration: none; }
+          </style>
+          </head>
+          <body>
+          <div class="box">
+            <h1>404</h1>
+            <p>找不到您要的頁面。</p>
+            <p>您可以<a href="/">回到首頁</a>繼續閱讀《精通閃電網路》，<br>或下載 <a href="/mastering-lightning-network-zh-TW.epub">EPUB</a> / <a href="/mastering-lightning-network-zh-TW.pdf">PDF</a> 電子書。</p>
+            <a href="/" class="btn">回到首頁</a>
+          </div>
+          </body>
+          </html>
+          FOUREOF
 
           # Generate robots.txt with comprehensive AI crawler support
           cat > docs/robots.txt << 'EOF'
