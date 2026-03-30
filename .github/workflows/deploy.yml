@@ -84,8 +84,10 @@ jobs:
             -a multipage-level=1 \
             zh-TW/book.adoc 2>&1 || true
 
-          # Copy style.css to chapter directory
+          # Copy assets to chapter directory so relative paths work
           cp zh-TW/style.css docs/chapter/ 2>/dev/null || true
+          cp sw.js docs/chapter/ 2>/dev/null || true
+          cp manifest.json docs/chapter/ 2>/dev/null || true
 
           CHAPTER_COUNT=$(ls docs/chapter/*.html 2>/dev/null | wc -l)
           echo "Multipage: ${CHAPTER_COUNT} HTML files generated"
@@ -302,6 +304,9 @@ jobs:
             --root-selector "#content"
           echo "=== Pagefind index built ==="
           ls -lh docs/pagefind/
+
+          # Copy pagefind to chapter directory so multipage pages can use search
+          cp -r docs/pagefind docs/chapter/pagefind 2>/dev/null || true
 
       - name: Build EPUB
         run: |
