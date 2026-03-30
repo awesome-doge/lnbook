@@ -40,6 +40,7 @@ jobs:
           gem install rouge
           gem install asciidoctor-epub3
           gem install asciidoctor-pdf
+          gem install asciidoctor-multipage
           gem install citeproc-ruby csl-styles
           npm install -g pagefind
 
@@ -65,6 +66,31 @@ jobs:
           cp sw.js docs/ 2>/dev/null || true
           cp manifest.json docs/ 2>/dev/null || true
           echo "lnbook-zh.doge.tg" > docs/CNAME
+
+      - name: Build multipage HTML (SEO - each chapter gets own URL)
+        run: |
+          mkdir -p docs/chapter
+          asciidoctor -r asciidoctor-multipage \
+            -b multipage_html5 \
+            -D docs/chapter \
+            -a toc=left \
+            -a toclevels=2 \
+            -a sectnums \
+            -a sectnumlevels=3 \
+            -a icons=font \
+            -a source-highlighter=rouge \
+            -a imagesdir=../images \
+            -a stem=latexmath \
+            -a multipage-level=1 \
+            zh-TW/book.adoc 2>&1 || true
+
+          # Copy style.css to chapter directory
+          cp zh-TW/style.css docs/chapter/ 2>/dev/null || true
+
+          CHAPTER_COUNT=$(ls docs/chapter/*.html 2>/dev/null | wc -l)
+          echo "Multipage: ${CHAPTER_COUNT} HTML files generated"
+          ls docs/chapter/*.html 2>/dev/null | head -20
+        continue-on-error: true
 
       - name: Inject SEO meta tags
         run: |
@@ -409,15 +435,27 @@ jobs:
             <priority>0.7</priority>
           </url>''')
 
-          # All chapters from h2 ids
+          # Multipage chapter URLs (real URLs that Google can index individually)
+          import os, glob
+          chapter_files = sorted(glob.glob('docs/chapter/*.html'))
+          for i, fpath in enumerate(chapter_files):
+              fname = os.path.basename(fpath)
+              pri = '0.95' if fname == 'index.html' else '0.9' if i < 6 else '0.85' if i < 13 else '0.8'
+              urls.append(f'''  <url>
+            <loc>{base}/chapter/{fname}</loc>
+            <lastmod>{today}</lastmod>
+            <changefreq>monthly</changefreq>
+            <priority>{pri}</priority>
+          </url>''')
+
+          # Single-page fragment URLs (secondary, for completeness)
           for i, h2id in enumerate(h2_ids):
               encoded = quote(h2id, safe='')
-              pri = '0.9' if i < 5 else '0.85' if i < 12 else '0.8'
               urls.append(f'''  <url>
             <loc>{base}/#{encoded}</loc>
             <lastmod>{today}</lastmod>
             <changefreq>monthly</changefreq>
-            <priority>{pri}</priority>
+            <priority>0.6</priority>
           </url>''')
 
           sitemap = f'''<?xml version="1.0" encoding="UTF-8"?>
@@ -430,7 +468,7 @@ jobs:
           with open('docs/sitemap.xml', 'w', encoding='utf-8') as f:
               f.write(sitemap)
 
-          print(f"Sitemap: {len(urls)} URLs generated from {len(h2_ids)} h2 anchors")
+          print(f"Sitemap: {len(urls)} URLs ({len(chapter_files)} chapter pages + {len(h2_ids)} fragments)")
           SMEOF
 
           # Generate custom 404 page
