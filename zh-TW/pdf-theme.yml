@@ -1,9 +1,25 @@
 extends: default-with-font-fallbacks
+font:
+  catalog:
+    merge: true
+    # NotoSansCJK TTC contains: JP(0), KR(1), SC(2), TC(3), HK(4)
+    # We need index 3 for Traditional Chinese
+    Noto Sans TC:
+      normal: NotoSansCJK-Regular.ttc[3]
+      bold: NotoSansCJK-Bold.ttc[3]
+      italic: NotoSansCJK-Regular.ttc[3]
+      bold_italic: NotoSansCJK-Bold.ttc[3]
+    Noto Serif TC:
+      normal: NotoSerifCJK-Regular.ttc[3]
+      bold: NotoSerifCJK-Bold.ttc[3]
+      italic: NotoSerifCJK-Regular.ttc[3]
+      bold_italic: NotoSerifCJK-Bold.ttc[3]
 page:
   layout: portrait
   margin: [25mm, 20mm, 25mm, 20mm]
   size: A4
 base:
+  font-family: Noto Sans TC
   font-size: 10.5
   line-height-length: 18
   line-height: $base_line_height_length / $base_font_size
@@ -13,6 +29,7 @@ title-page:
   font-size: 27
   font-color: #f7931a
   title:
+    font-family: Noto Sans TC
     top: 40%
     font-size: 36
     font-color: #f7931a
@@ -26,6 +43,7 @@ title-page:
     font-color: #444444
     margin-top: 18
 heading:
+  font-family: Noto Sans TC
   font-color: #2c3e50
   h1-font-size: 24
   h2-font-size: 20
@@ -39,6 +57,7 @@ heading:
 link:
   font-color: #4a90d9
 code:
+  font-family: M+ 1mn
   font-size: 9
   line-height: 1.4
   padding: [4, 8, 4, 8]
@@ -47,6 +66,7 @@ code:
   border-radius: 3
   border-width: 0.5
 codespan:
+  font-family: $code_font_family
   font-size: 9.5
   font-color: #c7254e
   background-color: #f6f8fa
@@ -82,6 +102,7 @@ table:
 image:
   align: center
 toc:
+  font-family: Noto Sans TC
   line-height: 1.6
   indent: 16
   h2-font-size: 12
@@ -91,6 +112,7 @@ toc:
 header:
   height: 0
 footer:
+  font-family: Noto Sans TC
   height: 18mm
   font-size: 8
   font-color: #999999
