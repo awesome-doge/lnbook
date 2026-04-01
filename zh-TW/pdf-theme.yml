@@ -2,18 +2,16 @@ extends: default-with-font-fallbacks
 font:
   catalog:
     merge: true
-    # NotoSansCJK TTC contains: JP(0), KR(1), SC(2), TC(3), HK(4)
-    # We need index 3 for Traditional Chinese
     Noto Sans TC:
-      normal: NotoSansCJK-Regular.ttc[3]
-      bold: NotoSansCJK-Bold.ttc[3]
-      italic: NotoSansCJK-Regular.ttc[3]
-      bold_italic: NotoSansCJK-Bold.ttc[3]
+      normal: NotoSansCJK-Regular-TC.otf
+      bold: NotoSansCJK-Bold-TC.otf
+      italic: NotoSansCJK-Regular-TC.otf
+      bold_italic: NotoSansCJK-Bold-TC.otf
     Noto Serif TC:
-      normal: NotoSerifCJK-Regular.ttc[3]
-      bold: NotoSerifCJK-Bold.ttc[3]
-      italic: NotoSerifCJK-Regular.ttc[3]
-      bold_italic: NotoSerifCJK-Bold.ttc[3]
+      normal: NotoSerifCJK-Regular-TC.otf
+      bold: NotoSerifCJK-Bold-TC.otf
+      italic: NotoSerifCJK-Regular-TC.otf
+      bold_italic: NotoSerifCJK-Bold-TC.otf
 page:
   layout: portrait
   margin: [25mm, 20mm, 25mm, 20mm]
