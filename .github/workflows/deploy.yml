@@ -330,22 +330,28 @@ jobs:
           sudo apt-get install -y -qq fonts-noto-cjk fonts-noto-cjk-extra python3-fonttools > /dev/null 2>&1
 
           # Extract Traditional Chinese (TC) fonts from TTC collection
-          # TTC index: JP=0, KR=1, SC=2, TC=3, HK=4
           mkdir -p /tmp/tc-fonts
-          NOTO_DIR="/usr/share/fonts/opentype/noto"
+          python3 << 'FONTEOF'
+          import os, sys
+          try:
+              from fontTools.ttLib import TTCollection
+          except ImportError:
+              os.system("pip install fonttools")
+              from fontTools.ttLib import TTCollection
 
-          for ttc in NotoSansCJK-Regular NotoSansCJK-Bold NotoSerifCJK-Regular NotoSerifCJK-Bold; do
-            if [ -f "${NOTO_DIR}/${ttc}.ttc" ]; then
-              python3 -c "
-from fontTools.ttLib import TTCollection
-tc = TTCollection('${NOTO_DIR}/${ttc}.ttc')
-# Index 3 = Traditional Chinese
-font = tc.fonts[3]
-font.save('/tmp/tc-fonts/${ttc}-TC.otf')
-print('Extracted: ${ttc}-TC.otf')
-" 2>/dev/null || echo "Failed to extract ${ttc}"
-            fi
-          done
+          noto_dir = "/usr/share/fonts/opentype/noto"
+          # TTC index: JP=0, KR=1, SC=2, TC=3, HK=4
+          for name in ["NotoSansCJK-Regular", "NotoSansCJK-Bold", "NotoSerifCJK-Regular", "NotoSerifCJK-Bold"]:
+              ttc_path = os.path.join(noto_dir, name + ".ttc")
+              if os.path.exists(ttc_path):
+                  tc = TTCollection(ttc_path)
+                  font = tc.fonts[3]
+                  out = f"/tmp/tc-fonts/{name}-TC.otf"
+                  font.save(out)
+                  print(f"Extracted: {out} ({os.path.getsize(out) // 1024}KB)")
+              else:
+                  print(f"Not found: {ttc_path}")
+          FONTEOF
 
           echo "=== Extracted TC fonts ==="
           ls -lh /tmp/tc-fonts/
