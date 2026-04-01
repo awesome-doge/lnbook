@@ -1,23 +1,9 @@
-extends: default
-font:
-  catalog:
-    merge: true
-    Noto Sans CJK TC:
-      normal: NotoSansCJK-Regular.ttc
-      bold: NotoSansCJK-Bold.ttc
-      italic: NotoSansCJK-Regular.ttc
-      bold_italic: NotoSansCJK-Bold.ttc
-    Noto Serif CJK TC:
-      normal: NotoSerifCJK-Regular.ttc
-      bold: NotoSerifCJK-Bold.ttc
-      italic: NotoSerifCJK-Regular.ttc
-      bold_italic: NotoSerifCJK-Bold.ttc
+extends: default-with-font-fallbacks
 page:
   layout: portrait
   margin: [25mm, 20mm, 25mm, 20mm]
   size: A4
 base:
-  font-family: Noto Sans CJK TC
   font-size: 10.5
   line-height-length: 18
   line-height: $base_line_height_length / $base_font_size
@@ -40,7 +26,6 @@ title-page:
     font-color: #444444
     margin-top: 18
 heading:
-  font-family: Noto Sans CJK TC
   font-color: #2c3e50
   h1-font-size: 24
   h2-font-size: 20
@@ -54,7 +39,6 @@ heading:
 link:
   font-color: #4a90d9
 code:
-  font-family: M+ 1mn
   font-size: 9
   line-height: 1.4
   padding: [4, 8, 4, 8]
@@ -63,7 +47,6 @@ code:
   border-radius: 3
   border-width: 0.5
 codespan:
-  font-family: $code_font_family
   font-size: 9.5
   font-color: #c7254e
   background-color: #f6f8fa
@@ -87,17 +70,6 @@ admonition:
   padding: [8, 12, 8, 12]
   border-radius: 4
   column-rule-color: #e2e8f0
-  icon:
-    tip:
-      stroke-color: #10b981
-    note:
-      stroke-color: #4a90d9
-    warning:
-      stroke-color: #f59e0b
-    caution:
-      stroke-color: #ef4444
-    important:
-      stroke-color: #8b5cf6
 table:
   border-color: #e2e8f0
   border-width: 0.5
@@ -109,9 +81,7 @@ table:
     stripe-background-color: #fafbfc
 image:
   align: center
-  border-radius: 4
 toc:
-  font-family: $heading_font_family
   line-height: 1.6
   indent: 16
   h2-font-size: 12

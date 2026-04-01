@@ -319,18 +319,23 @@ jobs:
             -a icons=font \
             -a imagesdir=images \
             -a source-highlighter=rouge \
+            -a stem=latexmath \
             -o mastering-lightning-network-zh-TW.epub \
             zh-TW/book.adoc
         continue-on-error: true
 
       - name: Build PDF
         run: |
-          # Install CJK fonts for PDF generation
+          # Install CJK fonts
           sudo apt-get install -y -qq fonts-noto-cjk fonts-noto-cjk-extra > /dev/null 2>&1
 
-          # Register system CJK fonts for asciidoctor-pdf
-          NOTO_CJK_DIR="/usr/share/fonts/opentype/noto"
+          # List available CJK font files for debugging
+          echo "=== Available CJK fonts ==="
+          find /usr/share/fonts -name "*CJK*" -o -name "*noto*cjk*" 2>/dev/null | head -10
 
+          # Use asciidoctor-pdf with CJK support
+          # The key: use -a scripts=cjk which enables built-in CJK font fallbacks
+          # and point pdf-fontsdir to where system CJK fonts are installed
           asciidoctor-pdf \
             -D docs \
             -a toc \
@@ -341,29 +346,17 @@ jobs:
             -a imagesdir=images \
             -a source-highlighter=rouge \
             -a pdf-theme=zh-TW/pdf-theme.yml \
-            -a pdf-fontsdir="${NOTO_CJK_DIR};GEM_FONTS_DIR" \
+            -a pdf-fontsdir="GEM_FONTS_DIR;/usr/share/fonts/opentype/noto;/usr/share/fonts" \
             -a scripts=cjk \
+            -a stem=latexmath \
             -o mastering-lightning-network-zh-TW.pdf \
-            zh-TW/book.adoc 2>&1 || true
+            zh-TW/book.adoc 2>&1
 
-          # Check if PDF was generated
           if [ -f docs/mastering-lightning-network-zh-TW.pdf ]; then
-            echo "PDF generated successfully: $(ls -lh docs/mastering-lightning-network-zh-TW.pdf)"
+            PDF_SIZE=$(ls -lh docs/mastering-lightning-network-zh-TW.pdf | awk '{print $5}')
+            echo "PDF generated: ${PDF_SIZE}"
           else
-            echo "PDF generation failed, trying with default theme..."
-            asciidoctor-pdf \
-              -D docs \
-              -a toc \
-              -a toclevels=2 \
-              -a sectnums \
-              -a sectnumlevels=3 \
-              -a icons=font \
-              -a imagesdir=images \
-              -a source-highlighter=rouge \
-              -a scripts=cjk \
-              -a pdf-fontsdir="${NOTO_CJK_DIR};GEM_FONTS_DIR" \
-              -o mastering-lightning-network-zh-TW.pdf \
-              zh-TW/book.adoc 2>&1 || true
+            echo "PDF generation failed"
           fi
         continue-on-error: true
 
