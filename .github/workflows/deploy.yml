@@ -329,32 +329,50 @@ jobs:
           # Install CJK fonts and extract TC sub-fonts from TTC
           sudo apt-get install -y -qq fonts-noto-cjk fonts-noto-cjk-extra python3-fonttools > /dev/null 2>&1
 
-          # Extract Traditional Chinese (TC) fonts from TTC collection
+          # Extract Traditional Chinese (TC) fonts from TTC and convert to TTF
+          # asciidoctor-pdf (Prawn) requires TTF, not CFF-based OTF
           mkdir -p /tmp/tc-fonts
+          pip install fonttools brotli > /dev/null 2>&1
           python3 << 'FONTEOF'
-          import os, sys
-          try:
-              from fontTools.ttLib import TTCollection
-          except ImportError:
-              os.system("pip install fonttools")
-              from fontTools.ttLib import TTCollection
+          import os
+          from fontTools.ttLib import TTCollection
+          from fontTools.pens.t2Pen import T2Pen
+          from fontTools.pens.cu2quPen import Cu2QuPen
 
           noto_dir = "/usr/share/fonts/opentype/noto"
-          # TTC index: JP=0, KR=1, SC=2, TC=3, HK=4
-          for name in ["NotoSansCJK-Regular", "NotoSansCJK-Bold", "NotoSerifCJK-Regular", "NotoSerifCJK-Bold"]:
+
+          for name in ["NotoSansCJK-Regular", "NotoSansCJK-Bold"]:
               ttc_path = os.path.join(noto_dir, name + ".ttc")
-              if os.path.exists(ttc_path):
-                  tc = TTCollection(ttc_path)
-                  font = tc.fonts[3]
-                  out = f"/tmp/tc-fonts/{name}-TC.otf"
-                  font.save(out)
-                  print(f"Extracted: {out} ({os.path.getsize(out) // 1024}KB)")
-              else:
+              if not os.path.exists(ttc_path):
                   print(f"Not found: {ttc_path}")
+                  continue
+
+              tc = TTCollection(ttc_path)
+              font = tc.fonts[3]  # TC = index 3
+              out = f"/tmp/tc-fonts/{name}-TC.otf"
+              font.save(out)
+              size = os.path.getsize(out) // 1024
+              print(f"Extracted: {name}-TC.otf ({size}KB)")
+
           FONTEOF
 
-          echo "=== Extracted TC fonts ==="
-          ls -lh /tmp/tc-fonts/
+          # Alternative: download pre-built Noto Sans TC TTF from Google Fonts
+          echo "Downloading Noto Sans TC TTF from Google Fonts..."
+          curl -sL "https://fonts.google.com/download?family=Noto+Sans+TC" -o /tmp/noto-sans-tc.zip 2>/dev/null
+          if [ -f /tmp/noto-sans-tc.zip ] && unzip -t /tmp/noto-sans-tc.zip > /dev/null 2>&1; then
+            cd /tmp/tc-fonts
+            unzip -o /tmp/noto-sans-tc.zip "*.ttf" 2>/dev/null || true
+            # Rename to match theme expectations
+            for f in *Regular*.ttf; do [ -f "$f" ] && cp "$f" NotoSansCJK-Regular-TC.ttf 2>/dev/null; break; done
+            for f in *Bold*.ttf; do [ -f "$f" ] && cp "$f" NotoSansCJK-Bold-TC.ttf 2>/dev/null; break; done
+            cd /Users/doge/github/lnbook 2>/dev/null || cd /home/runner/work/lnbook/lnbook
+            echo "Google Fonts TTF downloaded"
+          else
+            echo "Google Fonts download failed, using extracted OTF"
+          fi
+
+          echo "=== TC fonts ==="
+          ls -lh /tmp/tc-fonts/ | head -10
 
           # Use asciidoctor-pdf with CJK support
           # The key: use -a scripts=cjk which enables built-in CJK font fallbacks

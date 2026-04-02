@@ -3,15 +3,10 @@ font:
   catalog:
     merge: true
     Noto Sans TC:
-      normal: NotoSansCJK-Regular-TC.otf
-      bold: NotoSansCJK-Bold-TC.otf
-      italic: NotoSansCJK-Regular-TC.otf
-      bold_italic: NotoSansCJK-Bold-TC.otf
-    Noto Serif TC:
-      normal: NotoSerifCJK-Regular-TC.otf
-      bold: NotoSerifCJK-Bold-TC.otf
-      italic: NotoSerifCJK-Regular-TC.otf
-      bold_italic: NotoSerifCJK-Bold-TC.otf
+      normal: NotoSansCJK-Regular-TC.ttf
+      bold: NotoSansCJK-Bold-TC.ttf
+      italic: NotoSansCJK-Regular-TC.ttf
+      bold_italic: NotoSansCJK-Bold-TC.ttf
 page:
   layout: portrait
   margin: [25mm, 20mm, 25mm, 20mm]
