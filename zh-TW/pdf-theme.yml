@@ -1,18 +1,11 @@
 extends: default-with-font-fallbacks
-font:
-  catalog:
-    merge: true
-    Noto Sans TC:
-      normal: NotoSansCJK-Regular-TC.ttf
-      bold: NotoSansCJK-Bold-TC.ttf
-      italic: NotoSansCJK-Regular-TC.ttf
-      bold_italic: NotoSansCJK-Bold-TC.ttf
+# Using scripts=cjk which provides M+ 1p font with CJK fallbacks
+# Do NOT override base font-family — let CJK script handle it
 page:
   layout: portrait
   margin: [25mm, 20mm, 25mm, 20mm]
   size: A4
 base:
-  font-family: Noto Sans TC
   font-size: 10.5
   line-height-length: 18
   line-height: $base_line_height_length / $base_font_size
@@ -22,7 +15,6 @@ title-page:
   font-size: 27
   font-color: #f7931a
   title:
-    font-family: Noto Sans TC
     top: 40%
     font-size: 36
     font-color: #f7931a
@@ -36,7 +28,6 @@ title-page:
     font-color: #444444
     margin-top: 18
 heading:
-  font-family: Noto Sans TC
   font-color: #2c3e50
   h1-font-size: 24
   h2-font-size: 20
@@ -95,7 +86,6 @@ table:
 image:
   align: center
 toc:
-  font-family: Noto Sans TC
   line-height: 1.6
   indent: 16
   h2-font-size: 12
@@ -105,7 +95,6 @@ toc:
 header:
   height: 0
 footer:
-  font-family: Noto Sans TC
   height: 18mm
   font-size: 8
   font-color: #999999
