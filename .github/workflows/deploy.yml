@@ -324,31 +324,89 @@ jobs:
             zh-TW/book.adoc
         continue-on-error: true
 
-      - name: Build PDF
+      - name: Build PDF (Chrome headless - full CJK support)
         run: |
-          # Use asciidoctor-pdf with scripts=cjk
-          # This uses built-in M+ 1p font which supports all CJK characters
-          # No custom CJK fonts needed (Prawn can't handle CFF-based OTF/TTC)
-          asciidoctor-pdf \
-            -D docs \
-            -a toc \
+          # Install CJK fonts and Chrome
+          sudo apt-get install -y -qq fonts-noto-cjk fonts-noto-cjk-extra > /dev/null 2>&1
+
+          # Build a print-optimized HTML for PDF conversion
+          asciidoctor \
+            -D /tmp \
+            -a toc=left \
             -a toclevels=2 \
             -a sectnums \
             -a sectnumlevels=3 \
             -a icons=font \
-            -a imagesdir=images \
             -a source-highlighter=rouge \
-            -a pdf-theme=zh-TW/pdf-theme.yml \
-            -a scripts=cjk \
+            -a imagesdir=$(pwd)/images \
             -a stem=latexmath \
-            -o mastering-lightning-network-zh-TW.pdf \
-            zh-TW/book.adoc 2>&1
+            -a docinfo=shared \
+            -o pdf-source.html \
+            zh-TW/book.adoc
+
+          # Inject print-specific CSS into the HTML
+          python3 << 'PDFCSS'
+          with open('/tmp/pdf-source.html', 'r', encoding='utf-8') as f:
+              html = f.read()
+
+          print_css = '''<style>
+          @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+          body { font-family: "Noto Sans TC", sans-serif !important; font-size: 11pt !important; line-height: 1.7 !important; color: #333 !important; }
+          #toc { display: none !important; }
+          #content { max-width: 100% !important; margin: 0 !important; padding: 20px 40px !important; }
+          h1,h2,h3,h4,h5,h6 { font-family: "Noto Sans TC", sans-serif !important; color: #2c3e50 !important; page-break-after: avoid !important; }
+          h1 { font-size: 24pt !important; color: #f7931a !important; border-bottom: 2px solid #f7931a !important; }
+          h2 { font-size: 18pt !important; border-bottom: 1px solid #ddd !important; }
+          pre { page-break-inside: avoid !important; font-size: 9pt !important; }
+          .imageblock { page-break-inside: avoid !important; }
+          .admonitionblock { page-break-inside: avoid !important; }
+          table { page-break-inside: avoid !important; }
+          a { color: #4a90d9 !important; }
+          #reading-progress, #back-to-top, #toc-toggle, #toc-overlay, #search-toggle, #search-modal, #chapter-nav { display: none !important; }
+          @page { margin: 20mm 15mm; size: A4; }
+          @page :first { margin-top: 0; }
+          </style>'''
+
+          html = html.replace('</head>', print_css + '\n</head>', 1)
+          with open('/tmp/pdf-source.html', 'w', encoding='utf-8') as f:
+              f.write(html)
+          print("Print CSS injected")
+          PDFCSS
+
+          # Use Chrome headless to generate PDF
+          # Chrome on GitHub Actions runners is pre-installed
+          CHROME=$(which google-chrome-stable || which google-chrome || which chromium-browser || echo "")
+          if [ -z "$CHROME" ]; then
+            echo "Installing Chrome..."
+            sudo apt-get install -y -qq google-chrome-stable > /dev/null 2>&1 || \
+            sudo apt-get install -y -qq chromium-browser > /dev/null 2>&1
+            CHROME=$(which google-chrome-stable || which google-chrome || which chromium-browser)
+          fi
+
+          echo "Using: $CHROME"
+
+          "$CHROME" \
+            --headless \
+            --disable-gpu \
+            --no-sandbox \
+            --print-to-pdf=docs/mastering-lightning-network-zh-TW.pdf \
+            --no-pdf-header-footer \
+            --print-to-pdf-no-header \
+            /tmp/pdf-source.html 2>&1 || true
 
           if [ -f docs/mastering-lightning-network-zh-TW.pdf ]; then
             PDF_SIZE=$(ls -lh docs/mastering-lightning-network-zh-TW.pdf | awk '{print $5}')
             echo "PDF generated: ${PDF_SIZE}"
           else
-            echo "PDF generation failed"
+            echo "Chrome PDF failed, falling back to asciidoctor-pdf..."
+            asciidoctor-pdf \
+              -D docs \
+              -a toc -a toclevels=2 -a sectnums -a icons=font \
+              -a imagesdir=images -a source-highlighter=rouge \
+              -a scripts=cjk -a stem=latexmath \
+              -a pdf-theme=zh-TW/pdf-theme.yml \
+              -o mastering-lightning-network-zh-TW.pdf \
+              zh-TW/book.adoc 2>&1 || true
           fi
         continue-on-error: true
 
