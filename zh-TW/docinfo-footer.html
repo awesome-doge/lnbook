@@ -171,6 +171,8 @@
   }
 
   function closeSearch() {
+    // Move focus out before hiding, to avoid aria-hidden on focused element
+    searchToggle.focus();
     searchModal.classList.remove('open');
     searchModal.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';

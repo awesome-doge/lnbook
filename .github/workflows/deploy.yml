@@ -65,6 +65,7 @@ jobs:
           cp zh-TW/style.css docs/ 2>/dev/null || true
           cp sw.js docs/ 2>/dev/null || true
           cp manifest.json docs/ 2>/dev/null || true
+          cp images/cover.png docs/favicon.png 2>/dev/null || true
           echo "lnbook-zh.doge.tg" > docs/CNAME
 
       - name: Build multipage HTML (SEO - each chapter gets own URL)
