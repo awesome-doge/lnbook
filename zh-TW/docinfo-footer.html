@@ -91,6 +91,7 @@
   function openToc() {
     if (toc) toc.classList.add('toc-open');
     if (tocOverlay) tocOverlay.classList.add('visible');
+    document.body.classList.add('toc-is-open');
     tocToggle.innerHTML = '&#10005;';
     tocToggle.setAttribute('aria-expanded', 'true');
     tocToggle.setAttribute('aria-label', '關閉目錄');
@@ -103,6 +104,7 @@
   function closeToc() {
     if (toc) toc.classList.remove('toc-open');
     if (tocOverlay) tocOverlay.classList.remove('visible');
+    document.body.classList.remove('toc-is-open');
     tocToggle.innerHTML = '&#9776;';
     tocToggle.setAttribute('aria-expanded', 'false');
     tocToggle.setAttribute('aria-label', '開啟目錄');

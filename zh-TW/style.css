@@ -755,12 +755,6 @@ hr {
   /* Show TOC toggle */
   #toc-toggle { display: flex !important; }
 
-  /* Ensure content doesn't stack above TOC overlay */
-  #header, #content, #footer {
-    position: relative !important;
-    z-index: 1 !important;
-  }
-
   /* Hide TOC by default, slide in from left */
   #toc.toc2,
   #toc {
@@ -770,6 +764,7 @@ hr {
     width: 82vw !important;
     max-width: 300px !important;
     height: 100vh !important;
+    height: 100dvh !important;
     overflow-y: auto !important;
     background-color: var(--ln-bg-alt) !important;
     border-right: 1px solid var(--ln-border) !important;
@@ -792,14 +787,24 @@ hr {
     display: none;
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.6);
     z-index: 9999;
     opacity: 0;
     transition: opacity 0.3s;
-    -webkit-backdrop-filter: blur(2px);
-    backdrop-filter: blur(2px);
   }
   #toc-overlay.visible { display: block; opacity: 1; }
+
+  /* Hide content behind overlay — prevents iOS Safari stacking bleed-through */
+  body.toc-is-open #header,
+  body.toc-is-open #content,
+  body.toc-is-open #footnotes,
+  body.toc-is-open #footer {
+    visibility: hidden !important;
+  }
+  /* TOC lives inside #header in Asciidoctor — keep it visible */
+  body.toc-is-open #toc {
+    visibility: visible !important;
+  }
 
   /* Content full width */
   #content {
@@ -1095,11 +1100,6 @@ hr {
   #toctitle {
     color: var(--ln-primary) !important;
     border-bottom-color: var(--ln-primary) !important;
-  }
-
-  /* --- TOC overlay stronger in dark mode --- */
-  #toc-overlay {
-    background: rgba(0,0,0,0.7) !important;
   }
 
   /* --- Footer --- */
