@@ -792,10 +792,12 @@ hr {
     display: none;
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0,0,0,0.5);
     z-index: 9999;
     opacity: 0;
     transition: opacity 0.3s;
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
   }
   #toc-overlay.visible { display: block; opacity: 1; }
 
@@ -1093,6 +1095,11 @@ hr {
   #toctitle {
     color: var(--ln-primary) !important;
     border-bottom-color: var(--ln-primary) !important;
+  }
+
+  /* --- TOC overlay stronger in dark mode --- */
+  #toc-overlay {
+    background: rgba(0,0,0,0.7) !important;
   }
 
   /* --- Footer --- */
