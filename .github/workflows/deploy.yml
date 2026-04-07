@@ -186,6 +186,30 @@ jobs:
               f.write(html)
           MATHEOF
 
+          # Add loading="lazy" and decoding="async" to all images at build time
+          # This is more effective than JS-based lazy loading since the browser
+          # knows about it before starting image downloads
+          python3 << 'LAZYEOF'
+          import re
+          with open('docs/index.html', 'r', encoding='utf-8') as f:
+              html = f.read()
+
+          count = 0
+          def add_lazy(match):
+              global count
+              tag = match.group(0)
+              if 'loading=' in tag:
+                  return tag
+              tag = tag.replace('<img ', '<img loading="lazy" decoding="async" ', 1)
+              count += 1
+              return tag
+
+          html = re.sub(r'<img\s', add_lazy, html)
+          with open('docs/index.html', 'w', encoding='utf-8') as f:
+              f.write(html)
+          print(f"Added lazy loading to {count} images")
+          LAZYEOF
+
       - name: Inject build version and English cross-references
         run: |
           BUILD_DATE=$(date '+%Y-%m-%d %H:%M')

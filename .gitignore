@@ -15,3 +15,4 @@ tx
 lang
 _build
 .DS_Store
+.gstack/
